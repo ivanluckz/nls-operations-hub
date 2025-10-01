@@ -148,6 +148,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          banned: boolean
           created_at: string
           email: string
           full_name: string
@@ -156,6 +157,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          banned?: boolean
           created_at?: string
           email: string
           full_name: string
@@ -164,6 +166,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          banned?: boolean
           created_at?: string
           email?: string
           full_name?: string
@@ -178,6 +181,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      is_admin: {
+        Args: { user_id: string }
+        Returns: boolean
+      }
       is_moderator: {
         Args: { user_id: string }
         Returns: boolean
@@ -185,7 +192,7 @@ export type Database = {
     }
     Enums: {
       allocation_status: "pending" | "allocated" | "waitlisted"
-      user_role: "student" | "moderator"
+      user_role: "student" | "moderator" | "admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -314,7 +321,7 @@ export const Constants = {
   public: {
     Enums: {
       allocation_status: ["pending", "allocated", "waitlisted"],
-      user_role: ["student", "moderator"],
+      user_role: ["student", "moderator", "admin"],
     },
   },
 } as const

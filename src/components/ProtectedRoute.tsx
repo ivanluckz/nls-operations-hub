@@ -5,7 +5,7 @@ import { User } from "@supabase/supabase-js";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  requiredRole?: "student" | "moderator";
+  requiredRole?: "student" | "moderator" | "admin";
 }
 
 const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
@@ -44,11 +44,20 @@ const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
     try {
       const { data, error } = await supabase
         .from("profiles")
-        .select("role")
+        .select("role, banned")
         .eq("id", userId)
         .single();
 
       if (error) throw error;
+      
+      // Check if user is banned
+      if (data?.banned) {
+        await supabase.auth.signOut();
+        setUserRole(null);
+        setUser(null);
+        return;
+      }
+      
       setUserRole(data?.role || null);
     } catch (error) {
       console.error("Error fetching user role:", error);
@@ -71,7 +80,9 @@ const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
 
   if (requiredRole && userRole !== requiredRole) {
     // Redirect to correct dashboard based on role
-    if (userRole === "moderator") {
+    if (userRole === "admin") {
+      return <Navigate to="/admin" replace />;
+    } else if (userRole === "moderator") {
       return <Navigate to="/moderator" replace />;
     } else {
       return <Navigate to="/student" replace />;

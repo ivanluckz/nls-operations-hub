@@ -24,7 +24,9 @@ const Index = () => {
           .eq("id", user.id)
           .single();
 
-        if (profile?.role === "moderator") {
+        if (profile?.role === "admin") {
+          navigate("/admin");
+        } else if (profile?.role === "moderator") {
           navigate("/moderator");
         } else {
           navigate("/student");

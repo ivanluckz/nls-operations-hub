@@ -11,6 +11,7 @@ import StudentPreferences from "./pages/StudentPreferences";
 import ModeratorDashboard from "./pages/ModeratorDashboard";
 import ModeratorActivities from "./pages/ModeratorActivities";
 import ModeratorAllocations from "./pages/ModeratorAllocations";
+import AdminDashboard from "./pages/AdminDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -61,6 +62,14 @@ const App = () => (
             element={
               <ProtectedRoute requiredRole="moderator">
                 <ModeratorAllocations />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <AdminDashboard />
               </ProtectedRoute>
             }
           />
