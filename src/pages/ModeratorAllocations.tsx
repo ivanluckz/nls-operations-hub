@@ -14,7 +14,17 @@ const ModeratorAllocations = () => {
   const handleRunAllocation = async () => {
     setRunning(true);
     try {
-      const { data, error } = await supabase.functions.invoke("allocate-activities");
+      const { data: session } = await supabase.auth.getSession();
+      if (!session.session) {
+        throw new Error("Not authenticated");
+      }
+
+      const { data, error } = await supabase.functions.invoke("allocate-activities", {
+        headers: {
+          Authorization: `Bearer ${session.session.access_token}`,
+        },
+      });
+      
       if (error) throw error;
       
       toast({
@@ -24,6 +34,7 @@ const ModeratorAllocations = () => {
       
       navigate("/moderator");
     } catch (error: any) {
+      console.error("Allocation error:", error);
       toast({
         variant: "destructive",
         title: "Error",

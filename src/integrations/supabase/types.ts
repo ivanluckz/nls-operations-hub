@@ -178,7 +178,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      is_moderator: {
+        Args: { user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       allocation_status: "pending" | "allocated" | "waitlisted"

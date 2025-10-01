@@ -12,24 +12,70 @@ serve(async (req) => {
   }
 
   try {
+    // Security: Verify the user is authenticated and is a moderator
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: "Missing authorization header" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    // Verify user is a moderator
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+    if (authError || !user) {
+      console.error("Authentication error:", authError);
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const { data: profile, error: profileError } = await supabaseClient
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+
+    if (profileError || profile?.role !== "moderator") {
+      console.error("Authorization error:", profileError);
+      return new Response(
+        JSON.stringify({ error: "Forbidden: Moderator access required" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Use service role for allocation operations
+    const serviceClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    // Fetch all preferences
-    const { data: preferences, error: prefError } = await supabaseClient
+    // Fetch all preferences using service client
+    const { data: preferences, error: prefError } = await serviceClient
       .from("preferences")
       .select("student_id, first_choice, second_choice, third_choice");
 
-    if (prefError) throw prefError;
+    if (prefError) {
+      console.error("Error fetching preferences:", prefError);
+      throw prefError;
+    }
 
-    // Fetch all activities
-    const { data: activities, error: actError } = await supabaseClient
+    // Fetch all activities using service client
+    const { data: activities, error: actError } = await serviceClient
       .from("activities")
       .select("id, capacity");
 
-    if (actError) throw actError;
+    if (actError) {
+      console.error("Error fetching activities:", actError);
+      throw actError;
+    }
 
     // Create capacity tracker
     const capacityTracker = new Map(activities.map(a => [a.id, { capacity: a.capacity, enrolled: 0 }]));
@@ -80,12 +126,17 @@ serve(async (req) => {
       }
     }
 
-    // Insert allocations
-    const { error: insertError } = await supabaseClient
+    // Insert allocations using service client
+    const { error: insertError } = await serviceClient
       .from("allocations")
       .upsert(allocations);
 
-    if (insertError) throw insertError;
+    if (insertError) {
+      console.error("Error inserting allocations:", insertError);
+      throw insertError;
+    }
+
+    console.log(`Successfully allocated ${allocations.length} students`);
 
     return new Response(
       JSON.stringify({ success: true, allocated: allocations.length }),

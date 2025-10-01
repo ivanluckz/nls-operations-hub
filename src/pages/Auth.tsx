@@ -67,6 +67,17 @@ const Auth = () => {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(signupForm.email)) {
+      toast({
+        variant: "destructive",
+        title: "Invalid Email",
+        description: "Please enter a valid email address",
+      });
+      return;
+    }
+
     if (signupForm.password !== signupForm.confirmPassword) {
       toast({
         variant: "destructive",
@@ -76,25 +87,40 @@ const Auth = () => {
       return;
     }
 
-    if (signupForm.password.length < 6) {
+    // Enhanced password validation
+    if (signupForm.password.length < 8) {
       toast({
         variant: "destructive",
         title: "Password too short",
-        description: "Password must be at least 6 characters",
+        description: "Password must be at least 8 characters",
       });
       return;
     }
 
+    if (!/[A-Z]/.test(signupForm.password) || !/[a-z]/.test(signupForm.password) || !/[0-9]/.test(signupForm.password)) {
+      toast({
+        variant: "destructive",
+        title: "Weak password",
+        description: "Password must contain uppercase, lowercase, and numbers",
+      });
+      return;
+    }
+
+    // Sanitize input
+    const sanitizedFullName = signupForm.fullName.trim().slice(0, 100);
+
     setIsLoading(true);
 
     try {
+      // Security fix: All signups are students by default
+      // Moderators must be promoted by an admin
       const { data, error } = await supabase.auth.signUp({
-        email: signupForm.email,
+        email: signupForm.email.trim().toLowerCase(),
         password: signupForm.password,
         options: {
           data: {
-            full_name: signupForm.fullName,
-            role: signupForm.role,
+            full_name: sanitizedFullName,
+            role: 'student', // Force student role for security
           },
           emailRedirectTo: `${window.location.origin}/`,
         },
@@ -110,16 +136,12 @@ const Auth = () => {
 
         // Auto-login after signup
         const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
-          email: signupForm.email,
+          email: signupForm.email.trim().toLowerCase(),
           password: signupForm.password,
         });
 
         if (!loginError && loginData.user) {
-          if (signupForm.role === "moderator") {
-            navigate("/moderator");
-          } else {
-            navigate("/student");
-          }
+          navigate("/student");
         }
       }
     } catch (error: any) {
@@ -215,27 +237,10 @@ const Auth = () => {
                     required
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label>Account Type</Label>
-                  <RadioGroup
-                    value={signupForm.role}
-                    onValueChange={(value: "student" | "moderator") =>
-                      setSignupForm({ ...signupForm, role: value })
-                    }
-                  >
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="student" id="student" />
-                      <Label htmlFor="student" className="font-normal cursor-pointer">
-                        Student
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="moderator" id="moderator" />
-                      <Label htmlFor="moderator" className="font-normal cursor-pointer">
-                        Moderator/Admin
-                      </Label>
-                    </div>
-                  </RadioGroup>
+                <div className="rounded-lg bg-muted p-3">
+                  <p className="text-sm text-muted-foreground">
+                    All new accounts are created as <strong>students</strong>. Contact an administrator to be promoted to moderator.
+                  </p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="signup-password">Password</Label>
@@ -248,6 +253,9 @@ const Auth = () => {
                     }
                     required
                   />
+                  <p className="text-xs text-muted-foreground">
+                    Must be 8+ characters with uppercase, lowercase, and numbers
+                  </p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="signup-confirm-password">Confirm Password</Label>
