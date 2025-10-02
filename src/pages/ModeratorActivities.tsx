@@ -17,16 +17,24 @@ interface Activity {
   description: string;
   category: string;
   teacher_in_charge: string;
+  teacher_id: string | null;
   schedule: string;
   capacity: number;
   current_enrollment: number;
   is_active: boolean;
+  day_of_week: string;
+}
+
+interface Teacher {
+  id: string;
+  full_name: string;
 }
 
 const ModeratorActivities = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [activities, setActivities] = useState<Activity[]>([]);
+  const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
@@ -34,29 +42,39 @@ const ModeratorActivities = () => {
     title: "",
     description: "",
     category: "",
-    teacher_in_charge: "",
+    teacher_id: "",
     schedule: "",
     capacity: "",
+    day_of_week: "Monday",
   });
 
   useEffect(() => {
-    fetchActivities();
+    fetchData();
   }, []);
 
-  const fetchActivities = async () => {
+  const fetchData = async () => {
     try {
-      const { data } = await supabase
+      const { data: activitiesData } = await supabase
         .from("activities")
         .select("*")
+        .order("day_of_week")
         .order("title");
 
-      setActivities(data || []);
+      setActivities(activitiesData || []);
+
+      const { data: teachersData } = await supabase
+        .from("profiles")
+        .select("id, full_name")
+        .eq("role", "teacher")
+        .order("full_name");
+
+      setTeachers(teachersData || []);
     } catch (error) {
-      console.error("Error fetching activities:", error);
+      console.error("Error fetching data:", error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to load activities",
+        description: "Failed to load data",
       });
     } finally {
       setLoading(false);
@@ -70,9 +88,10 @@ const ModeratorActivities = () => {
         title: activity.title,
         description: activity.description,
         category: activity.category,
-        teacher_in_charge: activity.teacher_in_charge,
+        teacher_id: activity.teacher_id || "",
         schedule: activity.schedule,
         capacity: activity.capacity.toString(),
+        day_of_week: activity.day_of_week,
       });
     } else {
       setEditingActivity(null);
@@ -80,9 +99,10 @@ const ModeratorActivities = () => {
         title: "",
         description: "",
         category: "",
-        teacher_in_charge: "",
+        teacher_id: "",
         schedule: "",
         capacity: "",
+        day_of_week: "Monday",
       });
     }
     setDialogOpen(true);
@@ -99,9 +119,11 @@ const ModeratorActivities = () => {
         title: formData.title,
         description: formData.description,
         category: formData.category,
-        teacher_in_charge: formData.teacher_in_charge,
+        teacher_id: formData.teacher_id || null,
+        teacher_in_charge: formData.teacher_id ? teachers.find(t => t.id === formData.teacher_id)?.full_name || "TBD" : "TBD",
         schedule: formData.schedule,
         capacity: parseInt(formData.capacity),
+        day_of_week: formData.day_of_week,
         created_by: user.id,
       };
 
@@ -123,7 +145,7 @@ const ModeratorActivities = () => {
       }
 
       setDialogOpen(false);
-      fetchActivities();
+      fetchData();
     } catch (error: any) {
       console.error("Error saving activity:", error);
       toast({
@@ -146,7 +168,7 @@ const ModeratorActivities = () => {
       if (error) throw error;
 
       toast({ title: "Activity deleted successfully" });
-      fetchActivities();
+      fetchData();
     } catch (error: any) {
       console.error("Error deleting activity:", error);
       toast({
@@ -210,6 +232,22 @@ const ModeratorActivities = () => {
                     required
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="day_of_week">Day of Week *</Label>
+                  <select
+                    id="day_of_week"
+                    value={formData.day_of_week}
+                    onChange={(e) => setFormData({ ...formData, day_of_week: e.target.value })}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    required
+                  >
+                    <option value="Monday">Monday</option>
+                    <option value="Tuesday">Tuesday</option>
+                    <option value="Wednesday">Wednesday</option>
+                    <option value="Thursday">Thursday</option>
+                    <option value="Friday">Friday</option>
+                  </select>
+                </div>
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="category">Category *</Label>
@@ -234,19 +272,24 @@ const ModeratorActivities = () => {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="teacher">Teacher in Charge *</Label>
-                  <Input
+                  <Label htmlFor="teacher">Teacher (Optional)</Label>
+                  <select
                     id="teacher"
-                    value={formData.teacher_in_charge}
-                    onChange={(e) => setFormData({ ...formData, teacher_in_charge: e.target.value })}
-                    required
-                  />
+                    value={formData.teacher_id}
+                    onChange={(e) => setFormData({ ...formData, teacher_id: e.target.value })}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  >
+                    <option value="">No teacher assigned</option>
+                    {teachers.map(teacher => (
+                      <option key={teacher.id} value={teacher.id}>{teacher.full_name}</option>
+                    ))}
+                  </select>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="schedule">Schedule *</Label>
                   <Input
                     id="schedule"
-                    placeholder="e.g., Mondays 3-5 PM"
+                    placeholder="e.g., 3-5 PM"
                     value={formData.schedule}
                     onChange={(e) => setFormData({ ...formData, schedule: e.target.value })}
                     required
@@ -281,7 +324,10 @@ const ModeratorActivities = () => {
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1">
                     <CardTitle className="text-lg mb-1">{activity.title}</CardTitle>
-                    <Badge variant="outline">{activity.category}</Badge>
+                    <div className="flex gap-2 flex-wrap">
+                      <Badge variant="outline">{activity.category}</Badge>
+                      <Badge>{activity.day_of_week}</Badge>
+                    </div>
                   </div>
                   <div className="flex gap-1">
                     <Button

@@ -5,7 +5,7 @@ import { User } from "@supabase/supabase-js";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  requiredRole?: "student" | "moderator" | "admin";
+  requiredRole?: "student" | "moderator" | "admin" | "teacher";
 }
 
 const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
@@ -79,14 +79,10 @@ const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
   }
 
   if (requiredRole && userRole !== requiredRole) {
-    // Redirect to correct dashboard based on role
-    if (userRole === "admin") {
-      return <Navigate to="/admin" replace />;
-    } else if (userRole === "moderator") {
-      return <Navigate to="/moderator" replace />;
-    } else {
-      return <Navigate to="/student" replace />;
-    }
+    if (userRole === "admin") return <Navigate to="/admin" replace />;
+    if (userRole === "moderator") return <Navigate to="/moderator" replace />;
+    if (userRole === "teacher") return <Navigate to="/teacher" replace />;
+    return <Navigate to="/student" replace />;
   }
 
   return <>{children}</>;

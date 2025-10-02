@@ -4,14 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  LogOut, 
-  BookOpen, 
-  CheckCircle2, 
-  Clock, 
-  AlertCircle 
-} from "lucide-react";
+import { LogOut, BookOpen, CheckCircle2, Clock, AlertCircle } from "lucide-react";
 
 interface Profile {
   full_name: string;
@@ -25,30 +20,24 @@ interface Activity {
   category: string;
   teacher_in_charge: string;
   schedule: string;
-  capacity: number;
-  current_enrollment: number;
-}
-
-interface Preference {
-  first_choice: string;
-  second_choice: string;
-  third_choice: string;
+  day_of_week: string;
 }
 
 interface Allocation {
   activity_id: string;
+  day_of_week: string;
   preference_rank: number;
-  status: string;
   activities: Activity;
 }
+
+const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 
 const StudentDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [activities, setActivities] = useState<Activity[]>([]);
-  const [preference, setPreference] = useState<Preference | null>(null);
-  const [allocation, setAllocation] = useState<Allocation | null>(null);
+  const [hasPreferences, setHasPreferences] = useState(false);
+  const [allocations, setAllocations] = useState<Allocation[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -60,7 +49,6 @@ const StudentDashboard = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Fetch profile
       const { data: profileData } = await supabase
         .from("profiles")
         .select("full_name, email")
@@ -69,32 +57,20 @@ const StudentDashboard = () => {
 
       setProfile(profileData);
 
-      // Fetch activities
-      const { data: activitiesData } = await supabase
-        .from("activities")
-        .select("*")
-        .eq("is_active", true)
-        .order("title");
-
-      setActivities(activitiesData || []);
-
-      // Fetch preferences
       const { data: preferenceData } = await supabase
         .from("preferences")
         .select("*")
         .eq("student_id", user.id)
         .maybeSingle();
 
-      setPreference(preferenceData);
+      setHasPreferences(!!preferenceData);
 
-      // Fetch allocation
-      const { data: allocationData } = await supabase
+      const { data: allocationsData } = await supabase
         .from("allocations")
         .select("*, activities(*)")
-        .eq("student_id", user.id)
-        .maybeSingle();
+        .eq("student_id", user.id);
 
-      setAllocation(allocationData as Allocation | null);
+      setAllocations(allocationsData as Allocation[] || []);
     } catch (error) {
       console.error("Error fetching data:", error);
       toast({
@@ -113,14 +89,14 @@ const StudentDashboard = () => {
   };
 
   const getStatusInfo = () => {
-    if (allocation) {
+    if (allocations.length > 0) {
       return {
         icon: CheckCircle2,
         text: "Allocated",
         color: "text-success",
         bgColor: "bg-success/10",
       };
-    } else if (preference) {
+    } else if (hasPreferences) {
       return {
         icon: Clock,
         text: "Preferences Submitted",
@@ -137,9 +113,8 @@ const StudentDashboard = () => {
     }
   };
 
-  const getActivityTitle = (activityId: string) => {
-    const activity = activities.find(a => a.id === activityId);
-    return activity?.title || "Unknown Activity";
+  const getAllocationByDay = (day: string) => {
+    return allocations.find(a => a.day_of_week === day);
   };
 
   if (loading) {
@@ -155,7 +130,6 @@ const StudentDashboard = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <header className="border-b bg-card shadow-card">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -164,9 +138,7 @@ const StudentDashboard = () => {
             </div>
             <div>
               <h1 className="text-xl font-bold">Student Portal</h1>
-              <p className="text-sm text-muted-foreground">
-                {profile?.full_name}
-              </p>
+              <p className="text-sm text-muted-foreground">{profile?.full_name}</p>
             </div>
           </div>
           <Button variant="outline" onClick={handleLogout}>
@@ -176,9 +148,7 @@ const StudentDashboard = () => {
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="container mx-auto px-4 py-8 space-y-6">
-        {/* Status Card */}
         <Card className="shadow-card">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -195,106 +165,75 @@ const StudentDashboard = () => {
           </CardContent>
         </Card>
 
-        {/* Allocation Result */}
-        {allocation && (
+        {allocations.length > 0 && (
           <Card className="shadow-card border-success/20">
             <CardHeader>
-              <CardTitle className="text-success">
-                🎉 Your Allocation Result
-              </CardTitle>
+              <CardTitle className="text-success">🎉 Your Weekly Timetable</CardTitle>
               <CardDescription>
-                You have been allocated to a co-curricular activity
+                Your co-curricular activities for each day
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <h3 className="font-semibold text-lg mb-2">
-                  {allocation.activities.title}
-                </h3>
-                <p className="text-muted-foreground mb-4">
-                  {allocation.activities.description}
-                </p>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <p className="text-muted-foreground">Teacher</p>
-                    <p className="font-medium">
-                      {allocation.activities.teacher_in_charge}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Schedule</p>
-                    <p className="font-medium">
-                      {allocation.activities.schedule}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Category</p>
-                    <p className="font-medium">
-                      {allocation.activities.category}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Preference Rank</p>
-                    <p className="font-medium">
-                      {allocation.preference_rank === 1 && "1st Choice ⭐"}
-                      {allocation.preference_rank === 2 && "2nd Choice"}
-                      {allocation.preference_rank === 3 && "3rd Choice"}
-                    </p>
-                  </div>
-                </div>
-              </div>
-              {allocation.preference_rank !== 1 && (
-                <div className="bg-muted/50 p-4 rounded-lg">
-                  <p className="text-sm text-muted-foreground">
-                    You were allocated to your {allocation.preference_rank === 2 ? "second" : "third"} choice 
-                    due to capacity constraints in your higher preferences.
-                  </p>
-                </div>
-              )}
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Day</TableHead>
+                    <TableHead>Activity</TableHead>
+                    <TableHead>Teacher</TableHead>
+                    <TableHead>Schedule</TableHead>
+                    <TableHead>Preference</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {DAYS.map(day => {
+                    const allocation = getAllocationByDay(day);
+                    return (
+                      <TableRow key={day}>
+                        <TableCell className="font-medium">{day}</TableCell>
+                        <TableCell>
+                          {allocation ? (
+                            <div>
+                              <p className="font-medium">{allocation.activities.title}</p>
+                              <Badge variant="outline" className="mt-1">{allocation.activities.category}</Badge>
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground">Not allocated</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {allocation ? allocation.activities.teacher_in_charge : '-'}
+                        </TableCell>
+                        <TableCell>
+                          {allocation ? allocation.activities.schedule : '-'}
+                        </TableCell>
+                        <TableCell>
+                          {allocation && (
+                            <Badge variant={allocation.preference_rank === 1 ? "default" : "secondary"}>
+                              {allocation.preference_rank === 1 && "1st ⭐"}
+                              {allocation.preference_rank === 2 && "2nd"}
+                              {allocation.preference_rank === 3 && "3rd"}
+                            </Badge>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
             </CardContent>
           </Card>
         )}
 
-        {/* Current Preferences */}
-        {preference && !allocation && (
-          <Card className="shadow-card">
-            <CardHeader>
-              <CardTitle>Your Submitted Preferences</CardTitle>
-              <CardDescription>
-                Waiting for allocation to be processed
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex items-center gap-2">
-                <Badge>1st Choice</Badge>
-                <span>{getActivityTitle(preference.first_choice)}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Badge variant="secondary">2nd Choice</Badge>
-                <span>{getActivityTitle(preference.second_choice)}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Badge variant="outline">3rd Choice</Badge>
-                <span>{getActivityTitle(preference.third_choice)}</span>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Activity Selection */}
-        {!preference && !allocation && (
+        {!hasPreferences && allocations.length === 0 && (
           <Card className="shadow-card">
             <CardHeader>
               <CardTitle>Select Your Preferences</CardTitle>
               <CardDescription>
-                Browse available activities and submit your ranked preferences
+                Choose your preferred activities for each day of the week
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button
-                onClick={() => navigate("/student/preferences")}
-                className="w-full"
-              >
+              <Button onClick={() => navigate("/student/preferences")} className="w-full">
                 <BookOpen className="w-4 h-4 mr-2" />
                 Choose Activities
               </Button>
@@ -302,45 +241,21 @@ const StudentDashboard = () => {
           </Card>
         )}
 
-        {/* Available Activities */}
-        <Card className="shadow-card">
-          <CardHeader>
-            <CardTitle>Available Activities</CardTitle>
-            <CardDescription>
-              {activities.length} activities available
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 md:grid-cols-2">
-              {activities.slice(0, 4).map((activity) => (
-                <div
-                  key={activity.id}
-                  className="border rounded-lg p-4 space-y-2"
-                >
-                  <h4 className="font-semibold">{activity.title}</h4>
-                  <p className="text-sm text-muted-foreground line-clamp-2">
-                    {activity.description}
-                  </p>
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>{activity.category}</span>
-                    <span>
-                      {activity.current_enrollment}/{activity.capacity} enrolled
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-            {activities.length > 4 && (
-              <Button
-                variant="link"
-                onClick={() => navigate("/student/activities")}
-                className="mt-4"
-              >
-                View All Activities →
-              </Button>
-            )}
-          </CardContent>
-        </Card>
+        {hasPreferences && allocations.length === 0 && (
+          <Card className="shadow-card">
+            <CardHeader>
+              <CardTitle>Preferences Submitted</CardTitle>
+              <CardDescription>
+                Waiting for allocations to be processed by moderators
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground">
+                Your preferences have been recorded. Check back soon to see your allocations!
+              </p>
+            </CardContent>
+          </Card>
+        )}
       </main>
     </div>
   );
