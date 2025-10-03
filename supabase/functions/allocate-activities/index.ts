@@ -70,7 +70,7 @@ serve(async (req) => {
 
     const { data: activities, error: actError } = await serviceClient
       .from("activities")
-      .select("id, capacity, day_of_week");
+      .select("id, capacity, days_of_week");
 
     if (actError) {
       console.error("Error fetching activities:", actError);
@@ -82,7 +82,7 @@ serve(async (req) => {
     // Process each day separately
     for (const day of DAYS) {
       const dayLower = day.toLowerCase();
-      const dayActivities = activities.filter(a => a.day_of_week === day);
+      const dayActivities = activities.filter(a => a.days_of_week && a.days_of_week.includes(day));
       const capacityTracker = new Map(dayActivities.map(a => [a.id, { capacity: a.capacity, enrolled: 0 }]));
 
       // First pass: first choices

@@ -12,7 +12,7 @@ import { LogOut, GraduationCap } from "lucide-react";
 interface Activity {
   id: string;
   title: string;
-  day_of_week: string;
+  days_of_week: string[];
   capacity: number;
   current_enrollment: number;
 }
@@ -56,7 +56,7 @@ const TeacherDashboard = () => {
         .from("activities")
         .select("*")
         .eq("teacher_id", user.id)
-        .order("day_of_week");
+        .order("title");
 
       setActivities(activitiesData || []);
 
@@ -124,9 +124,9 @@ const TeacherDashboard = () => {
           <CardContent>
             <div className="space-y-2">
               {DAYS.map(day => {
-                const dayActivities = activities.filter(a => a.day_of_week === day);
+                const dayActivities = activities.filter(a => a.days_of_week.includes(day));
                 return dayActivities.map(activity => (
-                  <div key={activity.id} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div key={`${activity.id}-${day}`} className="flex items-center justify-between p-3 border rounded-lg">
                     <div>
                       <span className="font-medium">{activity.title}</span>
                       <Badge variant="outline" className="ml-2">{day}</Badge>

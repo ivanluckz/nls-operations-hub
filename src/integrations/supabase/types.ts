@@ -21,7 +21,7 @@ export type Database = {
           created_at: string
           created_by: string
           current_enrollment: number
-          day_of_week: string
+          days_of_week: string[]
           description: string
           id: string
           is_active: boolean
@@ -37,7 +37,7 @@ export type Database = {
           created_at?: string
           created_by: string
           current_enrollment?: number
-          day_of_week?: string
+          days_of_week?: string[]
           description: string
           id?: string
           is_active?: boolean
@@ -53,7 +53,7 @@ export type Database = {
           created_at?: string
           created_by?: string
           current_enrollment?: number
-          day_of_week?: string
+          days_of_week?: string[]
           description?: string
           id?: string
           is_active?: boolean

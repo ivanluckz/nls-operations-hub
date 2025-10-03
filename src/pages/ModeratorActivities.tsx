@@ -22,7 +22,7 @@ interface Activity {
   capacity: number;
   current_enrollment: number;
   is_active: boolean;
-  day_of_week: string;
+  days_of_week: string[];
 }
 
 interface Teacher {
@@ -45,7 +45,7 @@ const ModeratorActivities = () => {
     teacher_id: "",
     schedule: "",
     capacity: "",
-    day_of_week: "Monday",
+    days_of_week: ["Monday"] as string[],
   });
 
   useEffect(() => {
@@ -57,7 +57,6 @@ const ModeratorActivities = () => {
       const { data: activitiesData } = await supabase
         .from("activities")
         .select("*")
-        .order("day_of_week")
         .order("title");
 
       setActivities(activitiesData || []);
@@ -91,7 +90,7 @@ const ModeratorActivities = () => {
         teacher_id: activity.teacher_id || "",
         schedule: activity.schedule,
         capacity: activity.capacity.toString(),
-        day_of_week: activity.day_of_week,
+        days_of_week: activity.days_of_week,
       });
     } else {
       setEditingActivity(null);
@@ -102,7 +101,7 @@ const ModeratorActivities = () => {
         teacher_id: "",
         schedule: "",
         capacity: "",
-        day_of_week: "Monday",
+        days_of_week: ["Monday"],
       });
     }
     setDialogOpen(true);
@@ -123,7 +122,7 @@ const ModeratorActivities = () => {
         teacher_in_charge: formData.teacher_id ? teachers.find(t => t.id === formData.teacher_id)?.full_name || "TBD" : "TBD",
         schedule: formData.schedule,
         capacity: parseInt(formData.capacity),
-        day_of_week: formData.day_of_week,
+        days_of_week: formData.days_of_week,
         created_by: user.id,
       };
 
@@ -233,20 +232,26 @@ const ModeratorActivities = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="day_of_week">Day of Week *</Label>
-                  <select
-                    id="day_of_week"
-                    value={formData.day_of_week}
-                    onChange={(e) => setFormData({ ...formData, day_of_week: e.target.value })}
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                    required
-                  >
-                    <option value="Monday">Monday</option>
-                    <option value="Tuesday">Tuesday</option>
-                    <option value="Wednesday">Wednesday</option>
-                    <option value="Thursday">Thursday</option>
-                    <option value="Friday">Friday</option>
-                  </select>
+                  <Label>Days of Week *</Label>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                    {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].map(day => (
+                      <label key={day} className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={formData.days_of_week.includes(day)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setFormData({ ...formData, days_of_week: [...formData.days_of_week, day] });
+                            } else {
+                              setFormData({ ...formData, days_of_week: formData.days_of_week.filter(d => d !== day) });
+                            }
+                          }}
+                          className="rounded border-input"
+                        />
+                        <span className="text-sm">{day}</span>
+                      </label>
+                    ))}
+                  </div>
                 </div>
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
@@ -326,7 +331,9 @@ const ModeratorActivities = () => {
                     <CardTitle className="text-lg mb-1">{activity.title}</CardTitle>
                     <div className="flex gap-2 flex-wrap">
                       <Badge variant="outline">{activity.category}</Badge>
-                      <Badge>{activity.day_of_week}</Badge>
+                      {activity.days_of_week.map(day => (
+                        <Badge key={day}>{day}</Badge>
+                      ))}
                     </div>
                   </div>
                   <div className="flex gap-1">

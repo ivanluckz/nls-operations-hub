@@ -20,7 +20,7 @@ interface Activity {
   category: string;
   teacher_in_charge: string;
   schedule: string;
-  day_of_week: string;
+  days_of_week: string[];
 }
 
 interface Allocation {

@@ -17,7 +17,7 @@ interface Activity {
   schedule: string;
   capacity: number;
   current_enrollment: number;
-  day_of_week: string;
+  days_of_week: string[];
 }
 
 interface DaySelections {
@@ -67,7 +67,6 @@ const StudentPreferences = () => {
         .from("activities")
         .select("*")
         .eq("is_active", true)
-        .order("day_of_week")
         .order("title");
 
       setActivities(data || []);
@@ -84,7 +83,8 @@ const StudentPreferences = () => {
   };
 
   const getActivitiesByDay = (day: string) => {
-    return activities.filter(a => a.day_of_week === DAY_LABELS[day as keyof typeof DAY_LABELS]);
+    const dayLabel = DAY_LABELS[day as keyof typeof DAY_LABELS];
+    return activities.filter(a => a.days_of_week.includes(dayLabel));
   };
 
   const handleSelectActivity = (activityId: string, day: typeof DAYS[number], rank: keyof DaySelections) => {
