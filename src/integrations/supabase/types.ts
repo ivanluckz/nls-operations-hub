@@ -101,13 +101,6 @@ export type Database = {
             referencedRelation: "activities"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "allocations_activity_id_fkey"
-            columns: ["activity_id"]
-            isOneToOne: false
-            referencedRelation: "teacher_students"
-            referencedColumns: ["activity_id"]
-          },
         ]
       }
       preferences: {
@@ -183,25 +176,11 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "preferences_friday_first_choice_fkey"
-            columns: ["friday_first_choice"]
-            isOneToOne: false
-            referencedRelation: "teacher_students"
-            referencedColumns: ["activity_id"]
-          },
-          {
             foreignKeyName: "preferences_friday_second_choice_fkey"
             columns: ["friday_second_choice"]
             isOneToOne: false
             referencedRelation: "activities"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "preferences_friday_second_choice_fkey"
-            columns: ["friday_second_choice"]
-            isOneToOne: false
-            referencedRelation: "teacher_students"
-            referencedColumns: ["activity_id"]
           },
           {
             foreignKeyName: "preferences_friday_third_choice_fkey"
@@ -211,25 +190,11 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "preferences_friday_third_choice_fkey"
-            columns: ["friday_third_choice"]
-            isOneToOne: false
-            referencedRelation: "teacher_students"
-            referencedColumns: ["activity_id"]
-          },
-          {
             foreignKeyName: "preferences_monday_first_choice_fkey"
             columns: ["monday_first_choice"]
             isOneToOne: false
             referencedRelation: "activities"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "preferences_monday_first_choice_fkey"
-            columns: ["monday_first_choice"]
-            isOneToOne: false
-            referencedRelation: "teacher_students"
-            referencedColumns: ["activity_id"]
           },
           {
             foreignKeyName: "preferences_monday_second_choice_fkey"
@@ -239,25 +204,11 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "preferences_monday_second_choice_fkey"
-            columns: ["monday_second_choice"]
-            isOneToOne: false
-            referencedRelation: "teacher_students"
-            referencedColumns: ["activity_id"]
-          },
-          {
             foreignKeyName: "preferences_monday_third_choice_fkey"
             columns: ["monday_third_choice"]
             isOneToOne: false
             referencedRelation: "activities"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "preferences_monday_third_choice_fkey"
-            columns: ["monday_third_choice"]
-            isOneToOne: false
-            referencedRelation: "teacher_students"
-            referencedColumns: ["activity_id"]
           },
           {
             foreignKeyName: "preferences_thursday_first_choice_fkey"
@@ -267,25 +218,11 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "preferences_thursday_first_choice_fkey"
-            columns: ["thursday_first_choice"]
-            isOneToOne: false
-            referencedRelation: "teacher_students"
-            referencedColumns: ["activity_id"]
-          },
-          {
             foreignKeyName: "preferences_thursday_second_choice_fkey"
             columns: ["thursday_second_choice"]
             isOneToOne: false
             referencedRelation: "activities"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "preferences_thursday_second_choice_fkey"
-            columns: ["thursday_second_choice"]
-            isOneToOne: false
-            referencedRelation: "teacher_students"
-            referencedColumns: ["activity_id"]
           },
           {
             foreignKeyName: "preferences_thursday_third_choice_fkey"
@@ -295,25 +232,11 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "preferences_thursday_third_choice_fkey"
-            columns: ["thursday_third_choice"]
-            isOneToOne: false
-            referencedRelation: "teacher_students"
-            referencedColumns: ["activity_id"]
-          },
-          {
             foreignKeyName: "preferences_tuesday_first_choice_fkey"
             columns: ["tuesday_first_choice"]
             isOneToOne: false
             referencedRelation: "activities"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "preferences_tuesday_first_choice_fkey"
-            columns: ["tuesday_first_choice"]
-            isOneToOne: false
-            referencedRelation: "teacher_students"
-            referencedColumns: ["activity_id"]
           },
           {
             foreignKeyName: "preferences_tuesday_second_choice_fkey"
@@ -323,25 +246,11 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "preferences_tuesday_second_choice_fkey"
-            columns: ["tuesday_second_choice"]
-            isOneToOne: false
-            referencedRelation: "teacher_students"
-            referencedColumns: ["activity_id"]
-          },
-          {
             foreignKeyName: "preferences_tuesday_third_choice_fkey"
             columns: ["tuesday_third_choice"]
             isOneToOne: false
             referencedRelation: "activities"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "preferences_tuesday_third_choice_fkey"
-            columns: ["tuesday_third_choice"]
-            isOneToOne: false
-            referencedRelation: "teacher_students"
-            referencedColumns: ["activity_id"]
           },
           {
             foreignKeyName: "preferences_wednesday_first_choice_fkey"
@@ -351,29 +260,8 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "preferences_wednesday_first_choice_fkey"
-            columns: ["wednesday_first_choice"]
-            isOneToOne: false
-            referencedRelation: "teacher_students"
-            referencedColumns: ["activity_id"]
-          },
-          {
             foreignKeyName: "preferences_wednesday_second_choice_fkey"
             columns: ["wednesday_second_choice"]
-            isOneToOne: false
-            referencedRelation: "activities"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "preferences_wednesday_second_choice_fkey"
-            columns: ["wednesday_second_choice"]
-            isOneToOne: false
-            referencedRelation: "teacher_students"
-            referencedColumns: ["activity_id"]
-          },
-          {
-            foreignKeyName: "preferences_wednesday_third_choice_fkey"
-            columns: ["wednesday_third_choice"]
             isOneToOne: false
             referencedRelation: "activities"
             referencedColumns: ["id"]
@@ -382,8 +270,8 @@ export type Database = {
             foreignKeyName: "preferences_wednesday_third_choice_fkey"
             columns: ["wednesday_third_choice"]
             isOneToOne: false
-            referencedRelation: "teacher_students"
-            referencedColumns: ["activity_id"]
+            referencedRelation: "activities"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -419,20 +307,21 @@ export type Database = {
       }
     }
     Views: {
-      teacher_students: {
-        Row: {
-          activity_id: string | null
-          activity_title: string | null
-          day_of_week: string | null
-          student_email: string | null
-          student_id: string | null
-          student_name: string | null
-          teacher_id: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
+      get_teacher_students: {
+        Args: { teacher_user_id: string }
+        Returns: {
+          activity_id: string
+          activity_title: string
+          day_of_week: string
+          student_email: string
+          student_id: string
+          student_name: string
+          teacher_id: string
+        }[]
+      }
       is_admin: {
         Args: { user_id: string }
         Returns: boolean

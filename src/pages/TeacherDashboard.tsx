@@ -61,10 +61,7 @@ const TeacherDashboard = () => {
       setActivities(activitiesData || []);
 
       const { data: studentsData } = await supabase
-        .from("teacher_students")
-        .select("*")
-        .eq("teacher_id", user.id)
-        .order("day_of_week");
+        .rpc("get_teacher_students", { teacher_user_id: user.id });
 
       setStudents(studentsData || []);
     } catch (error) {
