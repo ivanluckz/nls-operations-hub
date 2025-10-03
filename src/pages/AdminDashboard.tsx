@@ -194,7 +194,46 @@ const AdminDashboard = () => {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-8 space-y-8">
+        {/* Quick Actions for Moderator Powers */}
+        <div className="grid gap-4 md:grid-cols-3">
+          <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => navigate("/admin/activities")}>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Shield className="h-5 w-5" />
+                Manage Activities
+              </CardTitle>
+              <CardDescription>
+                Add, edit, or remove co-curricular activities
+              </CardDescription>
+            </CardHeader>
+          </Card>
+
+          <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => navigate("/admin/allocations")}>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Users className="h-5 w-5" />
+                Run Allocation
+              </CardTitle>
+              <CardDescription>
+                Allocate students to activities based on preferences
+              </CardDescription>
+            </CardHeader>
+          </Card>
+
+          <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => navigate("/admin/view-allocations")}>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Users className="h-5 w-5" />
+                View Allocations
+              </CardTitle>
+              <CardDescription>
+                See all student activity assignments
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </div>
+
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
