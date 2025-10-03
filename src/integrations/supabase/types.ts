@@ -21,10 +21,12 @@ export type Database = {
           created_at: string
           created_by: string
           current_enrollment: number
+          day_of_week: string
           description: string
           id: string
           is_active: boolean
           schedule: string
+          teacher_id: string | null
           teacher_in_charge: string
           title: string
           updated_at: string
@@ -35,10 +37,12 @@ export type Database = {
           created_at?: string
           created_by: string
           current_enrollment?: number
+          day_of_week?: string
           description: string
           id?: string
           is_active?: boolean
           schedule: string
+          teacher_id?: string | null
           teacher_in_charge: string
           title: string
           updated_at?: string
@@ -49,10 +53,12 @@ export type Database = {
           created_at?: string
           created_by?: string
           current_enrollment?: number
+          day_of_week?: string
           description?: string
           id?: string
           is_active?: boolean
           schedule?: string
+          teacher_id?: string | null
           teacher_in_charge?: string
           title?: string
           updated_at?: string
@@ -63,6 +69,7 @@ export type Database = {
         Row: {
           activity_id: string
           allocated_at: string
+          day_of_week: string
           id: string
           preference_rank: number
           status: Database["public"]["Enums"]["allocation_status"]
@@ -71,6 +78,7 @@ export type Database = {
         Insert: {
           activity_id: string
           allocated_at?: string
+          day_of_week?: string
           id?: string
           preference_rank: number
           status?: Database["public"]["Enums"]["allocation_status"]
@@ -79,6 +87,7 @@ export type Database = {
         Update: {
           activity_id?: string
           allocated_at?: string
+          day_of_week?: string
           id?: string
           preference_rank?: number
           status?: Database["public"]["Enums"]["allocation_status"]
@@ -92,57 +101,289 @@ export type Database = {
             referencedRelation: "activities"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "allocations_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "teacher_students"
+            referencedColumns: ["activity_id"]
+          },
         ]
       }
       preferences: {
         Row: {
-          first_choice: string
+          friday_first_choice: string | null
+          friday_second_choice: string | null
+          friday_third_choice: string | null
           id: string
-          second_choice: string
+          monday_first_choice: string | null
+          monday_second_choice: string | null
+          monday_third_choice: string | null
           student_id: string
           submitted_at: string
-          third_choice: string
+          thursday_first_choice: string | null
+          thursday_second_choice: string | null
+          thursday_third_choice: string | null
+          tuesday_first_choice: string | null
+          tuesday_second_choice: string | null
+          tuesday_third_choice: string | null
           updated_at: string
+          wednesday_first_choice: string | null
+          wednesday_second_choice: string | null
+          wednesday_third_choice: string | null
         }
         Insert: {
-          first_choice: string
+          friday_first_choice?: string | null
+          friday_second_choice?: string | null
+          friday_third_choice?: string | null
           id?: string
-          second_choice: string
+          monday_first_choice?: string | null
+          monday_second_choice?: string | null
+          monday_third_choice?: string | null
           student_id: string
           submitted_at?: string
-          third_choice: string
+          thursday_first_choice?: string | null
+          thursday_second_choice?: string | null
+          thursday_third_choice?: string | null
+          tuesday_first_choice?: string | null
+          tuesday_second_choice?: string | null
+          tuesday_third_choice?: string | null
           updated_at?: string
+          wednesday_first_choice?: string | null
+          wednesday_second_choice?: string | null
+          wednesday_third_choice?: string | null
         }
         Update: {
-          first_choice?: string
+          friday_first_choice?: string | null
+          friday_second_choice?: string | null
+          friday_third_choice?: string | null
           id?: string
-          second_choice?: string
+          monday_first_choice?: string | null
+          monday_second_choice?: string | null
+          monday_third_choice?: string | null
           student_id?: string
           submitted_at?: string
-          third_choice?: string
+          thursday_first_choice?: string | null
+          thursday_second_choice?: string | null
+          thursday_third_choice?: string | null
+          tuesday_first_choice?: string | null
+          tuesday_second_choice?: string | null
+          tuesday_third_choice?: string | null
           updated_at?: string
+          wednesday_first_choice?: string | null
+          wednesday_second_choice?: string | null
+          wednesday_third_choice?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "preferences_first_choice_fkey"
-            columns: ["first_choice"]
+            foreignKeyName: "preferences_friday_first_choice_fkey"
+            columns: ["friday_first_choice"]
             isOneToOne: false
             referencedRelation: "activities"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "preferences_second_choice_fkey"
-            columns: ["second_choice"]
+            foreignKeyName: "preferences_friday_first_choice_fkey"
+            columns: ["friday_first_choice"]
+            isOneToOne: false
+            referencedRelation: "teacher_students"
+            referencedColumns: ["activity_id"]
+          },
+          {
+            foreignKeyName: "preferences_friday_second_choice_fkey"
+            columns: ["friday_second_choice"]
             isOneToOne: false
             referencedRelation: "activities"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "preferences_third_choice_fkey"
-            columns: ["third_choice"]
+            foreignKeyName: "preferences_friday_second_choice_fkey"
+            columns: ["friday_second_choice"]
+            isOneToOne: false
+            referencedRelation: "teacher_students"
+            referencedColumns: ["activity_id"]
+          },
+          {
+            foreignKeyName: "preferences_friday_third_choice_fkey"
+            columns: ["friday_third_choice"]
             isOneToOne: false
             referencedRelation: "activities"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "preferences_friday_third_choice_fkey"
+            columns: ["friday_third_choice"]
+            isOneToOne: false
+            referencedRelation: "teacher_students"
+            referencedColumns: ["activity_id"]
+          },
+          {
+            foreignKeyName: "preferences_monday_first_choice_fkey"
+            columns: ["monday_first_choice"]
+            isOneToOne: false
+            referencedRelation: "activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "preferences_monday_first_choice_fkey"
+            columns: ["monday_first_choice"]
+            isOneToOne: false
+            referencedRelation: "teacher_students"
+            referencedColumns: ["activity_id"]
+          },
+          {
+            foreignKeyName: "preferences_monday_second_choice_fkey"
+            columns: ["monday_second_choice"]
+            isOneToOne: false
+            referencedRelation: "activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "preferences_monday_second_choice_fkey"
+            columns: ["monday_second_choice"]
+            isOneToOne: false
+            referencedRelation: "teacher_students"
+            referencedColumns: ["activity_id"]
+          },
+          {
+            foreignKeyName: "preferences_monday_third_choice_fkey"
+            columns: ["monday_third_choice"]
+            isOneToOne: false
+            referencedRelation: "activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "preferences_monday_third_choice_fkey"
+            columns: ["monday_third_choice"]
+            isOneToOne: false
+            referencedRelation: "teacher_students"
+            referencedColumns: ["activity_id"]
+          },
+          {
+            foreignKeyName: "preferences_thursday_first_choice_fkey"
+            columns: ["thursday_first_choice"]
+            isOneToOne: false
+            referencedRelation: "activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "preferences_thursday_first_choice_fkey"
+            columns: ["thursday_first_choice"]
+            isOneToOne: false
+            referencedRelation: "teacher_students"
+            referencedColumns: ["activity_id"]
+          },
+          {
+            foreignKeyName: "preferences_thursday_second_choice_fkey"
+            columns: ["thursday_second_choice"]
+            isOneToOne: false
+            referencedRelation: "activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "preferences_thursday_second_choice_fkey"
+            columns: ["thursday_second_choice"]
+            isOneToOne: false
+            referencedRelation: "teacher_students"
+            referencedColumns: ["activity_id"]
+          },
+          {
+            foreignKeyName: "preferences_thursday_third_choice_fkey"
+            columns: ["thursday_third_choice"]
+            isOneToOne: false
+            referencedRelation: "activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "preferences_thursday_third_choice_fkey"
+            columns: ["thursday_third_choice"]
+            isOneToOne: false
+            referencedRelation: "teacher_students"
+            referencedColumns: ["activity_id"]
+          },
+          {
+            foreignKeyName: "preferences_tuesday_first_choice_fkey"
+            columns: ["tuesday_first_choice"]
+            isOneToOne: false
+            referencedRelation: "activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "preferences_tuesday_first_choice_fkey"
+            columns: ["tuesday_first_choice"]
+            isOneToOne: false
+            referencedRelation: "teacher_students"
+            referencedColumns: ["activity_id"]
+          },
+          {
+            foreignKeyName: "preferences_tuesday_second_choice_fkey"
+            columns: ["tuesday_second_choice"]
+            isOneToOne: false
+            referencedRelation: "activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "preferences_tuesday_second_choice_fkey"
+            columns: ["tuesday_second_choice"]
+            isOneToOne: false
+            referencedRelation: "teacher_students"
+            referencedColumns: ["activity_id"]
+          },
+          {
+            foreignKeyName: "preferences_tuesday_third_choice_fkey"
+            columns: ["tuesday_third_choice"]
+            isOneToOne: false
+            referencedRelation: "activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "preferences_tuesday_third_choice_fkey"
+            columns: ["tuesday_third_choice"]
+            isOneToOne: false
+            referencedRelation: "teacher_students"
+            referencedColumns: ["activity_id"]
+          },
+          {
+            foreignKeyName: "preferences_wednesday_first_choice_fkey"
+            columns: ["wednesday_first_choice"]
+            isOneToOne: false
+            referencedRelation: "activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "preferences_wednesday_first_choice_fkey"
+            columns: ["wednesday_first_choice"]
+            isOneToOne: false
+            referencedRelation: "teacher_students"
+            referencedColumns: ["activity_id"]
+          },
+          {
+            foreignKeyName: "preferences_wednesday_second_choice_fkey"
+            columns: ["wednesday_second_choice"]
+            isOneToOne: false
+            referencedRelation: "activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "preferences_wednesday_second_choice_fkey"
+            columns: ["wednesday_second_choice"]
+            isOneToOne: false
+            referencedRelation: "teacher_students"
+            referencedColumns: ["activity_id"]
+          },
+          {
+            foreignKeyName: "preferences_wednesday_third_choice_fkey"
+            columns: ["wednesday_third_choice"]
+            isOneToOne: false
+            referencedRelation: "activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "preferences_wednesday_third_choice_fkey"
+            columns: ["wednesday_third_choice"]
+            isOneToOne: false
+            referencedRelation: "teacher_students"
+            referencedColumns: ["activity_id"]
           },
         ]
       }
@@ -178,7 +419,18 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      teacher_students: {
+        Row: {
+          activity_id: string | null
+          activity_title: string | null
+          day_of_week: string | null
+          student_email: string | null
+          student_id: string | null
+          student_name: string | null
+          teacher_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       is_admin: {
@@ -192,7 +444,7 @@ export type Database = {
     }
     Enums: {
       allocation_status: "pending" | "allocated" | "waitlisted"
-      user_role: "student" | "moderator" | "admin"
+      user_role: "student" | "moderator" | "admin" | "teacher"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -321,7 +573,7 @@ export const Constants = {
   public: {
     Enums: {
       allocation_status: ["pending", "allocated", "waitlisted"],
-      user_role: ["student", "moderator", "admin"],
+      user_role: ["student", "moderator", "admin", "teacher"],
     },
   },
 } as const

@@ -36,7 +36,7 @@ interface Profile {
   id: string;
   email: string;
   full_name: string;
-  role: "student" | "moderator" | "admin";
+  role: "student" | "moderator" | "admin" | "teacher";
   banned: boolean;
   created_at: string;
 }
@@ -48,7 +48,7 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [editingUser, setEditingUser] = useState<Profile | null>(null);
   const [editName, setEditName] = useState("");
-  const [editRole, setEditRole] = useState<"student" | "moderator" | "admin">("student");
+  const [editRole, setEditRole] = useState<"student" | "moderator" | "admin" | "teacher">("student");
 
   useEffect(() => {
     fetchUsers();
@@ -229,6 +229,8 @@ const AdminDashboard = () => {
                             ? "default"
                             : user.role === "moderator"
                             ? "secondary"
+                            : user.role === "teacher"
+                            ? "outline"
                             : "outline"
                         }
                       >
@@ -305,6 +307,7 @@ const AdminDashboard = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="student">Student</SelectItem>
+                  <SelectItem value="teacher">Teacher</SelectItem>
                   <SelectItem value="moderator">Moderator</SelectItem>
                   <SelectItem value="admin">
                     <div className="flex items-center gap-2">
