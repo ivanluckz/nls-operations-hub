@@ -72,6 +72,7 @@ export type Database = {
           day_of_week: string
           id: string
           preference_rank: number
+          slot_number: number
           status: Database["public"]["Enums"]["allocation_status"]
           student_id: string
         }
@@ -81,6 +82,7 @@ export type Database = {
           day_of_week?: string
           id?: string
           preference_rank: number
+          slot_number?: number
           status?: Database["public"]["Enums"]["allocation_status"]
           student_id: string
         }
@@ -90,6 +92,7 @@ export type Database = {
           day_of_week?: string
           id?: string
           preference_rank?: number
+          slot_number?: number
           status?: Database["public"]["Enums"]["allocation_status"]
           student_id?: string
         }
@@ -105,67 +108,112 @@ export type Database = {
       }
       preferences: {
         Row: {
+          friday_fifth_choice: string | null
           friday_first_choice: string | null
+          friday_fourth_choice: string | null
           friday_second_choice: string | null
           friday_third_choice: string | null
           id: string
+          monday_fifth_choice: string | null
           monday_first_choice: string | null
+          monday_fourth_choice: string | null
           monday_second_choice: string | null
           monday_third_choice: string | null
           student_id: string
           submitted_at: string
+          thursday_fifth_choice: string | null
           thursday_first_choice: string | null
+          thursday_fourth_choice: string | null
           thursday_second_choice: string | null
           thursday_third_choice: string | null
+          tuesday_fifth_choice: string | null
           tuesday_first_choice: string | null
+          tuesday_fourth_choice: string | null
           tuesday_second_choice: string | null
           tuesday_third_choice: string | null
           updated_at: string
-          wednesday_first_choice: string | null
-          wednesday_second_choice: string | null
-          wednesday_third_choice: string | null
+          wednesday_slot1_fifth_choice: string | null
+          wednesday_slot1_first_choice: string | null
+          wednesday_slot1_fourth_choice: string | null
+          wednesday_slot1_second_choice: string | null
+          wednesday_slot1_third_choice: string | null
+          wednesday_slot2_fifth_choice: string | null
+          wednesday_slot2_first_choice: string | null
+          wednesday_slot2_fourth_choice: string | null
+          wednesday_slot2_second_choice: string | null
+          wednesday_slot2_third_choice: string | null
         }
         Insert: {
+          friday_fifth_choice?: string | null
           friday_first_choice?: string | null
+          friday_fourth_choice?: string | null
           friday_second_choice?: string | null
           friday_third_choice?: string | null
           id?: string
+          monday_fifth_choice?: string | null
           monday_first_choice?: string | null
+          monday_fourth_choice?: string | null
           monday_second_choice?: string | null
           monday_third_choice?: string | null
           student_id: string
           submitted_at?: string
+          thursday_fifth_choice?: string | null
           thursday_first_choice?: string | null
+          thursday_fourth_choice?: string | null
           thursday_second_choice?: string | null
           thursday_third_choice?: string | null
+          tuesday_fifth_choice?: string | null
           tuesday_first_choice?: string | null
+          tuesday_fourth_choice?: string | null
           tuesday_second_choice?: string | null
           tuesday_third_choice?: string | null
           updated_at?: string
-          wednesday_first_choice?: string | null
-          wednesday_second_choice?: string | null
-          wednesday_third_choice?: string | null
+          wednesday_slot1_fifth_choice?: string | null
+          wednesday_slot1_first_choice?: string | null
+          wednesday_slot1_fourth_choice?: string | null
+          wednesday_slot1_second_choice?: string | null
+          wednesday_slot1_third_choice?: string | null
+          wednesday_slot2_fifth_choice?: string | null
+          wednesday_slot2_first_choice?: string | null
+          wednesday_slot2_fourth_choice?: string | null
+          wednesday_slot2_second_choice?: string | null
+          wednesday_slot2_third_choice?: string | null
         }
         Update: {
+          friday_fifth_choice?: string | null
           friday_first_choice?: string | null
+          friday_fourth_choice?: string | null
           friday_second_choice?: string | null
           friday_third_choice?: string | null
           id?: string
+          monday_fifth_choice?: string | null
           monday_first_choice?: string | null
+          monday_fourth_choice?: string | null
           monday_second_choice?: string | null
           monday_third_choice?: string | null
           student_id?: string
           submitted_at?: string
+          thursday_fifth_choice?: string | null
           thursday_first_choice?: string | null
+          thursday_fourth_choice?: string | null
           thursday_second_choice?: string | null
           thursday_third_choice?: string | null
+          tuesday_fifth_choice?: string | null
           tuesday_first_choice?: string | null
+          tuesday_fourth_choice?: string | null
           tuesday_second_choice?: string | null
           tuesday_third_choice?: string | null
           updated_at?: string
-          wednesday_first_choice?: string | null
-          wednesday_second_choice?: string | null
-          wednesday_third_choice?: string | null
+          wednesday_slot1_fifth_choice?: string | null
+          wednesday_slot1_first_choice?: string | null
+          wednesday_slot1_fourth_choice?: string | null
+          wednesday_slot1_second_choice?: string | null
+          wednesday_slot1_third_choice?: string | null
+          wednesday_slot2_fifth_choice?: string | null
+          wednesday_slot2_first_choice?: string | null
+          wednesday_slot2_fourth_choice?: string | null
+          wednesday_slot2_second_choice?: string | null
+          wednesday_slot2_third_choice?: string | null
         }
         Relationships: [
           {
@@ -248,27 +296,6 @@ export type Database = {
           {
             foreignKeyName: "preferences_tuesday_third_choice_fkey"
             columns: ["tuesday_third_choice"]
-            isOneToOne: false
-            referencedRelation: "activities"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "preferences_wednesday_first_choice_fkey"
-            columns: ["wednesday_first_choice"]
-            isOneToOne: false
-            referencedRelation: "activities"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "preferences_wednesday_second_choice_fkey"
-            columns: ["wednesday_second_choice"]
-            isOneToOne: false
-            referencedRelation: "activities"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "preferences_wednesday_third_choice_fkey"
-            columns: ["wednesday_third_choice"]
             isOneToOne: false
             referencedRelation: "activities"
             referencedColumns: ["id"]

@@ -79,65 +79,40 @@ serve(async (req) => {
 
     const allocations = [];
 
-    // Process each day separately
+    // Process each day separately (Wednesday has 2 slots, others have 1)
     for (const day of DAYS) {
       const dayLower = day.toLowerCase();
-      const dayActivities = activities.filter(a => a.days_of_week && a.days_of_week.includes(day));
-      const capacityTracker = new Map(dayActivities.map(a => [a.id, { capacity: a.capacity, enrolled: 0 }]));
+      const slots = day === 'Wednesday' ? [1, 2] : [1];
+      
+      for (const slot of slots) {
+        const slotSuffix = day === 'Wednesday' ? `_slot${slot}` : '';
+        const dayActivities = activities.filter(a => a.days_of_week && a.days_of_week.includes(day));
+        const capacityTracker = new Map(dayActivities.map(a => [a.id, { capacity: a.capacity, enrolled: 0 }]));
 
-      // First pass: first choices
-      for (const pref of preferences || []) {
-        const choiceId = pref[`${dayLower}_first_choice`];
-        if (!choiceId) continue;
-        
-        const activity = capacityTracker.get(choiceId);
-        if (activity && activity.enrolled < activity.capacity) {
-          allocations.push({
-            student_id: pref.student_id,
-            activity_id: choiceId,
-            day_of_week: day,
-            preference_rank: 1,
-            status: "allocated",
-          });
-          activity.enrolled++;
-        }
-      }
-
-      // Second pass: second choices
-      for (const pref of preferences || []) {
-        if (allocations.some(a => a.student_id === pref.student_id && a.day_of_week === day)) continue;
-        const choiceId = pref[`${dayLower}_second_choice`];
-        if (!choiceId) continue;
-        
-        const activity = capacityTracker.get(choiceId);
-        if (activity && activity.enrolled < activity.capacity) {
-          allocations.push({
-            student_id: pref.student_id,
-            activity_id: choiceId,
-            day_of_week: day,
-            preference_rank: 2,
-            status: "allocated",
-          });
-          activity.enrolled++;
-        }
-      }
-
-      // Third pass: third choices
-      for (const pref of preferences || []) {
-        if (allocations.some(a => a.student_id === pref.student_id && a.day_of_week === day)) continue;
-        const choiceId = pref[`${dayLower}_third_choice`];
-        if (!choiceId) continue;
-        
-        const activity = capacityTracker.get(choiceId);
-        if (activity && activity.enrolled < activity.capacity) {
-          allocations.push({
-            student_id: pref.student_id,
-            activity_id: choiceId,
-            day_of_week: day,
-            preference_rank: 3,
-            status: "allocated",
-          });
-          activity.enrolled++;
+        // Process all 5 preference ranks
+        for (let rank = 1; rank <= 5; rank++) {
+          const choiceLabel = ['first', 'second', 'third', 'fourth', 'fifth'][rank - 1];
+          
+          for (const pref of preferences || []) {
+            // Skip if student already allocated for this day-slot combination
+            if (allocations.some(a => a.student_id === pref.student_id && a.day_of_week === day && a.slot_number === slot)) continue;
+            
+            const choiceId = pref[`${dayLower}${slotSuffix}_${choiceLabel}_choice`];
+            if (!choiceId) continue;
+            
+            const activity = capacityTracker.get(choiceId);
+            if (activity && activity.enrolled < activity.capacity) {
+              allocations.push({
+                student_id: pref.student_id,
+                activity_id: choiceId,
+                day_of_week: day,
+                slot_number: slot,
+                preference_rank: rank,
+                status: "allocated",
+              });
+              activity.enrolled++;
+            }
+          }
         }
       }
     }
