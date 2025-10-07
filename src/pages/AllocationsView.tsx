@@ -15,7 +15,8 @@ interface StudentAllocation {
   student_email: string;
   monday_activity: string | null;
   tuesday_activity: string | null;
-  wednesday_activity: string | null;
+  wednesday_slot1_activity: string | null;
+  wednesday_slot2_activity: string | null;
   thursday_activity: string | null;
   friday_activity: string | null;
 }
@@ -64,7 +65,7 @@ const AllocationsView = () => {
 
       const { data: allAllocations } = await supabase
         .from("allocations")
-        .select("student_id, activity_id, day_of_week, activities(title)");
+        .select("student_id, activity_id, day_of_week, slot_number, activities(title)");
 
       const studentAllocations: StudentAllocation[] = (students || []).map(student => {
         const studentAllocs = (allAllocations || []).filter(a => a.student_id === student.id);
@@ -75,7 +76,8 @@ const AllocationsView = () => {
           student_email: student.email,
           monday_activity: studentAllocs.find(a => a.day_of_week === 'Monday')?.activities?.title || null,
           tuesday_activity: studentAllocs.find(a => a.day_of_week === 'Tuesday')?.activities?.title || null,
-          wednesday_activity: studentAllocs.find(a => a.day_of_week === 'Wednesday')?.activities?.title || null,
+          wednesday_slot1_activity: studentAllocs.find(a => a.day_of_week === 'Wednesday' && a.slot_number === 1)?.activities?.title || null,
+          wednesday_slot2_activity: studentAllocs.find(a => a.day_of_week === 'Wednesday' && a.slot_number === 2)?.activities?.title || null,
           thursday_activity: studentAllocs.find(a => a.day_of_week === 'Thursday')?.activities?.title || null,
           friday_activity: studentAllocs.find(a => a.day_of_week === 'Friday')?.activities?.title || null,
         };
@@ -154,7 +156,8 @@ const AllocationsView = () => {
                         <TableHead className="min-w-[200px]">Email</TableHead>
                         <TableHead className="min-w-[150px]">Monday</TableHead>
                         <TableHead className="min-w-[150px]">Tuesday</TableHead>
-                        <TableHead className="min-w-[150px]">Wednesday</TableHead>
+                        <TableHead className="min-w-[150px]">Wed Slot 1</TableHead>
+                        <TableHead className="min-w-[150px]">Wed Slot 2</TableHead>
                         <TableHead className="min-w-[150px]">Thursday</TableHead>
                         <TableHead className="min-w-[150px]">Friday</TableHead>
                       </TableRow>
@@ -166,7 +169,8 @@ const AllocationsView = () => {
                           <TableCell className="text-sm">{alloc.student_email}</TableCell>
                           <TableCell className="text-sm">{alloc.monday_activity || '-'}</TableCell>
                           <TableCell className="text-sm">{alloc.tuesday_activity || '-'}</TableCell>
-                          <TableCell className="text-sm">{alloc.wednesday_activity || '-'}</TableCell>
+                          <TableCell className="text-sm">{alloc.wednesday_slot1_activity || '-'}</TableCell>
+                          <TableCell className="text-sm">{alloc.wednesday_slot2_activity || '-'}</TableCell>
                           <TableCell className="text-sm">{alloc.thursday_activity || '-'}</TableCell>
                           <TableCell className="text-sm">{alloc.friday_activity || '-'}</TableCell>
                         </TableRow>

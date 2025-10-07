@@ -26,6 +26,7 @@ interface Activity {
 interface Allocation {
   activity_id: string;
   day_of_week: string;
+  slot_number: number;
   preference_rank: number;
   activities: Activity;
 }
@@ -113,8 +114,15 @@ const StudentDashboard = () => {
     }
   };
 
-  const getAllocationByDay = (day: string) => {
-    return allocations.find(a => a.day_of_week === day);
+  const getAllocationByDayAndSlot = (day: string, slot: number) => {
+    return allocations.find(a => a.day_of_week === day && a.slot_number === slot);
+  };
+
+  const getDaySlotLabel = (day: string, slot: number) => {
+    if (day === 'Wednesday') {
+      return `${day} - Slot ${slot}`;
+    }
+    return day;
   };
 
   if (loading) {
@@ -186,37 +194,46 @@ const StudentDashboard = () => {
                 </TableHeader>
                 <TableBody>
                   {DAYS.map(day => {
-                    const allocation = getAllocationByDay(day);
-                    return (
-                      <TableRow key={day}>
-                        <TableCell className="font-medium">{day}</TableCell>
-                        <TableCell>
-                          {allocation ? (
-                            <div>
-                              <p className="font-medium">{allocation.activities.title}</p>
-                              <Badge variant="outline" className="mt-1">{allocation.activities.category}</Badge>
-                            </div>
-                          ) : (
-                            <span className="text-muted-foreground">Not allocated</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {allocation ? allocation.activities.teacher_in_charge : '-'}
-                        </TableCell>
-                        <TableCell>
-                          {allocation ? allocation.activities.schedule : '-'}
-                        </TableCell>
-                        <TableCell>
-                          {allocation && (
-                            <Badge variant={allocation.preference_rank === 1 ? "default" : "secondary"}>
-                              {allocation.preference_rank === 1 && "1st ⭐"}
-                              {allocation.preference_rank === 2 && "2nd"}
-                              {allocation.preference_rank === 3 && "3rd"}
-                            </Badge>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    );
+                    // Wednesday has 2 slots, others have 1
+                    const slots = day === 'Wednesday' ? [1, 2] : [1];
+                    
+                    return slots.map(slot => {
+                      const allocation = getAllocationByDayAndSlot(day, slot);
+                      const dayLabel = getDaySlotLabel(day, slot);
+                      
+                      return (
+                        <TableRow key={`${day}-${slot}`}>
+                          <TableCell className="font-medium">{dayLabel}</TableCell>
+                          <TableCell>
+                            {allocation ? (
+                              <div>
+                                <p className="font-medium">{allocation.activities.title}</p>
+                                <Badge variant="outline" className="mt-1">{allocation.activities.category}</Badge>
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground">Not allocated</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {allocation ? allocation.activities.teacher_in_charge : '-'}
+                          </TableCell>
+                          <TableCell>
+                            {allocation ? allocation.activities.schedule : '-'}
+                          </TableCell>
+                          <TableCell>
+                            {allocation && (
+                              <Badge variant={allocation.preference_rank === 1 ? "default" : "secondary"}>
+                                {allocation.preference_rank === 1 && "1st ⭐"}
+                                {allocation.preference_rank === 2 && "2nd"}
+                                {allocation.preference_rank === 3 && "3rd"}
+                                {allocation.preference_rank === 4 && "4th"}
+                                {allocation.preference_rank === 5 && "5th"}
+                              </Badge>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    });
                   })}
                 </TableBody>
               </Table>

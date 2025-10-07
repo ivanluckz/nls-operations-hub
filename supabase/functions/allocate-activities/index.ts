@@ -77,7 +77,14 @@ serve(async (req) => {
       throw actError;
     }
 
-    const allocations = [];
+    const allocations: Array<{
+      student_id: string;
+      activity_id: string;
+      day_of_week: string;
+      slot_number: number;
+      preference_rank: number;
+      status: string;
+    }> = [];
 
     // Process each day separately (Wednesday has 2 slots, others have 1)
     for (const day of DAYS) {
