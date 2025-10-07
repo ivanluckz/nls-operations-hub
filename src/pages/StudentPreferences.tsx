@@ -139,10 +139,54 @@ const StudentPreferences = () => {
   };
 
   const handlePreferenceChange = (day: string, choice: string, value: string) => {
-    setPreferences(prev => ({
-      ...prev,
-      [`${day}_${choice}`]: value
-    }));
+    // Find the selected activity
+    const selectedActivity = activities.find(a => a.id === value);
+    
+    if (selectedActivity && selectedActivity.days_of_week) {
+      // Get the choice rank (first, second, third, etc.)
+      const choiceRank = choice;
+      
+      // Create updates for all days this activity is available on
+      const updates: Record<string, string> = {};
+      
+      // Handle Wednesday slots separately
+      if (day.includes('slot')) {
+        updates[`${day}_${choice}`] = value;
+      } else {
+        // For each day the activity is available
+        selectedActivity.days_of_week.forEach(availableDay => {
+          const dayLower = availableDay.toLowerCase();
+          
+          // Handle Wednesday specially - it has 2 slots
+          if (availableDay === 'Wednesday') {
+            updates[`${dayLower}_slot1_${choiceRank}`] = value;
+            updates[`${dayLower}_slot2_${choiceRank}`] = value;
+          } else {
+            updates[`${dayLower}_${choiceRank}`] = value;
+          }
+        });
+      }
+      
+      setPreferences(prev => ({
+        ...prev,
+        ...updates
+      }));
+      
+      // Show toast to inform user about the sync
+      if (Object.keys(updates).length > 1) {
+        const dayNames = selectedActivity.days_of_week.join(', ');
+        toast({
+          title: "Days Synced",
+          description: `This activity is available on ${dayNames}. Selection applied to all days.`,
+        });
+      }
+    } else {
+      // No activity selected (clearing selection)
+      setPreferences(prev => ({
+        ...prev,
+        [`${day}_${choice}`]: value
+      }));
+    }
   };
 
   const handleSubmit = async () => {
