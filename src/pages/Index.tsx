@@ -49,6 +49,16 @@ const Index = () => {
 
   return (
     <div className="min-h-screen">
+      {/* Admin Link - Top Right Corner */}
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => navigate("/auth")}
+        className="fixed top-4 right-4 z-50 text-xs text-muted-foreground hover:text-foreground"
+      >
+        Admin
+      </Button>
+
       {/* Hero Section */}
       <section className="relative bg-gradient-hero text-primary-foreground overflow-hidden">
         <div className="absolute inset-0 bg-grid-pattern opacity-10"></div>
