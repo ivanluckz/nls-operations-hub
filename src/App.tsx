@@ -15,6 +15,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import AllocationsView from "./pages/AllocationsView";
 import TeacherDashboard from "./pages/TeacherDashboard";
 import NotFound from "./pages/NotFound";
+import BackgroundRemoval from "./pages/BackgroundRemoval";
 
 const queryClient = new QueryClient();
 
@@ -27,6 +28,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/auth" element={<Auth />} />
+          <Route path="/bg-removal" element={<BackgroundRemoval />} />
           <Route
             path="/student"
             element={
