@@ -187,10 +187,10 @@ const ModeratorDashboard = () => {
           <CardHeader>
             <CardTitle>Quick Actions</CardTitle>
             <CardDescription>
-              Manage activities and run allocations
+              Manage activities, manually allocate, and run auto-allocation
             </CardDescription>
           </CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-2">
+          <CardContent className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <Button
               onClick={() => navigate("/moderator/activities")}
               className="h-auto py-4 flex flex-col items-start gap-2"
@@ -205,16 +205,44 @@ const ModeratorDashboard = () => {
             </Button>
 
             <Button
-              onClick={() => navigate("/moderator/allocations")}
+              onClick={() => navigate("/moderator/manual-allocations")}
               variant="secondary"
               className="h-auto py-4 flex flex-col items-start gap-2"
             >
               <div className="flex items-center gap-2">
-                <PlayCircle className="w-5 h-5" />
-                <span className="font-semibold">Run Allocation</span>
+                <Users className="w-5 h-5" />
+                <span className="font-semibold">Manual Allocation</span>
               </div>
               <span className="text-xs text-secondary-foreground/80 font-normal">
-                Process student preferences and allocate activities
+                Manually assign students to activities
+              </span>
+            </Button>
+
+            <Button
+              onClick={() => navigate("/moderator/allocations")}
+              variant="outline"
+              className="h-auto py-4 flex flex-col items-start gap-2"
+            >
+              <div className="flex items-center gap-2">
+                <PlayCircle className="w-5 h-5" />
+                <span className="font-semibold">Auto Allocation</span>
+              </div>
+              <span className="text-xs font-normal">
+                Automatically allocate based on preferences
+              </span>
+            </Button>
+
+            <Button
+              onClick={() => navigate("/moderator/view-allocations")}
+              variant="outline"
+              className="h-auto py-4 flex flex-col items-start gap-2"
+            >
+              <div className="flex items-center gap-2">
+                <Download className="w-5 h-5" />
+                <span className="font-semibold">View Allocations</span>
+              </div>
+              <span className="text-xs font-normal">
+                View all student assignments
               </span>
             </Button>
           </CardContent>

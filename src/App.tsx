@@ -11,6 +11,7 @@ import StudentPreferences from "./pages/StudentPreferences";
 import ModeratorDashboard from "./pages/ModeratorDashboard";
 import ModeratorActivities from "./pages/ModeratorActivities";
 import ModeratorAllocations from "./pages/ModeratorAllocations";
+import ManualAllocations from "./pages/ManualAllocations";
 import AdminDashboard from "./pages/AdminDashboard";
 import AllocationsView from "./pages/AllocationsView";
 import TeacherDashboard from "./pages/TeacherDashboard";
@@ -73,8 +74,10 @@ const App = () => (
           <Route path="/admin/activities" element={<ProtectedRoute requiredRole="admin"><ModeratorActivities /></ProtectedRoute>} />
           <Route path="/admin/allocations" element={<ProtectedRoute requiredRole="admin"><ModeratorAllocations /></ProtectedRoute>} />
           <Route path="/admin/view-allocations" element={<ProtectedRoute requiredRole="admin"><AllocationsView /></ProtectedRoute>} />
+          <Route path="/admin/manual-allocations" element={<ProtectedRoute requiredRole="admin"><ManualAllocations /></ProtectedRoute>} />
           <Route path="/teacher" element={<ProtectedRoute requiredRole="teacher"><TeacherDashboard /></ProtectedRoute>} />
           <Route path="/moderator/view-allocations" element={<ProtectedRoute requiredRole="moderator"><AllocationsView /></ProtectedRoute>} />
+          <Route path="/moderator/manual-allocations" element={<ProtectedRoute requiredRole="moderator"><ManualAllocations /></ProtectedRoute>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

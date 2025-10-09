@@ -196,7 +196,7 @@ const AdminDashboard = () => {
 
       <main className="container mx-auto px-4 py-8 space-y-8">
         {/* Quick Actions for Moderator Powers */}
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => navigate("/admin/activities")}>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
@@ -209,14 +209,26 @@ const AdminDashboard = () => {
             </CardHeader>
           </Card>
 
-          <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => navigate("/admin/allocations")}>
+          <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => navigate("/admin/manual-allocations")}>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
                 <Users className="h-5 w-5" />
-                Run Allocation
+                Manual Allocation
               </CardTitle>
               <CardDescription>
-                Allocate students to activities based on preferences
+                Manually assign students to activities
+              </CardDescription>
+            </CardHeader>
+          </Card>
+
+          <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => navigate("/admin/allocations")}>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Shield className="h-5 w-5" />
+                Auto Allocation
+              </CardTitle>
+              <CardDescription>
+                Auto-allocate based on preferences
               </CardDescription>
             </CardHeader>
           </Card>
