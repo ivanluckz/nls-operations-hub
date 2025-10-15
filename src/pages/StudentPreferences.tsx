@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft } from "lucide-react";
+import { PreferencesSchema } from "@/lib/validation";
 
 interface Activity {
   id: string;
@@ -195,10 +196,61 @@ const StudentPreferences = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      const { error } = await supabase.from("preferences").upsert({
+      // Prepare preferences data with null for empty strings
+      const preferencesData: any = {
         student_id: user.id,
-        ...preferences
+      };
+      
+      // Add all preference fields, converting empty strings to null
+      Object.entries(preferences).forEach(([key, value]) => {
+        preferencesData[key] = value === "" ? null : value;
       });
+
+      // Validate preferences data
+      const validation = PreferencesSchema.safeParse(preferencesData);
+      if (!validation.success) {
+        const firstError = validation.error.errors[0];
+        toast({
+          variant: "destructive",
+          title: "Validation Error",
+          description: `${firstError.path.join('.')}: ${firstError.message}`,
+        });
+        return;
+      }
+
+      const { error } = await supabase.from("preferences").upsert([{
+        student_id: validation.data.student_id!,
+        monday_first_choice: validation.data.monday_first_choice ?? null,
+        monday_second_choice: validation.data.monday_second_choice ?? null,
+        monday_third_choice: validation.data.monday_third_choice ?? null,
+        monday_fourth_choice: validation.data.monday_fourth_choice ?? null,
+        monday_fifth_choice: validation.data.monday_fifth_choice ?? null,
+        tuesday_first_choice: validation.data.tuesday_first_choice ?? null,
+        tuesday_second_choice: validation.data.tuesday_second_choice ?? null,
+        tuesday_third_choice: validation.data.tuesday_third_choice ?? null,
+        tuesday_fourth_choice: validation.data.tuesday_fourth_choice ?? null,
+        tuesday_fifth_choice: validation.data.tuesday_fifth_choice ?? null,
+        wednesday_slot1_first_choice: validation.data.wednesday_slot1_first_choice ?? null,
+        wednesday_slot1_second_choice: validation.data.wednesday_slot1_second_choice ?? null,
+        wednesday_slot1_third_choice: validation.data.wednesday_slot1_third_choice ?? null,
+        wednesday_slot1_fourth_choice: validation.data.wednesday_slot1_fourth_choice ?? null,
+        wednesday_slot1_fifth_choice: validation.data.wednesday_slot1_fifth_choice ?? null,
+        wednesday_slot2_first_choice: validation.data.wednesday_slot2_first_choice ?? null,
+        wednesday_slot2_second_choice: validation.data.wednesday_slot2_second_choice ?? null,
+        wednesday_slot2_third_choice: validation.data.wednesday_slot2_third_choice ?? null,
+        wednesday_slot2_fourth_choice: validation.data.wednesday_slot2_fourth_choice ?? null,
+        wednesday_slot2_fifth_choice: validation.data.wednesday_slot2_fifth_choice ?? null,
+        thursday_first_choice: validation.data.thursday_first_choice ?? null,
+        thursday_second_choice: validation.data.thursday_second_choice ?? null,
+        thursday_third_choice: validation.data.thursday_third_choice ?? null,
+        thursday_fourth_choice: validation.data.thursday_fourth_choice ?? null,
+        thursday_fifth_choice: validation.data.thursday_fifth_choice ?? null,
+        friday_first_choice: validation.data.friday_first_choice ?? null,
+        friday_second_choice: validation.data.friday_second_choice ?? null,
+        friday_third_choice: validation.data.friday_third_choice ?? null,
+        friday_fourth_choice: validation.data.friday_fourth_choice ?? null,
+        friday_fifth_choice: validation.data.friday_fifth_choice ?? null,
+      }]);
 
       if (error) throw error;
 

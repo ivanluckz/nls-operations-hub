@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Save, Trash2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { ManualAllocationInputSchema } from "@/lib/validation";
 
 interface Student {
   id: string;
@@ -137,6 +138,23 @@ const ManualAllocations = () => {
     const activity = activities.find(a => a.id === activityId);
     if (!activity) return;
 
+    // Validate input data
+    const validation = ManualAllocationInputSchema.safeParse({
+      studentId,
+      activityId,
+      day,
+      slot
+    });
+
+    if (!validation.success) {
+      toast({
+        variant: "destructive",
+        title: "Validation Error",
+        description: validation.error.errors[0].message,
+      });
+      return;
+    }
+
     const currentAllocations = allocations.get(studentId) || [];
     const existingAllocation = currentAllocations.find(
       a => a.day_of_week === day && a.slot_number === slot
@@ -150,10 +168,10 @@ const ManualAllocations = () => {
       }
 
       const { data, error } = await supabase.from("allocations").insert({
-        student_id: studentId,
-        activity_id: activityId,
-        day_of_week: day,
-        slot_number: slot,
+        student_id: validation.data.studentId,
+        activity_id: validation.data.activityId,
+        day_of_week: validation.data.day,
+        slot_number: validation.data.slot,
         preference_rank: 1,
         status: "allocated"
       }).select().single();

@@ -1,12 +1,25 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'] as const;
+const DayOfWeekEnum = z.enum(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']);
+const UUIDSchema = z.string().uuid();
+
+// Validate allocation data
+const AllocationSchema = z.object({
+  student_id: UUIDSchema,
+  activity_id: UUIDSchema,
+  day_of_week: DayOfWeekEnum,
+  slot_number: z.number().int().min(1).max(2),
+  preference_rank: z.number().int().min(1).max(5),
+  status: z.literal("allocated")
+});
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -77,14 +90,8 @@ serve(async (req) => {
       throw actError;
     }
 
-    const allocations: Array<{
-      student_id: string;
-      activity_id: string;
-      day_of_week: string;
-      slot_number: number;
-      preference_rank: number;
-      status: string;
-    }> = [];
+    const allocations: z.infer<typeof AllocationSchema>[] = [];
+    const validationErrors: string[] = [];
 
     // Process each day separately (Wednesday has 2 slots, others have 1)
     for (const day of DAYS) {
@@ -109,19 +116,34 @@ serve(async (req) => {
             
             const activity = capacityTracker.get(choiceId);
             if (activity && activity.enrolled < activity.capacity) {
-              allocations.push({
+              const allocationData = {
                 student_id: pref.student_id,
                 activity_id: choiceId,
                 day_of_week: day,
                 slot_number: slot,
                 preference_rank: rank,
-                status: "allocated",
-              });
-              activity.enrolled++;
+                status: "allocated" as const,
+              };
+
+              // Validate allocation data
+              const validation = AllocationSchema.safeParse(allocationData);
+              if (validation.success) {
+                allocations.push(validation.data);
+                activity.enrolled++;
+              } else {
+                validationErrors.push(
+                  `Invalid allocation for student ${pref.student_id}: ${validation.error.message}`
+                );
+                console.error("Validation error:", validation.error.format());
+              }
             }
           }
         }
       }
+    }
+
+    if (validationErrors.length > 0) {
+      console.warn(`Found ${validationErrors.length} validation errors during allocation`);
     }
 
     const { error: insertError } = await serviceClient
@@ -134,9 +156,17 @@ serve(async (req) => {
     }
 
     console.log(`Successfully allocated ${allocations.length} student-day combinations`);
+    if (validationErrors.length > 0) {
+      console.log(`Skipped ${validationErrors.length} invalid allocations`);
+    }
 
     return new Response(
-      JSON.stringify({ success: true, allocated: allocations.length }),
+      JSON.stringify({ 
+        success: true, 
+        allocated: allocations.length,
+        validation_errors: validationErrors.length,
+        warnings: validationErrors.length > 0 ? validationErrors : undefined
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error: any) {
