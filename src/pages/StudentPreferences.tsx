@@ -190,6 +190,55 @@ const StudentPreferences = () => {
     }
   };
 
+  const handleSaveDay = async (day: string, slot?: number) => {
+    setSubmitting(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      const dayLower = day.toLowerCase();
+      const slotSuffix = slot ? `_slot${slot}` : '';
+      
+      // Get existing preferences first
+      const { data: existingData } = await supabase
+        .from("preferences")
+        .select("*")
+        .eq("student_id", user.id)
+        .maybeSingle();
+
+      // Prepare update data for this specific day/slot
+      const updateData: any = {
+        student_id: user.id,
+        ...(existingData || {}), // Keep existing preferences
+      };
+
+      // Update only the fields for this specific day/slot
+      const choices = ['first_choice', 'second_choice', 'third_choice', 'fourth_choice', 'fifth_choice'];
+      choices.forEach(choice => {
+        const key = `${dayLower}${slotSuffix}_${choice}`;
+        updateData[key] = preferences[key as keyof typeof preferences] || null;
+      });
+
+      const { error } = await supabase.from("preferences").upsert([updateData]);
+
+      if (error) throw error;
+
+      toast({
+        title: "Saved!",
+        description: `${day}${slot ? ` Slot ${slot}` : ''} preferences have been updated`,
+      });
+    } catch (error: any) {
+      console.error("Error saving preferences:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to save preferences",
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const handleSubmit = async () => {
     setSubmitting(true);
     try {
@@ -256,7 +305,7 @@ const StudentPreferences = () => {
 
       toast({
         title: "Success!",
-        description: "Your preferences have been saved",
+        description: "All preferences have been saved",
       });
 
       navigate("/student");
@@ -280,8 +329,16 @@ const StudentPreferences = () => {
 
     return (
       <Card key={`${day}${slotSuffix}`}>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
           <CardTitle>{cardTitle}</CardTitle>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handleSaveDay(day, slot)}
+            disabled={submitting}
+          >
+            Save {day}{slot ? ` Slot ${slot}` : ''}
+          </Button>
         </CardHeader>
         <CardContent className="space-y-4">
           {[1, 2, 3, 4, 5].map((choice) => {
@@ -342,7 +399,7 @@ const StudentPreferences = () => {
         <div className="mb-6">
           <h1 className="text-3xl font-bold mb-2">Activity Preferences</h1>
           <CardDescription>
-            Select your top 5 activity preferences for each day/slot
+            Select your top 5 activity preferences for each day/slot. You can save individual days or all at once.
           </CardDescription>
         </div>
 
