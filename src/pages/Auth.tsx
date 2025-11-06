@@ -41,16 +41,14 @@ const Auth = () => {
       if (error) throw error;
 
       if (data.user) {
-        const { data: roleData } = await supabase
-          .from("user_roles")
+        const { data: profile } = await supabase
+          .from("profiles")
           .select("role")
-          .eq("user_id", data.user.id)
+          .eq("id", data.user.id)
           .single();
 
-        if (roleData?.role === "moderator" || roleData?.role === "admin") {
+        if (profile?.role === "moderator") {
           navigate("/moderator");
-        } else if (roleData?.role === "teacher") {
-          navigate("/teacher");
         } else {
           navigate("/student");
         }

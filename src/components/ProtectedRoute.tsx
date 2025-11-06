@@ -42,32 +42,23 @@ const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
 
   const fetchUserRole = async (userId: string) => {
     try {
-      // Check if user is banned from profiles table
-      const { data: profile, error: profileError } = await supabase
+      const { data, error } = await supabase
         .from("profiles")
-        .select("banned")
+        .select("role, banned")
         .eq("id", userId)
         .single();
 
-      if (profileError) throw profileError;
+      if (error) throw error;
       
-      if (profile?.banned) {
+      // Check if user is banned
+      if (data?.banned) {
         await supabase.auth.signOut();
         setUserRole(null);
         setUser(null);
         return;
       }
-
-      // Fetch role from user_roles table
-      const { data: roleData, error: roleError } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", userId)
-        .single();
-
-      if (roleError) throw roleError;
       
-      setUserRole(roleData?.role || null);
+      setUserRole(data?.role || null);
     } catch (error) {
       console.error("Error fetching user role:", error);
     } finally {
