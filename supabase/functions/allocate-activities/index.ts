@@ -50,17 +50,33 @@ serve(async (req) => {
       );
     }
 
-    const { data: profile, error: profileError } = await supabaseClient
-      .from("profiles")
+    // Check role from secure user_roles table
+    const { data: roleData, error: roleError } = await supabaseClient
+      .from("user_roles")
       .select("role")
-      .eq("id", user.id)
-      .single();
+      .eq("user_id", user.id)
+      .in("role", ["moderator", "admin"]);
 
-    if (profileError || !['moderator', 'admin'].includes(profile?.role)) {
-      console.error("Authorization error:", profileError);
+    if (roleError || !roleData || roleData.length === 0) {
+      console.error("Authorization error:", roleError);
       return new Response(
         JSON.stringify({ error: "Forbidden: Moderator or Admin access required" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Rate limiting check - max 3 allocations per hour
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const { data: recentAllocations } = await supabaseClient
+      .from("allocation_audit_log")
+      .select("id")
+      .eq("triggered_by", user.id)
+      .gte("started_at", oneHourAgo);
+
+    if (recentAllocations && recentAllocations.length >= 3) {
+      return new Response(
+        JSON.stringify({ error: "Rate limit exceeded. Maximum 3 allocations per hour." }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -69,8 +85,23 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    // Clear existing allocations
-    await serviceClient.from("allocations").delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    // Create audit log entry
+    const { data: auditLog, error: auditError } = await serviceClient
+      .from("allocation_audit_log")
+      .insert({
+        triggered_by: user.id,
+        status: "running"
+      })
+      .select()
+      .single();
+
+    if (auditError) {
+      console.error("Error creating audit log:", auditError);
+    }
+
+    try {
+      // Clear existing allocations
+      await serviceClient.from("allocations").delete().neq('id', '00000000-0000-0000-0000-000000000000');
 
     const { data: preferences, error: prefError } = await serviceClient
       .from("preferences")
@@ -155,20 +186,47 @@ serve(async (req) => {
       throw insertError;
     }
 
-    console.log(`Successfully allocated ${allocations.length} student-day combinations`);
-    if (validationErrors.length > 0) {
-      console.log(`Skipped ${validationErrors.length} invalid allocations`);
-    }
+      console.log(`Successfully allocated ${allocations.length} student-day combinations`);
+      if (validationErrors.length > 0) {
+        console.log(`Skipped ${validationErrors.length} invalid allocations`);
+      }
 
-    return new Response(
-      JSON.stringify({ 
-        success: true, 
-        allocated: allocations.length,
-        validation_errors: validationErrors.length,
-        warnings: validationErrors.length > 0 ? validationErrors : undefined
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+      // Update audit log with success
+      if (auditLog) {
+        await serviceClient
+          .from("allocation_audit_log")
+          .update({
+            completed_at: new Date().toISOString(),
+            status: "completed",
+            allocations_created: allocations.length,
+            validation_errors: validationErrors.length
+          })
+          .eq("id", auditLog.id);
+      }
+
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          allocated: allocations.length,
+          validation_errors: validationErrors.length,
+          warnings: validationErrors.length > 0 ? validationErrors : undefined
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    } catch (innerError: any) {
+      // Update audit log with failure
+      if (auditLog) {
+        await serviceClient
+          .from("allocation_audit_log")
+          .update({
+            completed_at: new Date().toISOString(),
+            status: "failed",
+            error_message: innerError.message
+          })
+          .eq("id", auditLog.id);
+      }
+      throw innerError;
+    }
   } catch (error: any) {
     console.error("Allocation error:", error);
     return new Response(

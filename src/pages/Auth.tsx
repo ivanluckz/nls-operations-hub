@@ -41,14 +41,17 @@ const Auth = () => {
       if (error) throw error;
 
       if (data.user) {
-        const { data: profile } = await supabase
-          .from("profiles")
+        const { data: roleData } = await supabase
+          .from("user_roles" as any)
           .select("role")
-          .eq("id", data.user.id)
+          .eq("user_id", data.user.id)
           .single();
 
-        if (profile?.role === "moderator") {
+        const role = (roleData as any)?.role;
+        if (role === "moderator" || role === "admin") {
           navigate("/moderator");
+        } else if (role === "teacher") {
+          navigate("/teacher");
         } else {
           navigate("/student");
         }
@@ -67,13 +70,23 @@ const Auth = () => {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validate email format
+    // Validate email format and domain
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(signupForm.email)) {
       toast({
         variant: "destructive",
         title: "Invalid Email",
         description: "Please enter a valid email address",
+      });
+      return;
+    }
+
+    // Client-side domain validation
+    if (!signupForm.email.toLowerCase().endsWith('@ntare-louisenlund.org')) {
+      toast({
+        variant: "destructive",
+        title: "Invalid Email Domain",
+        description: "Please use your school email address ending in @ntare-louisenlund.org",
       });
       return;
     }
