@@ -15,6 +15,7 @@ import ManualAllocations from "./pages/ManualAllocations";
 import AdminDashboard from "./pages/AdminDashboard";
 import AllocationsView from "./pages/AllocationsView";
 import TeacherDashboard from "./pages/TeacherDashboard";
+import TeacherAttendance from "./pages/TeacherAttendance";
 import NotFound from "./pages/NotFound";
 import BackgroundRemoval from "./pages/BackgroundRemoval";
 
@@ -76,6 +77,7 @@ const App = () => (
           <Route path="/admin/view-allocations" element={<ProtectedRoute requiredRole="admin"><AllocationsView /></ProtectedRoute>} />
           <Route path="/admin/manual-allocations" element={<ProtectedRoute requiredRole="admin"><ManualAllocations /></ProtectedRoute>} />
           <Route path="/teacher" element={<ProtectedRoute requiredRole="teacher"><TeacherDashboard /></ProtectedRoute>} />
+          <Route path="/teacher/attendance" element={<ProtectedRoute requiredRole="teacher"><TeacherAttendance /></ProtectedRoute>} />
           <Route path="/moderator/view-allocations" element={<ProtectedRoute requiredRole="moderator"><AllocationsView /></ProtectedRoute>} />
           <Route path="/moderator/manual-allocations" element={<ProtectedRoute requiredRole="moderator"><ManualAllocations /></ProtectedRoute>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

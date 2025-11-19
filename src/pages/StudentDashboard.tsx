@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { LogOut, BookOpen, CheckCircle2, Clock, AlertCircle } from "lucide-react";
+import { StudentQRCode } from "@/components/StudentQRCode";
 
 interface Profile {
   full_name: string;
@@ -157,21 +158,25 @@ const StudentDashboard = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8 space-y-6">
-        <Card className="shadow-card">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <StatusIcon className={`w-5 h-5 ${statusInfo.color}`} />
-              Current Status
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full ${statusInfo.bgColor}`}>
-              <Badge variant="outline" className="border-0">
-                {statusInfo.text}
-              </Badge>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card className="shadow-card">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <StatusIcon className={`w-5 h-5 ${statusInfo.color}`} />
+                Current Status
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full ${statusInfo.bgColor}`}>
+                <Badge variant="outline" className="border-0">
+                  {statusInfo.text}
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
+
+          <StudentQRCode />
+        </div>
 
         {allocations.length > 0 && (
           <Card className="shadow-card border-success/20">

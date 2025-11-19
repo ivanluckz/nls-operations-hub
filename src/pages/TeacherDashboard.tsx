@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { LogOut, GraduationCap } from "lucide-react";
+import { LogOut, GraduationCap, ClipboardCheck } from "lucide-react";
 
 interface Activity {
   id: string;
@@ -114,6 +114,13 @@ const TeacherDashboard = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8 space-y-6">
+        <div className="flex justify-end mb-4">
+          <Button onClick={() => navigate("/teacher/attendance")}>
+            <ClipboardCheck className="w-4 h-4 mr-2" />
+            Take Attendance
+          </Button>
+        </div>
+
         <Card className="shadow-card">
           <CardHeader>
             <CardTitle>My Activities</CardTitle>
