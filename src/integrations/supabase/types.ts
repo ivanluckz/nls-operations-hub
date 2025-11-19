@@ -106,6 +106,85 @@ export type Database = {
           },
         ]
       }
+      attendance_records: {
+        Row: {
+          id: string
+          marked_at: string
+          marked_by: string
+          session_id: string
+          status: string
+          student_id: string
+        }
+        Insert: {
+          id?: string
+          marked_at?: string
+          marked_by: string
+          session_id: string
+          status?: string
+          student_id: string
+        }
+        Update: {
+          id?: string
+          marked_at?: string
+          marked_by?: string
+          session_id?: string
+          status?: string
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_records_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "attendance_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      attendance_sessions: {
+        Row: {
+          activity_id: string
+          created_at: string
+          day_of_week: string
+          finalized_at: string | null
+          id: string
+          session_date: string
+          slot_number: number
+          status: string
+          teacher_id: string
+        }
+        Insert: {
+          activity_id: string
+          created_at?: string
+          day_of_week: string
+          finalized_at?: string | null
+          id?: string
+          session_date: string
+          slot_number: number
+          status?: string
+          teacher_id: string
+        }
+        Update: {
+          activity_id?: string
+          created_at?: string
+          day_of_week?: string
+          finalized_at?: string | null
+          id?: string
+          session_date?: string
+          slot_number?: number
+          status?: string
+          teacher_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_sessions_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "activities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       preferences: {
         Row: {
           friday_fifth_choice: string | null
