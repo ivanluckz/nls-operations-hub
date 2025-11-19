@@ -349,14 +349,8 @@ export type Database = {
           teacher_id: string
         }[]
       }
-      is_admin: {
-        Args: { user_id: string }
-        Returns: boolean
-      }
-      is_moderator: {
-        Args: { user_id: string }
-        Returns: boolean
-      }
+      is_admin: { Args: { user_id: string }; Returns: boolean }
+      is_moderator: { Args: { user_id: string }; Returns: boolean }
     }
     Enums: {
       allocation_status: "pending" | "allocated" | "waitlisted"

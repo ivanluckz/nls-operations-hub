@@ -121,7 +121,8 @@ serve(async (req) => {
       throw actError;
     }
 
-    const allocations: z.infer<typeof AllocationSchema>[] = [];
+    type AllocationInput = z.infer<typeof AllocationSchema>;
+    const allocations: AllocationInput[] = [];
     const validationErrors: string[] = [];
 
     // Process each day separately (Wednesday has 2 slots, others have 1)
