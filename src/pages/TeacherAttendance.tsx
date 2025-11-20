@@ -26,6 +26,7 @@ interface Student {
 interface AttendanceRecord {
   student_id: string;
   status: "present" | "late" | "absent";
+  scanned_at?: string;
 }
 
 const TeacherAttendance = () => {
@@ -216,7 +217,7 @@ const TeacherAttendance = () => {
             try {
               const data = JSON.parse(result.getText());
               if (data.studentId) {
-                markAttendance(data.studentId, "present");
+                markAttendance(data.studentId, "present", new Date().toISOString());
                 stopScanning();
               }
             } catch (e) {
@@ -242,16 +243,16 @@ const TeacherAttendance = () => {
     setScanning(false);
   };
 
-  const markAttendance = (studentId: string, status: "present" | "late" | "absent") => {
+  const markAttendance = (studentId: string, status: "present" | "late" | "absent", scannedAt?: string) => {
     const newAttendance = new Map(attendance);
-    newAttendance.set(studentId, { student_id: studentId, status });
+    newAttendance.set(studentId, { student_id: studentId, status, scanned_at: scannedAt });
     setAttendance(newAttendance);
 
     const student = students.find(s => s.student_id === studentId);
     if (student) {
       toast({
         title: "Marked",
-        description: `${student.student_name} marked as ${status}`,
+        description: `${student.student_name} marked as ${status}${scannedAt ? ' at ' + new Date(scannedAt).toLocaleTimeString() : ''}`,
       });
     }
   };
@@ -454,9 +455,14 @@ const TeacherAttendance = () => {
                               markAttendance(student.student_id, checked ? "present" : "absent")
                             }
                           />
-                          <div>
+                        <div>
                             <p className="font-medium">{student.student_name}</p>
                             <p className="text-sm text-muted-foreground">{student.student_email}</p>
+                            {record?.scanned_at && (
+                              <p className="text-xs text-muted-foreground">
+                                Scanned: {new Date(record.scanned_at).toLocaleTimeString()}
+                              </p>
+                            )}
                           </div>
                         </div>
                         <div className="flex gap-2">
