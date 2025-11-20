@@ -36,7 +36,7 @@ interface Profile {
   id: string;
   email: string;
   full_name: string;
-  role: "student" | "moderator" | "admin" | "teacher";
+  roles: Array<{ role: "student" | "moderator" | "admin" | "teacher" }>;
   banned: boolean;
   created_at: string;
 }
@@ -56,13 +56,26 @@ const AdminDashboard = () => {
 
   const fetchUsers = async () => {
     try {
-      const { data, error } = await supabase
+      // Fetch profiles with their roles via a manual join
+      const { data: profilesData, error: profilesError } = await supabase
         .from("profiles")
         .select("*")
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false});
 
-      if (error) throw error;
-      setUsers(data || []);
+      if (profilesError) throw profilesError;
+
+      // Fetch all user roles
+      const { data: rolesData } = await supabase
+        .from("user_roles" as any)
+        .select("user_id, role");
+
+      // Combine the data
+      const usersWithRoles: Profile[] = profilesData?.map(profile => ({
+        ...profile,
+        roles: ((rolesData || []) as any[]).filter((r: any) => r.user_id === profile.id)
+      })) || [];
+
+      setUsers(usersWithRoles);
     } catch (error) {
       console.error("Error fetching users:", error);
       toast({
@@ -83,7 +96,7 @@ const AdminDashboard = () => {
   const openEditDialog = (user: Profile) => {
     setEditingUser(user);
     setEditName(user.full_name);
-    setEditRole(user.role);
+    setEditRole(user.roles[0]?.role);
   };
 
   const handleUpdateUser = async () => {
@@ -276,16 +289,16 @@ const AdminDashboard = () => {
                     <TableCell>
                       <Badge
                         variant={
-                          user.role === "admin"
+                          user.roles[0]?.role === "admin"
                             ? "default"
-                            : user.role === "moderator"
+                            : user.roles[0]?.role === "moderator"
                             ? "secondary"
-                            : user.role === "teacher"
+                            : user.roles[0]?.role === "teacher"
                             ? "outline"
                             : "outline"
                         }
                       >
-                        {user.role}
+                        {user.roles[0]?.role || "student"}
                       </Badge>
                     </TableCell>
                     <TableCell>

@@ -49,18 +49,23 @@ const AllocationsView = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data: profileData } = await supabase
-        .from("profiles")
+      const { data: roleData } = await supabase
+        .from("user_roles" as any)
         .select("role")
-        .eq("id", user.id)
+        .eq("user_id", user.id)
         .single();
 
-      setUserRole(profileData?.role || "");
+      setUserRole((roleData as any)?.role || "");
 
       const { data: students } = await supabase
         .from("profiles")
-        .select("id, full_name, email")
-        .eq("role", "student")
+        .select(`
+          id, 
+          full_name, 
+          email,
+          user_roles!inner(role)
+        `)
+        .eq("user_roles.role", "student")
         .order("full_name");
 
       const { data: allAllocations } = await supabase

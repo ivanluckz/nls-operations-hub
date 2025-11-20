@@ -18,15 +18,16 @@ const Index = () => {
       const { data: { user } } = await supabase.auth.getUser();
       
       if (user) {
-        const { data: profile } = await supabase
-          .from("profiles")
+        const { data: roleData } = await supabase
+          .from("user_roles" as any)
           .select("role")
-          .eq("id", user.id)
+          .eq("user_id", user.id)
           .single();
 
-        if (profile?.role === "admin") {
+        const role = (roleData as any)?.role;
+        if (role === "admin") {
           navigate("/admin");
-        } else if (profile?.role === "moderator") {
+        } else if (role === "moderator") {
           navigate("/moderator");
         } else {
           navigate("/student");

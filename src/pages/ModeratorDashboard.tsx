@@ -45,7 +45,7 @@ const ModeratorDashboard = () => {
 
       // Fetch students count
       const { count: studentsCount } = await supabase
-        .from("profiles")
+        .from("user_roles" as any)
         .select("*", { count: "exact", head: true })
         .eq("role", "student");
 

@@ -217,11 +217,38 @@ const TeacherAttendance = () => {
             try {
               const data = JSON.parse(result.getText());
               if (data.studentId) {
+                // Validate that student is in the enrolled students list
+                const isEnrolled = students.some(s => s.student_id === data.studentId);
+                
+                if (!isEnrolled) {
+                  toast({
+                    variant: "destructive",
+                    title: "Invalid QR Code",
+                    description: "This student is not enrolled in this activity.",
+                  });
+                  return;
+                }
+                
+                // Check if already marked
+                const existing = attendance.get(data.studentId);
+                if (existing && existing.status !== "absent") {
+                  toast({
+                    title: "Already Marked",
+                    description: `${students.find(s => s.student_id === data.studentId)?.student_name} is already marked as ${existing.status}`,
+                  });
+                  return;
+                }
+                
                 markAttendance(data.studentId, "present", new Date().toISOString());
                 stopScanning();
               }
             } catch (e) {
               console.error("Invalid QR code:", e);
+              toast({
+                variant: "destructive",
+                title: "Invalid QR Code",
+                description: "Could not read QR code data.",
+              });
             }
           }
         }

@@ -89,16 +89,21 @@ const ManualAllocations = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data: profileData } = await supabase
-        .from("profiles")
+      const { data: roleData } = await supabase
+        .from("user_roles" as any)
         .select("role")
-        .eq("id", user.id)
+        .eq("user_id", user.id)
         .single();
 
-      setUserRole(profileData?.role || "");
+      setUserRole((roleData as any)?.role || "");
 
       const [studentsRes, activitiesRes, preferencesRes, allocationsRes] = await Promise.all([
-        supabase.from("profiles").select("id, full_name, email").eq("role", "student").order("full_name"),
+        supabase.from("profiles").select(`
+          id, 
+          full_name, 
+          email,
+          user_roles!inner(role)
+        `).eq("user_roles.role", "student").order("full_name"),
         supabase.from("activities").select("id, title, capacity, days_of_week, current_enrollment").eq("is_active", true),
         supabase.from("preferences").select("*"),
         supabase.from("allocations").select("*")
