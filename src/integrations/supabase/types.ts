@@ -388,7 +388,6 @@ export type Database = {
           email: string
           full_name: string
           id: string
-          role: Database["public"]["Enums"]["user_role"]
           updated_at: string
         }
         Insert: {
@@ -397,7 +396,6 @@ export type Database = {
           email: string
           full_name: string
           id: string
-          role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
         }
         Update: {
@@ -406,8 +404,31 @@ export type Database = {
           email?: string
           full_name?: string
           id?: string
-          role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -428,11 +449,19 @@ export type Database = {
           teacher_id: string
         }[]
       }
-      is_admin: { Args: { user_id: string }; Returns: boolean }
-      is_moderator: { Args: { user_id: string }; Returns: boolean }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_moderator: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       allocation_status: "pending" | "allocated" | "waitlisted"
+      app_role: "student" | "moderator" | "admin" | "teacher"
       user_role: "student" | "moderator" | "admin" | "teacher"
     }
     CompositeTypes: {
@@ -562,6 +591,7 @@ export const Constants = {
   public: {
     Enums: {
       allocation_status: ["pending", "allocated", "waitlisted"],
+      app_role: ["student", "moderator", "admin", "teacher"],
       user_role: ["student", "moderator", "admin", "teacher"],
     },
   },
