@@ -9,44 +9,39 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
 import { GraduationCap } from "lucide-react";
-
 const Auth = () => {
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const {
+    toast
+  } = useToast();
   const [isLoading, setIsLoading] = useState(false);
-
   const [loginForm, setLoginForm] = useState({
     email: "",
-    password: "",
+    password: ""
   });
-
   const [signupForm, setSignupForm] = useState({
     email: "",
     password: "",
     confirmPassword: "",
     fullName: "",
-    role: "student" as "student" | "moderator",
+    role: "student" as "student" | "moderator"
   });
-
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const {
+        data,
+        error
+      } = await supabase.auth.signInWithPassword({
         email: loginForm.email,
-        password: loginForm.password,
+        password: loginForm.password
       });
-
       if (error) throw error;
-
       if (data.user) {
-        const { data: roleData } = await supabase
-          .from("user_roles" as any)
-          .select("role")
-          .eq("user_id", data.user.id)
-          .single();
-
+        const {
+          data: roleData
+        } = await supabase.from("user_roles" as any).select("role").eq("user_id", data.user.id).single();
         const role = (roleData as any)?.role;
         if (role === "moderator" || role === "admin") {
           navigate("/moderator");
@@ -60,13 +55,12 @@ const Auth = () => {
       toast({
         variant: "destructive",
         title: "Login Failed",
-        description: error.message || "Invalid email or password",
+        description: error.message || "Invalid email or password"
       });
     } finally {
       setIsLoading(false);
     }
   };
-
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -76,7 +70,7 @@ const Auth = () => {
       toast({
         variant: "destructive",
         title: "Invalid Email",
-        description: "Please enter a valid email address",
+        description: "Please enter a valid email address"
       });
       return;
     }
@@ -86,16 +80,15 @@ const Auth = () => {
       toast({
         variant: "destructive",
         title: "Invalid Email Domain",
-        description: "Please use your school email address ending in @ntare-louisenlund.org",
+        description: "Please use your school email address ending in @ntare-louisenlund.org"
       });
       return;
     }
-
     if (signupForm.password !== signupForm.confirmPassword) {
       toast({
         variant: "destructive",
         title: "Passwords don't match",
-        description: "Please make sure your passwords match",
+        description: "Please make sure your passwords match"
       });
       return;
     }
@@ -105,54 +98,54 @@ const Auth = () => {
       toast({
         variant: "destructive",
         title: "Password too short",
-        description: "Password must be at least 8 characters",
+        description: "Password must be at least 8 characters"
       });
       return;
     }
-
     if (!/[A-Z]/.test(signupForm.password) || !/[a-z]/.test(signupForm.password) || !/[0-9]/.test(signupForm.password)) {
       toast({
         variant: "destructive",
         title: "Weak password",
-        description: "Password must contain uppercase, lowercase, and numbers",
+        description: "Password must contain uppercase, lowercase, and numbers"
       });
       return;
     }
 
     // Sanitize input
     const sanitizedFullName = signupForm.fullName.trim().slice(0, 100);
-
     setIsLoading(true);
-
     try {
       // Security fix: All signups are students by default
       // Moderators must be promoted by an admin
-      const { data, error } = await supabase.auth.signUp({
+      const {
+        data,
+        error
+      } = await supabase.auth.signUp({
         email: signupForm.email.trim().toLowerCase(),
         password: signupForm.password,
         options: {
           data: {
             full_name: sanitizedFullName,
-            role: 'student', // Force student role for security
+            role: 'student' // Force student role for security
           },
-          emailRedirectTo: `${window.location.origin}/`,
-        },
+          emailRedirectTo: `${window.location.origin}/`
+        }
       });
-
       if (error) throw error;
-
       if (data.user) {
         toast({
           title: "Account created!",
-          description: "You can now log in with your credentials",
+          description: "You can now log in with your credentials"
         });
 
         // Auto-login after signup
-        const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
+        const {
+          data: loginData,
+          error: loginError
+        } = await supabase.auth.signInWithPassword({
           email: signupForm.email.trim().toLowerCase(),
-          password: signupForm.password,
+          password: signupForm.password
         });
-
         if (!loginError && loginData.user) {
           navigate("/student");
         }
@@ -161,15 +154,13 @@ const Auth = () => {
       toast({
         variant: "destructive",
         title: "Signup Failed",
-        description: error.message || "Could not create account",
+        description: error.message || "Could not create account"
       });
     } finally {
       setIsLoading(false);
     }
   };
-
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-hero p-4">
+  return <div className="min-h-screen flex items-center justify-center bg-gradient-hero p-4">
       <Card className="w-full max-w-md shadow-elevated">
         <CardHeader className="space-y-1 flex flex-col items-center">
           <div className="w-16 h-16 rounded-full bg-gradient-primary flex items-center justify-center mb-2">
@@ -193,28 +184,17 @@ const Auth = () => {
               <form onSubmit={handleLogin} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="login-email">Email</Label>
-                  <Input
-                    id="login-email"
-                    type="email"
-                    placeholder="student@school.edu"
-                    value={loginForm.email}
-                    onChange={(e) =>
-                      setLoginForm({ ...loginForm, email: e.target.value })
-                    }
-                    required
-                  />
+                  <Input id="login-email" type="email" value={loginForm.email} onChange={e => setLoginForm({
+                  ...loginForm,
+                  email: e.target.value
+                })} required placeholder="Student@ntare-louisenlund.org\n" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="login-password">Password</Label>
-                  <Input
-                    id="login-password"
-                    type="password"
-                    value={loginForm.password}
-                    onChange={(e) =>
-                      setLoginForm({ ...loginForm, password: e.target.value })
-                    }
-                    required
-                  />
+                  <Input id="login-password" type="password" value={loginForm.password} onChange={e => setLoginForm({
+                  ...loginForm,
+                  password: e.target.value
+                })} required />
                 </div>
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? "Logging in..." : "Login"}
@@ -226,29 +206,17 @@ const Auth = () => {
               <form onSubmit={handleSignup} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="signup-name">Full Name</Label>
-                  <Input
-                    id="signup-name"
-                    type="text"
-                    placeholder="John Doe"
-                    value={signupForm.fullName}
-                    onChange={(e) =>
-                      setSignupForm({ ...signupForm, fullName: e.target.value })
-                    }
-                    required
-                  />
+                  <Input id="signup-name" type="text" placeholder="John Doe" value={signupForm.fullName} onChange={e => setSignupForm({
+                  ...signupForm,
+                  fullName: e.target.value
+                })} required />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="signup-email">Email</Label>
-                  <Input
-                    id="signup-email"
-                    type="email"
-                    placeholder="student@school.edu"
-                    value={signupForm.email}
-                    onChange={(e) =>
-                      setSignupForm({ ...signupForm, email: e.target.value })
-                    }
-                    required
-                  />
+                  <Input id="signup-email" type="email" placeholder="student@school.edu" value={signupForm.email} onChange={e => setSignupForm({
+                  ...signupForm,
+                  email: e.target.value
+                })} required />
                 </div>
                 <div className="rounded-lg bg-muted p-3">
                   <p className="text-sm text-muted-foreground">
@@ -257,33 +225,20 @@ const Auth = () => {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="signup-password">Password</Label>
-                  <Input
-                    id="signup-password"
-                    type="password"
-                    value={signupForm.password}
-                    onChange={(e) =>
-                      setSignupForm({ ...signupForm, password: e.target.value })
-                    }
-                    required
-                  />
+                  <Input id="signup-password" type="password" value={signupForm.password} onChange={e => setSignupForm({
+                  ...signupForm,
+                  password: e.target.value
+                })} required />
                   <p className="text-xs text-muted-foreground">
                     Must be 8+ characters with uppercase, lowercase, and numbers
                   </p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="signup-confirm-password">Confirm Password</Label>
-                  <Input
-                    id="signup-confirm-password"
-                    type="password"
-                    value={signupForm.confirmPassword}
-                    onChange={(e) =>
-                      setSignupForm({
-                        ...signupForm,
-                        confirmPassword: e.target.value,
-                      })
-                    }
-                    required
-                  />
+                  <Input id="signup-confirm-password" type="password" value={signupForm.confirmPassword} onChange={e => setSignupForm({
+                  ...signupForm,
+                  confirmPassword: e.target.value
+                })} required />
                 </div>
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? "Creating Account..." : "Sign Up"}
@@ -293,8 +248,6 @@ const Auth = () => {
           </Tabs>
         </CardContent>
       </Card>
-    </div>
-  );
+    </div>;
 };
-
 export default Auth;
