@@ -399,7 +399,7 @@ const StudentPreferences = () => {
         <div className="mb-6">
           <h1 className="text-3xl font-bold mb-2">Activity Preferences</h1>
           <CardDescription>
-            Select your top 5 activity preferences for each day/slot. You can save individual days or all at once.
+            Select your top 5 activity preferences for each day/slot. You can save individual days or submit all at once. You can resubmit your choices at any time before allocations are finalized.
           </CardDescription>
         </div>
 
