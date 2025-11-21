@@ -271,10 +271,39 @@ const StudentDashboard = () => {
                 Waiting for allocations to be processed by moderators
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
               <p className="text-muted-foreground">
                 Your preferences have been recorded. Check back soon to see your allocations!
               </p>
+              <Button 
+                onClick={() => navigate("/student/preferences")} 
+                variant="outline"
+                className="w-full"
+              >
+                <BookOpen className="w-4 h-4 mr-2" />
+                Edit Preferences
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {hasPreferences && allocations.length > 0 && (
+          <Card className="shadow-card">
+            <CardHeader>
+              <CardTitle>Update Your Preferences</CardTitle>
+              <CardDescription>
+                You can update your preferences at any time before the next allocation
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button 
+                onClick={() => navigate("/student/preferences")} 
+                variant="outline"
+                className="w-full"
+              >
+                <BookOpen className="w-4 h-4 mr-2" />
+                Update Preferences
+              </Button>
             </CardContent>
           </Card>
         )}
