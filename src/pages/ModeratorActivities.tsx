@@ -63,8 +63,12 @@ const ModeratorActivities = () => {
 
       const { data: teachersData } = await supabase
         .from("profiles")
-        .select("id, full_name")
-        .eq("role", "teacher")
+        .select(`
+          id,
+          full_name,
+          user_roles!inner(role)
+        `)
+        .eq("user_roles.role", "teacher")
         .order("full_name");
 
       setTeachers(teachersData || []);
