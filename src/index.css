@@ -24,12 +24,12 @@ All colors MUST be HSL.
     --primary-hover: 220 70% 38%;
 
     /* Secondary - Teal for modern feel */
-    --secondary: 180 50% 55%;
+    --secondary: 54 100% 50%;
     --secondary-foreground: 0 0% 100%;
     --secondary-hover: 180 50% 48%;
 
     /* Accent - Warm orange for highlights */
-    --accent: 25 95% 55%;
+    --accent: 0 100% 50%;
     --accent-foreground: 0 0% 100%;
     --accent-hover: 25 95% 48%;
 
