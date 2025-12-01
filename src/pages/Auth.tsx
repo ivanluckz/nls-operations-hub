@@ -187,7 +187,7 @@ const Auth = () => {
                   <Input id="login-email" type="email" value={loginForm.email} onChange={e => setLoginForm({
                   ...loginForm,
                   email: e.target.value
-                })} required placeholder="Student@ntare-louisenlund.org\n" />
+                })} required placeholder="Student@ntare-louisenlund.org" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="login-password">Password</Label>
