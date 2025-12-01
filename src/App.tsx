@@ -14,6 +14,7 @@ import ModeratorAllocations from "./pages/ModeratorAllocations";
 import ManualAllocations from "./pages/ManualAllocations";
 import AdminDashboard from "./pages/AdminDashboard";
 import AllocationsView from "./pages/AllocationsView";
+import UserManagement from "./pages/UserManagement";
 import TeacherDashboard from "./pages/TeacherDashboard";
 import TeacherAttendance from "./pages/TeacherAttendance";
 import NotFound from "./pages/NotFound";
@@ -72,6 +73,7 @@ const App = () => (
             }
           />
           <Route path="/admin" element={<ProtectedRoute requiredRole="admin"><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/admin/user-management" element={<ProtectedRoute requiredRole="admin"><UserManagement /></ProtectedRoute>} />
           <Route path="/admin/activities" element={<ProtectedRoute requiredRole="admin"><ModeratorActivities /></ProtectedRoute>} />
           <Route path="/admin/allocations" element={<ProtectedRoute requiredRole="admin"><ModeratorAllocations /></ProtectedRoute>} />
           <Route path="/admin/view-allocations" element={<ProtectedRoute requiredRole="admin"><AllocationsView /></ProtectedRoute>} />
