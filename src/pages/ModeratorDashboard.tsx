@@ -11,6 +11,7 @@ import {
   BookOpen,
   PlayCircle,
   Download,
+  ClipboardCheck,
 } from "lucide-react";
 
 interface Stats {
@@ -243,6 +244,20 @@ const ModeratorDashboard = () => {
               </div>
               <span className="text-xs font-normal">
                 View all student assignments
+              </span>
+            </Button>
+
+            <Button
+              onClick={() => navigate("/moderator/attendance")}
+              variant="outline"
+              className="h-auto py-4 flex flex-col items-start gap-2"
+            >
+              <div className="flex items-center gap-2">
+                <ClipboardCheck className="w-5 h-5" />
+                <span className="font-semibold">Attendance</span>
+              </div>
+              <span className="text-xs font-normal">
+                Take and view attendance records
               </span>
             </Button>
           </CardContent>

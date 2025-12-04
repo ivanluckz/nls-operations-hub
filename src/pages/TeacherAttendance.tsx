@@ -41,6 +41,7 @@ const TeacherAttendance = () => {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [userRole, setUserRole] = useState<string>("teacher");
   const codeReader = useRef<BrowserQRCodeReader | null>(null);
 
   useEffect(() => {
@@ -64,12 +65,28 @@ const TeacherAttendance = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data } = await supabase
+      // Check if user is admin or moderator
+      const { data: roleData } = await supabase
+        .from("user_roles" as any)
+        .select("role")
+        .eq("user_id", user.id)
+        .single();
+
+      const userRole = (roleData as any)?.role;
+      setUserRole(userRole || "teacher");
+      const isAdminOrMod = userRole === "admin" || userRole === "moderator";
+
+      let query = supabase
         .from("activities")
         .select("id, title, days_of_week")
-        .eq("teacher_id", user.id)
         .order("title");
 
+      // Teachers only see their own activities, admins/mods see all
+      if (!isAdminOrMod) {
+        query = query.eq("teacher_id", user.id);
+      }
+
+      const { data } = await query;
       setActivities(data || []);
     } catch (error) {
       console.error("Error fetching activities:", error);
@@ -356,7 +373,7 @@ const TeacherAttendance = () => {
         description: `Finalized with ${absentStudents.length} absent student(s)`,
       });
 
-      navigate("/teacher");
+      navigate(`/${userRole}`);
     } catch (error) {
       console.error("Error finalizing attendance:", error);
       toast({
@@ -375,7 +392,7 @@ const TeacherAttendance = () => {
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card shadow-card">
         <div className="container mx-auto px-4 py-4 flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/teacher")}>
+          <Button variant="ghost" size="icon" onClick={() => navigate(`/${userRole}`)}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div>
