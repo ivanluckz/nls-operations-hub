@@ -15,11 +15,11 @@ All colors MUST be HSL.
 @layer base {
   :root {
     /* Base colors - Educational theme with deep blue and vibrant accents */
-    --background: 0 0% 100%;
+    --background: 0 100% 50%;
     --foreground: 0 0% 9%;
 
     --card: 237 47.929% 33.1373%;
-    --card-foreground: 0 0% 9%;
+    --card-foreground: 0 0% 100%;
 
     --popover: 0 0% 89%;
     --popover-foreground: 0 0% 9%;
