@@ -12,6 +12,7 @@ import {
   PlayCircle,
   Download,
   ClipboardCheck,
+  AlertTriangle,
 } from "lucide-react";
 
 interface Stats {
@@ -258,6 +259,20 @@ const ModeratorDashboard = () => {
               </div>
               <span className="text-xs font-normal">
                 Take and view attendance records
+              </span>
+            </Button>
+
+            <Button
+              onClick={() => navigate("/moderator/attendance-reports")}
+              variant="outline"
+              className="h-auto py-4 flex flex-col items-start gap-2 border-amber-500/50"
+            >
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-amber-500" />
+                <span className="font-semibold">Attendance Reports</span>
+              </div>
+              <span className="text-xs font-normal">
+                View absent, late, and excused students
               </span>
             </Button>
           </CardContent>
