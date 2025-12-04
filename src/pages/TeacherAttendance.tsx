@@ -25,7 +25,7 @@ interface Student {
 
 interface AttendanceRecord {
   student_id: string;
-  status: "present" | "late" | "absent";
+  status: "present" | "late" | "absent" | "excused";
   scanned_at?: string;
 }
 
@@ -190,7 +190,7 @@ const TeacherAttendance = () => {
         data.forEach(record => {
           newAttendance.set(record.student_id, {
             student_id: record.student_id,
-            status: record.status as "present" | "late" | "absent"
+            status: record.status as "present" | "late" | "absent" | "excused"
           });
         });
         setAttendance(newAttendance);
@@ -287,7 +287,7 @@ const TeacherAttendance = () => {
     setScanning(false);
   };
 
-  const markAttendance = (studentId: string, status: "present" | "late" | "absent", scannedAt?: string) => {
+  const markAttendance = (studentId: string, status: "present" | "late" | "absent" | "excused", scannedAt?: string) => {
     const newAttendance = new Map(attendance);
     newAttendance.set(studentId, { student_id: studentId, status, scanned_at: scannedAt });
     setAttendance(newAttendance);
@@ -509,7 +509,7 @@ const TeacherAttendance = () => {
                             )}
                           </div>
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex flex-wrap gap-2">
                           <Badge
                             variant={record?.status === "present" ? "default" : "outline"}
                             className="cursor-pointer"
@@ -519,7 +519,7 @@ const TeacherAttendance = () => {
                           </Badge>
                           <Badge
                             variant={record?.status === "late" ? "default" : "outline"}
-                            className="cursor-pointer"
+                            className="cursor-pointer bg-amber-100 text-amber-800 hover:bg-amber-200"
                             onClick={() => markAttendance(student.student_id, "late")}
                           >
                             Late
@@ -530,6 +530,13 @@ const TeacherAttendance = () => {
                             onClick={() => markAttendance(student.student_id, "absent")}
                           >
                             Absent
+                          </Badge>
+                          <Badge
+                            variant={record?.status === "excused" ? "default" : "outline"}
+                            className="cursor-pointer bg-blue-100 text-blue-800 hover:bg-blue-200"
+                            onClick={() => markAttendance(student.student_id, "excused")}
+                          >
+                            Excused
                           </Badge>
                         </div>
                       </div>

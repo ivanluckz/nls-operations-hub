@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { LogOut, Users, Shield, UserCog, ClipboardCheck } from "lucide-react";
+import { LogOut, Users, Shield, UserCog, ClipboardCheck, AlertTriangle } from "lucide-react";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -97,6 +97,18 @@ const AdminDashboard = () => {
               </CardTitle>
               <CardDescription>
                 Take and view attendance records
+              </CardDescription>
+            </CardHeader>
+          </Card>
+
+          <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => navigate("/admin/attendance-reports")}>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <AlertTriangle className="h-5 w-5" />
+                Attendance Reports
+              </CardTitle>
+              <CardDescription>
+                View absent, late, and excused students
               </CardDescription>
             </CardHeader>
           </Card>

@@ -106,6 +106,57 @@ export type Database = {
           },
         ]
       }
+      attendance_notifications: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          activity_id: string
+          id: string
+          notes: string | null
+          notified_at: string | null
+          session_id: string
+          status: string
+          student_id: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          activity_id: string
+          id?: string
+          notes?: string | null
+          notified_at?: string | null
+          session_id: string
+          status: string
+          student_id: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          activity_id?: string
+          id?: string
+          notes?: string | null
+          notified_at?: string | null
+          session_id?: string
+          status?: string
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_notifications_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_notifications_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "attendance_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       attendance_records: {
         Row: {
           id: string
