@@ -18,6 +18,7 @@ import UserManagement from "./pages/UserManagement";
 import TeacherDashboard from "./pages/TeacherDashboard";
 import TeacherAttendance from "./pages/TeacherAttendance";
 import AttendanceReports from "./pages/AttendanceReports";
+import PreExcuseStudents from "./pages/PreExcuseStudents";
 import NotFound from "./pages/NotFound";
 import BackgroundRemoval from "./pages/BackgroundRemoval";
 
@@ -88,6 +89,8 @@ const App = () => (
           <Route path="/moderator/attendance-reports" element={<ProtectedRoute requiredRole="moderator"><AttendanceReports /></ProtectedRoute>} />
           <Route path="/admin/attendance-reports" element={<ProtectedRoute requiredRole="admin"><AttendanceReports /></ProtectedRoute>} />
           <Route path="/teacher/attendance-reports" element={<ProtectedRoute requiredRole="teacher"><AttendanceReports /></ProtectedRoute>} />
+          <Route path="/admin/pre-excuse" element={<ProtectedRoute requiredRole="admin"><PreExcuseStudents /></ProtectedRoute>} />
+          <Route path="/moderator/pre-excuse" element={<ProtectedRoute requiredRole="moderator"><PreExcuseStudents /></ProtectedRoute>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

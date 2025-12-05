@@ -44,6 +44,9 @@ const TeacherAttendance = () => {
   const [userRole, setUserRole] = useState<string>("teacher");
   const codeReader = useRef<BrowserQRCodeReader | null>(null);
 
+  // Check if user can excuse students (only admins and moderators)
+  const canExcuseStudents = userRole === "admin" || userRole === "moderator";
+
   useEffect(() => {
     fetchActivities();
     codeReader.current = new BrowserQRCodeReader();
@@ -288,6 +291,16 @@ const TeacherAttendance = () => {
   };
 
   const markAttendance = (studentId: string, status: "present" | "late" | "absent" | "excused", scannedAt?: string) => {
+    // Only allow admins/mods to mark as excused
+    if (status === "excused" && !canExcuseStudents) {
+      toast({
+        variant: "destructive",
+        title: "Not Authorized",
+        description: "Only administrators and moderators can excuse students.",
+      });
+      return;
+    }
+
     const newAttendance = new Map(attendance);
     newAttendance.set(studentId, { student_id: studentId, status, scanned_at: scannedAt });
     setAttendance(newAttendance);
@@ -531,13 +544,15 @@ const TeacherAttendance = () => {
                           >
                             Absent
                           </Badge>
-                          <Badge
-                            variant={record?.status === "excused" ? "default" : "outline"}
-                            className="cursor-pointer bg-blue-100 text-blue-800 hover:bg-blue-200"
-                            onClick={() => markAttendance(student.student_id, "excused")}
-                          >
-                            Excused
-                          </Badge>
+                          {canExcuseStudents && (
+                            <Badge
+                              variant={record?.status === "excused" ? "default" : "outline"}
+                              className="cursor-pointer bg-blue-100 text-blue-800 hover:bg-blue-200"
+                              onClick={() => markAttendance(student.student_id, "excused")}
+                            >
+                              Excused
+                            </Badge>
+                          )}
                         </div>
                       </div>
                     );
