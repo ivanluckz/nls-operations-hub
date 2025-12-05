@@ -30,6 +30,15 @@ interface Teacher {
   full_name: string;
 }
 
+const DAYS_OPTIONS = [
+  'Monday',
+  'Tuesday',
+  'Wednesday Slot 1',
+  'Wednesday Slot 2',
+  'Thursday',
+  'Friday'
+];
+
 const ModeratorActivities = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -43,6 +52,7 @@ const ModeratorActivities = () => {
     description: "",
     category: "",
     teacher_id: "",
+    teacher_in_charge: "",
     schedule: "",
     capacity: "",
     days_of_week: ["Monday"] as string[],
@@ -92,6 +102,7 @@ const ModeratorActivities = () => {
         description: activity.description,
         category: activity.category,
         teacher_id: activity.teacher_id || "",
+        teacher_in_charge: activity.teacher_in_charge || "",
         schedule: activity.schedule,
         capacity: activity.capacity.toString(),
         days_of_week: activity.days_of_week,
@@ -103,6 +114,7 @@ const ModeratorActivities = () => {
         description: "",
         category: "",
         teacher_id: "",
+        teacher_in_charge: "",
         schedule: "",
         capacity: "",
         days_of_week: ["Monday"],
@@ -118,15 +130,35 @@ const ModeratorActivities = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
+      // Determine teacher_in_charge value
+      let teacherInCharge = formData.teacher_in_charge;
+      if (formData.teacher_id) {
+        const selectedTeacher = teachers.find(t => t.id === formData.teacher_id);
+        if (selectedTeacher) {
+          teacherInCharge = teacherInCharge 
+            ? `${selectedTeacher.full_name}, ${teacherInCharge}` 
+            : selectedTeacher.full_name;
+        }
+      }
+      if (!teacherInCharge) teacherInCharge = "TBD";
+
+      // Convert Wednesday Slot 1/2 to just "Wednesday" for the DB but keep the slot info
+      const processedDays = formData.days_of_week.map(day => {
+        if (day === 'Wednesday Slot 1' || day === 'Wednesday Slot 2') {
+          return day; // Keep the slot info
+        }
+        return day;
+      });
+
       const activityData = {
         title: formData.title,
         description: formData.description,
         category: formData.category,
         teacher_id: formData.teacher_id || null,
-        teacher_in_charge: formData.teacher_id ? teachers.find(t => t.id === formData.teacher_id)?.full_name || "TBD" : "TBD",
+        teacher_in_charge: teacherInCharge,
         schedule: formData.schedule,
         capacity: parseInt(formData.capacity),
-        days_of_week: formData.days_of_week,
+        days_of_week: processedDays,
         created_by: user.id,
       };
 
@@ -236,10 +268,10 @@ const ModeratorActivities = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Days of Week *</Label>
+                  <Label>Days of Week / Time Slots *</Label>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                    {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].map(day => (
-                      <label key={day} className="flex items-center gap-2 cursor-pointer">
+                    {DAYS_OPTIONS.map(day => (
+                      <label key={day} className="flex items-center gap-2 cursor-pointer p-2 border rounded-md hover:bg-muted/50">
                         <input
                           type="checkbox"
                           checked={formData.days_of_week.includes(day)}
@@ -281,24 +313,39 @@ const ModeratorActivities = () => {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="teacher">Teacher (Optional)</Label>
+                  <Label htmlFor="teacher">Assign Teacher (from registered teachers)</Label>
                   <select
                     id="teacher"
                     value={formData.teacher_id}
                     onChange={(e) => setFormData({ ...formData, teacher_id: e.target.value })}
                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                   >
-                    <option value="">No teacher assigned</option>
+                    <option value="">No teacher assigned yet</option>
                     {teachers.map(teacher => (
                       <option key={teacher.id} value={teacher.id}>{teacher.full_name}</option>
                     ))}
                   </select>
+                  <p className="text-xs text-muted-foreground">
+                    Teachers appear here after they register with their name matching an activity
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="teacher_in_charge">Teacher(s) In Charge (Manual Entry)</Label>
+                  <Input
+                    id="teacher_in_charge"
+                    placeholder="e.g., Teacher Smith, Teacher Johnson"
+                    value={formData.teacher_in_charge}
+                    onChange={(e) => setFormData({ ...formData, teacher_in_charge: e.target.value })}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Enter teacher name(s) manually. Use commas to separate multiple teachers.
+                  </p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="schedule">Schedule *</Label>
                   <Input
                     id="schedule"
-                    placeholder="e.g., 3-5 PM"
+                    placeholder="e.g., 3-5 PM or 16:30 - 17:30"
                     value={formData.schedule}
                     onChange={(e) => setFormData({ ...formData, schedule: e.target.value })}
                     required
@@ -336,7 +383,7 @@ const ModeratorActivities = () => {
                     <div className="flex gap-2 flex-wrap">
                       <Badge variant="outline">{activity.category}</Badge>
                       {activity.days_of_week.map(day => (
-                        <Badge key={day}>{day}</Badge>
+                        <Badge key={day} className="bg-secondary text-secondary-foreground">{day}</Badge>
                       ))}
                     </div>
                   </div>
@@ -364,7 +411,7 @@ const ModeratorActivities = () => {
                 </p>
                 <div className="space-y-2 text-sm">
                   <div>
-                    <span className="text-muted-foreground">Teacher:</span>{" "}
+                    <span className="text-muted-foreground">Teacher(s):</span>{" "}
                     <span className="font-medium">{activity.teacher_in_charge}</span>
                   </div>
                   <div>

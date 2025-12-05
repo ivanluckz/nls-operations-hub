@@ -122,41 +122,42 @@ export default {
   			'accordion-up': 'accordion-up 0.2s ease-out',
   			'fade-in': 'fade-in 0.3s ease-out'
   		},
-  		fontFamily: {
-  			sans: [
-  				'Lato',
-  				'ui-sans-serif',
-  				'system-ui',
-  				'-apple-system',
-  				'BlinkMacSystemFont',
-  				'Segoe UI',
-  				'Roboto',
-  				'Helvetica Neue',
-  				'Arial',
-  				'Noto Sans',
-  				'sans-serif'
-  			],
-  			serif: [
-  				'EB Garamond',
-  				'ui-serif',
-  				'Georgia',
-  				'Cambria',
-  				'Times New Roman',
-  				'Times',
-  				'serif'
-  			],
-  			mono: [
-  				'Fira Code',
-  				'ui-monospace',
-  				'SFMono-Regular',
-  				'Menlo',
-  				'Monaco',
-  				'Consolas',
-  				'Liberation Mono',
-  				'Courier New',
-  				'monospace'
-  			]
-  		}
+		fontFamily: {
+			sans: [
+				'Montserrat',
+				'Lato',
+				'ui-sans-serif',
+				'system-ui',
+				'-apple-system',
+				'BlinkMacSystemFont',
+				'Segoe UI',
+				'Roboto',
+				'Helvetica Neue',
+				'Arial',
+				'Noto Sans',
+				'sans-serif'
+			],
+			serif: [
+				'EB Garamond',
+				'ui-serif',
+				'Georgia',
+				'Cambria',
+				'Times New Roman',
+				'Times',
+				'serif'
+			],
+			mono: [
+				'Fira Code',
+				'ui-monospace',
+				'SFMono-Regular',
+				'Menlo',
+				'Monaco',
+				'Consolas',
+				'Liberation Mono',
+				'Courier New',
+				'monospace'
+			]
+		}
   	}
   },
   plugins: [require("tailwindcss-animate")],

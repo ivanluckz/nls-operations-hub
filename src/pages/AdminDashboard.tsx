@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { LogOut, Users, Shield, UserCog, ClipboardCheck, AlertTriangle } from "lucide-react";
+import { LogOut, Users, Shield, UserCog, ClipboardCheck, AlertTriangle, UserCheck } from "lucide-react";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -109,6 +109,18 @@ const AdminDashboard = () => {
               </CardTitle>
               <CardDescription>
                 View absent, late, and excused students
+              </CardDescription>
+            </CardHeader>
+          </Card>
+
+          <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => navigate("/admin/pre-excuse")}>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <UserCheck className="h-5 w-5" />
+                Pre-Excuse Students
+              </CardTitle>
+              <CardDescription>
+                Excuse students for past, present, or future dates
               </CardDescription>
             </CardHeader>
           </Card>
