@@ -321,11 +321,23 @@ const StudentPreferences = () => {
     }
   };
 
+  // Get all selected activity IDs across all days/slots
+  const getAllSelectedActivityIds = (): Set<string> => {
+    const selected = new Set<string>();
+    Object.values(preferences).forEach(value => {
+      if (value && value !== "") {
+        selected.add(value);
+      }
+    });
+    return selected;
+  };
+
   const renderDayPreferences = (day: string, slot?: number) => {
     const dayLower = day.toLowerCase();
     const slotSuffix = slot ? `_slot${slot}` : '';
     const dayActivities = getActivitiesByDay(day);
     const cardTitle = slot ? `${day} - Slot ${slot}` : day;
+    const allSelected = getAllSelectedActivityIds();
 
     return (
       <Card key={`${day}${slotSuffix}`}>
@@ -344,12 +356,13 @@ const StudentPreferences = () => {
           {[1, 2, 3, 4, 5].map((choice) => {
             const choiceLabel = ['first', 'second', 'third', 'fourth', 'fifth'][choice - 1];
             const choiceName = `${choiceLabel.charAt(0).toUpperCase()}${choiceLabel.slice(1)} Choice`;
+            const currentValue = preferences[`${dayLower}${slotSuffix}_${choiceLabel}_choice` as keyof typeof preferences];
             
             return (
               <div key={choice}>
                 <label className="text-sm font-medium mb-2 block">{choiceName}</label>
                 <Select
-                  value={preferences[`${dayLower}${slotSuffix}_${choiceLabel}_choice` as keyof typeof preferences]}
+                  value={currentValue}
                   onValueChange={(value) =>
                     handlePreferenceChange(`${dayLower}${slotSuffix}`, `${choiceLabel}_choice`, value)
                   }
@@ -358,11 +371,19 @@ const StudentPreferences = () => {
                     <SelectValue placeholder={`Select ${choiceName.toLowerCase()}`} />
                   </SelectTrigger>
                   <SelectContent>
-                    {dayActivities.map((activity) => (
-                      <SelectItem key={activity.id} value={activity.id}>
-                        {activity.title} ({activity.category})
-                      </SelectItem>
-                    ))}
+                    {dayActivities.map((activity) => {
+                      const isAlreadySelected = allSelected.has(activity.id) && activity.id !== currentValue;
+                      return (
+                        <SelectItem 
+                          key={activity.id} 
+                          value={activity.id}
+                          disabled={isAlreadySelected}
+                          className={isAlreadySelected ? "opacity-50" : ""}
+                        >
+                          {activity.title} ({activity.category}){isAlreadySelected ? " - Already selected" : ""}
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
               </div>
