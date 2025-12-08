@@ -1,12 +1,16 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Search, Info, Users } from "lucide-react";
 import { PreferencesSchema } from "@/lib/validation";
+import ActivityDetailsModal from "@/components/ActivityDetailsModal";
+import SelectionSummary from "@/components/SelectionSummary";
+import { Badge } from "@/components/ui/badge";
 
 interface Activity {
   id: string;
@@ -58,6 +62,16 @@ const StudentPreferences = () => {
   });
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+
+  // Get unique categories
+  const categories = useMemo(() => {
+    const cats = new Set(activities.map(a => a.category));
+    return Array.from(cats).sort();
+  }, [activities]);
 
   useEffect(() => {
     fetchActivities();
@@ -136,29 +150,39 @@ const StudentPreferences = () => {
   };
 
   const getActivitiesByDay = (day: string) => {
-    return activities.filter(a => a.days_of_week && a.days_of_week.includes(day));
+    let filtered = activities.filter(a => a.days_of_week && a.days_of_week.includes(day));
+    
+    // Apply search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(a => 
+        a.title.toLowerCase().includes(query) ||
+        a.teacher_in_charge.toLowerCase().includes(query) ||
+        a.category.toLowerCase().includes(query)
+      );
+    }
+    
+    // Apply category filter
+    if (categoryFilter !== "all") {
+      filtered = filtered.filter(a => a.category === categoryFilter);
+    }
+    
+    return filtered;
   };
 
   const handlePreferenceChange = (day: string, choice: string, value: string) => {
-    // Find the selected activity
     const selectedActivity = activities.find(a => a.id === value);
     
     if (selectedActivity && selectedActivity.days_of_week) {
-      // Get the choice rank (first, second, third, etc.)
       const choiceRank = choice;
-      
-      // Create updates for all days this activity is available on
       const updates: Record<string, string> = {};
       
-      // Handle Wednesday slots separately
       if (day.includes('slot')) {
         updates[`${day}_${choice}`] = value;
       } else {
-        // For each day the activity is available
         selectedActivity.days_of_week.forEach(availableDay => {
           const dayLower = availableDay.toLowerCase();
           
-          // Handle Wednesday specially - it has 2 slots
           if (availableDay === 'Wednesday') {
             updates[`${dayLower}_slot1_${choiceRank}`] = value;
             updates[`${dayLower}_slot2_${choiceRank}`] = value;
@@ -173,7 +197,6 @@ const StudentPreferences = () => {
         ...updates
       }));
       
-      // Show toast to inform user about the sync
       if (Object.keys(updates).length > 1) {
         const dayNames = selectedActivity.days_of_week.join(', ');
         toast({
@@ -182,12 +205,18 @@ const StudentPreferences = () => {
         });
       }
     } else {
-      // No activity selected (clearing selection)
       setPreferences(prev => ({
         ...prev,
         [`${day}_${choice}`]: value
       }));
     }
+  };
+
+  const handleRemoveSelection = (key: string) => {
+    setPreferences(prev => ({
+      ...prev,
+      [key]: ""
+    }));
   };
 
   const handleSaveDay = async (day: string, slot?: number) => {
@@ -199,20 +228,17 @@ const StudentPreferences = () => {
       const dayLower = day.toLowerCase();
       const slotSuffix = slot ? `_slot${slot}` : '';
       
-      // Get existing preferences first
       const { data: existingData } = await supabase
         .from("preferences")
         .select("*")
         .eq("student_id", user.id)
         .maybeSingle();
 
-      // Prepare update data for this specific day/slot
       const updateData: any = {
         student_id: user.id,
-        ...(existingData || {}), // Keep existing preferences
+        ...(existingData || {}),
       };
 
-      // Update only the fields for this specific day/slot
       const choices = ['first_choice', 'second_choice', 'third_choice', 'fourth_choice', 'fifth_choice'];
       choices.forEach(choice => {
         const key = `${dayLower}${slotSuffix}_${choice}`;
@@ -245,17 +271,14 @@ const StudentPreferences = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      // Prepare preferences data with null for empty strings
       const preferencesData: any = {
         student_id: user.id,
       };
       
-      // Add all preference fields, converting empty strings to null
       Object.entries(preferences).forEach(([key, value]) => {
         preferencesData[key] = value === "" ? null : value;
       });
 
-      // Validate preferences data
       const validation = PreferencesSchema.safeParse(preferencesData);
       if (!validation.success) {
         const firstError = validation.error.errors[0];
@@ -321,7 +344,6 @@ const StudentPreferences = () => {
     }
   };
 
-  // Get all selected activity IDs across all days/slots
   const getAllSelectedActivityIds = (): Set<string> => {
     const selected = new Set<string>();
     Object.values(preferences).forEach(value => {
@@ -332,18 +354,21 @@ const StudentPreferences = () => {
     return selected;
   };
 
-  // Check if activity can be selected multiple times (available on 3+ days or both Wednesday slots)
-  const canSelectMultipleTimes = (activity: any): boolean => {
+  const canSelectMultipleTimes = (activity: Activity): boolean => {
     const daysCount = activity.days_of_week?.length || 0;
     if (daysCount >= 3) return true;
     
-    // Check if available on both Wednesday Slot 1 and Slot 2
     const days = activity.days_of_week || [];
     const hasWedSlot1 = days.includes('Wednesday Slot 1');
     const hasWedSlot2 = days.includes('Wednesday Slot 2');
     if (hasWedSlot1 && hasWedSlot2) return true;
     
     return false;
+  };
+
+  const handleViewDetails = (activity: Activity) => {
+    setSelectedActivity(activity);
+    setModalOpen(true);
   };
 
   const renderDayPreferences = (day: string, slot?: number) => {
@@ -371,37 +396,66 @@ const StudentPreferences = () => {
             const choiceLabel = ['first', 'second', 'third', 'fourth', 'fifth'][choice - 1];
             const choiceName = `${choiceLabel.charAt(0).toUpperCase()}${choiceLabel.slice(1)} Choice`;
             const currentValue = preferences[`${dayLower}${slotSuffix}_${choiceLabel}_choice` as keyof typeof preferences];
+            const currentActivity = activities.find(a => a.id === currentValue);
             
             return (
               <div key={choice}>
                 <label className="text-sm font-medium mb-2 block">{choiceName}</label>
-                <Select
-                  value={currentValue}
-                  onValueChange={(value) =>
-                    handlePreferenceChange(`${dayLower}${slotSuffix}`, `${choiceLabel}_choice`, value)
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={`Select ${choiceName.toLowerCase()}`} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {dayActivities.map((activity) => {
-                      const isAlreadySelected = allSelected.has(activity.id) && activity.id !== currentValue;
-                      const allowMultiple = canSelectMultipleTimes(activity);
-                      const shouldDisable = isAlreadySelected && !allowMultiple;
-                      return (
-                        <SelectItem 
-                          key={activity.id} 
-                          value={activity.id}
-                          disabled={shouldDisable}
-                          className={shouldDisable ? "opacity-50" : ""}
-                        >
-                          {activity.title} ({activity.category}){shouldDisable ? " - Already selected" : ""}
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
+                <div className="flex gap-2">
+                  <Select
+                    value={currentValue}
+                    onValueChange={(value) =>
+                      handlePreferenceChange(`${dayLower}${slotSuffix}`, `${choiceLabel}_choice`, value)
+                    }
+                  >
+                    <SelectTrigger className="flex-1">
+                      <SelectValue placeholder={`Select ${choiceName.toLowerCase()}`} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {dayActivities.map((activity) => {
+                        const isAlreadySelected = allSelected.has(activity.id) && activity.id !== currentValue;
+                        const allowMultiple = canSelectMultipleTimes(activity);
+                        const shouldDisable = isAlreadySelected && !allowMultiple;
+                        const spotsLeft = activity.capacity - activity.current_enrollment;
+                        
+                        return (
+                          <SelectItem 
+                            key={activity.id} 
+                            value={activity.id}
+                            disabled={shouldDisable}
+                            className={shouldDisable ? "opacity-50" : ""}
+                          >
+                            <div className="flex items-center justify-between w-full gap-2">
+                              <span className="truncate">
+                                {activity.title}
+                              </span>
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                <Badge variant="outline" className="text-[10px] px-1">
+                                  {activity.category}
+                                </Badge>
+                                <span className={`flex items-center gap-1 ${spotsLeft <= 5 ? "text-destructive" : ""}`}>
+                                  <Users className="h-3 w-3" />
+                                  {spotsLeft}
+                                </span>
+                              </div>
+                            </div>
+                            {shouldDisable && <span className="text-destructive ml-2">- Already selected</span>}
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                  {currentActivity && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleViewDetails(currentActivity)}
+                      title="View activity details"
+                    >
+                      <Info className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
               </div>
             );
           })}
@@ -436,25 +490,70 @@ const StudentPreferences = () => {
         <div className="mb-6">
           <h1 className="text-3xl font-bold mb-2">Activity Preferences</h1>
           <CardDescription>
-            Select your top 5 activity preferences for each day/slot. You can save individual days or submit all at once. You can resubmit your choices at any time before allocations are finalized.
+            Select your top 5 activity preferences for each day/slot. You can save individual days or submit all at once.
           </CardDescription>
         </div>
 
-        <div className="grid gap-6">
-          {renderDayPreferences("Monday")}
-          {renderDayPreferences("Tuesday")}
-          {renderDayPreferences("Wednesday", 1)}
-          {renderDayPreferences("Wednesday", 2)}
-          {renderDayPreferences("Thursday")}
-          {renderDayPreferences("Friday")}
-        </div>
+        {/* Search and Filter Bar */}
+        <Card className="mb-6">
+          <CardContent className="pt-4">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search activities by name, teacher, or category..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <SelectTrigger className="w-full sm:w-[200px]">
+                  <SelectValue placeholder="Filter by category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
 
-        <div className="mt-6 flex justify-end">
-          <Button onClick={handleSubmit} disabled={submitting} size="lg">
-            {submitting ? "Submitting..." : "Submit All Preferences"}
-          </Button>
+        <div className="grid lg:grid-cols-[1fr_320px] gap-6">
+          <div className="space-y-6">
+            {renderDayPreferences("Monday")}
+            {renderDayPreferences("Tuesday")}
+            {renderDayPreferences("Wednesday", 1)}
+            {renderDayPreferences("Wednesday", 2)}
+            {renderDayPreferences("Thursday")}
+            {renderDayPreferences("Friday")}
+
+            <div className="flex justify-end">
+              <Button onClick={handleSubmit} disabled={submitting} size="lg">
+                {submitting ? "Submitting..." : "Submit All Preferences"}
+              </Button>
+            </div>
+          </div>
+
+          {/* Selection Summary Sidebar */}
+          <div className="hidden lg:block">
+            <SelectionSummary
+              preferences={preferences}
+              activities={activities}
+              onRemove={handleRemoveSelection}
+            />
+          </div>
         </div>
       </main>
+
+      <ActivityDetailsModal
+        activity={selectedActivity}
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+      />
     </div>
   );
 };
