@@ -332,6 +332,20 @@ const StudentPreferences = () => {
     return selected;
   };
 
+  // Check if activity can be selected multiple times (available on 3+ days or both Wednesday slots)
+  const canSelectMultipleTimes = (activity: any): boolean => {
+    const daysCount = activity.days_of_week?.length || 0;
+    if (daysCount >= 3) return true;
+    
+    // Check if available on both Wednesday Slot 1 and Slot 2
+    const days = activity.days_of_week || [];
+    const hasWedSlot1 = days.includes('Wednesday Slot 1');
+    const hasWedSlot2 = days.includes('Wednesday Slot 2');
+    if (hasWedSlot1 && hasWedSlot2) return true;
+    
+    return false;
+  };
+
   const renderDayPreferences = (day: string, slot?: number) => {
     const dayLower = day.toLowerCase();
     const slotSuffix = slot ? `_slot${slot}` : '';
@@ -373,14 +387,16 @@ const StudentPreferences = () => {
                   <SelectContent>
                     {dayActivities.map((activity) => {
                       const isAlreadySelected = allSelected.has(activity.id) && activity.id !== currentValue;
+                      const allowMultiple = canSelectMultipleTimes(activity);
+                      const shouldDisable = isAlreadySelected && !allowMultiple;
                       return (
                         <SelectItem 
                           key={activity.id} 
                           value={activity.id}
-                          disabled={isAlreadySelected}
-                          className={isAlreadySelected ? "opacity-50" : ""}
+                          disabled={shouldDisable}
+                          className={shouldDisable ? "opacity-50" : ""}
                         >
-                          {activity.title} ({activity.category}){isAlreadySelected ? " - Already selected" : ""}
+                          {activity.title} ({activity.category}){shouldDisable ? " - Already selected" : ""}
                         </SelectItem>
                       );
                     })}
