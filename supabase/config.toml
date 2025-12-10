@@ -1,1 +1,7 @@
 project_id = "nbjoqsaeulvwxlnbevog"
+
+[functions.allocate-activities]
+verify_jwt = true
+
+[functions.generate-weekly-summary]
+verify_jwt = true
