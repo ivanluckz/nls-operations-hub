@@ -21,6 +21,7 @@ import AttendanceReports from "./pages/AttendanceReports";
 import PreExcuseStudents from "./pages/PreExcuseStudents";
 import NotFound from "./pages/NotFound";
 import BackgroundRemoval from "./pages/BackgroundRemoval";
+import WeeklySummary from "./pages/WeeklySummary";
 
 const queryClient = new QueryClient();
 
@@ -91,6 +92,8 @@ const App = () => (
           <Route path="/teacher/attendance-reports" element={<ProtectedRoute requiredRole="teacher"><AttendanceReports /></ProtectedRoute>} />
           <Route path="/admin/pre-excuse" element={<ProtectedRoute requiredRole="admin"><PreExcuseStudents /></ProtectedRoute>} />
           <Route path="/moderator/pre-excuse" element={<ProtectedRoute requiredRole="moderator"><PreExcuseStudents /></ProtectedRoute>} />
+          <Route path="/admin/weekly-summary" element={<ProtectedRoute requiredRole="admin"><WeeklySummary /></ProtectedRoute>} />
+          <Route path="/moderator/weekly-summary" element={<ProtectedRoute requiredRole="moderator"><WeeklySummary /></ProtectedRoute>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

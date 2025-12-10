@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { LogOut, Users, Shield, UserCog, ClipboardCheck, AlertTriangle, UserCheck } from "lucide-react";
+import { LogOut, Users, Shield, UserCog, ClipboardCheck, AlertTriangle, UserCheck, Sparkles } from "lucide-react";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -121,6 +121,18 @@ const AdminDashboard = () => {
               </CardTitle>
               <CardDescription>
                 Excuse students for past, present, or future dates
+              </CardDescription>
+            </CardHeader>
+          </Card>
+
+          <Card className="cursor-pointer hover:shadow-lg transition-shadow border-primary/20 bg-primary/5" onClick={() => navigate("/admin/weekly-summary")}>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Sparkles className="h-5 w-5 text-primary" />
+                AI Weekly Summary
+              </CardTitle>
+              <CardDescription>
+                AI-powered attendance trend reports
               </CardDescription>
             </CardHeader>
           </Card>
