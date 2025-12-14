@@ -22,6 +22,7 @@ import PreExcuseStudents from "./pages/PreExcuseStudents";
 import NotFound from "./pages/NotFound";
 import BackgroundRemoval from "./pages/BackgroundRemoval";
 import WeeklySummary from "./pages/WeeklySummary";
+import ActivityChatbot from "./pages/ActivityChatbot";
 
 const queryClient = new QueryClient();
 
@@ -94,6 +95,7 @@ const App = () => (
           <Route path="/moderator/pre-excuse" element={<ProtectedRoute requiredRole="moderator"><PreExcuseStudents /></ProtectedRoute>} />
           <Route path="/admin/weekly-summary" element={<ProtectedRoute requiredRole="admin"><WeeklySummary /></ProtectedRoute>} />
           <Route path="/moderator/weekly-summary" element={<ProtectedRoute requiredRole="moderator"><WeeklySummary /></ProtectedRoute>} />
+          <Route path="/chatbot" element={<ActivityChatbot />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
