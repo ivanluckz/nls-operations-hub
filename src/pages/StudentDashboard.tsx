@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { LogOut, BookOpen, CheckCircle2, Clock, AlertCircle } from "lucide-react";
+import { LogOut, BookOpen, CheckCircle2, Clock, AlertCircle, MessageCircle } from "lucide-react";
 import { StudentQRCode } from "@/components/StudentQRCode";
 
 interface Profile {
@@ -307,6 +307,15 @@ const StudentDashboard = () => {
             </CardContent>
           </Card>
         )}
+
+        {/* Floating Chatbot Button */}
+        <Button
+          onClick={() => navigate("/chatbot")}
+          className="fixed bottom-6 right-6 w-14 h-14 rounded-full shadow-lg bg-primary hover:bg-primary/90"
+          size="icon"
+        >
+          <MessageCircle className="w-6 h-6" />
+        </Button>
       </main>
     </div>
   );
