@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { GraduationCap, Users, BookOpen, Sparkles, ArrowRight } from "lucide-react";
+import { GraduationCap, Users, BookOpen, Sparkles, ArrowRight, MessageCircle } from "lucide-react";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -173,6 +173,15 @@ const Index = () => {
           </div>
         </div>
       </section>
+
+      {/* Chatbot FAB */}
+      <Button
+        size="lg"
+        onClick={() => navigate("/chatbot")}
+        className="fixed bottom-6 right-6 rounded-full h-14 w-14 shadow-elevated z-50"
+      >
+        <MessageCircle className="h-6 w-6" />
+      </Button>
 
       {/* Footer */}
       <footer className="border-t py-8">
