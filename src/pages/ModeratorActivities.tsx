@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Plus, Edit, Trash2, Users } from "lucide-react";
+import { ArrowLeft, Plus, Edit, Trash2, Users, Search } from "lucide-react";
 
 interface Activity {
   id: string;
@@ -45,6 +45,7 @@ const ModeratorActivities = () => {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
   const [formData, setFormData] = useState({
@@ -379,8 +380,26 @@ const ModeratorActivities = () => {
           </p>
         </div>
 
+        {/* Search */}
+        <div className="relative max-w-md mb-6">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Search activities by title, category, or teacher..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {activities.map((activity) => (
+          {activities
+            .filter(activity => 
+              activity.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+              activity.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+              activity.teacher_in_charge.toLowerCase().includes(searchTerm.toLowerCase()) ||
+              activity.description.toLowerCase().includes(searchTerm.toLowerCase())
+            )
+            .map((activity) => (
             <Card key={activity.id} className="shadow-card">
               <CardHeader>
                 <div className="flex items-start justify-between gap-2">
