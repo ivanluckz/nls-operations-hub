@@ -57,16 +57,21 @@ const AllocationsView = () => {
 
       setUserRole((roleData as any)?.role || "");
 
-      const { data: students } = await supabase
-        .from("profiles")
-        .select(`
-          id, 
-          full_name, 
-          email,
-          user_roles!inner(role)
-        `)
-        .eq("user_roles.role", "student")
-        .order("full_name");
+      // First fetch student user_ids
+      const { data: studentRoles } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "student");
+
+      const studentUserIds = (studentRoles || []).map(r => r.user_id);
+
+      const { data: students } = studentUserIds.length > 0
+        ? await supabase
+            .from("profiles")
+            .select("id, full_name, email")
+            .in("id", studentUserIds)
+            .order("full_name")
+        : { data: [] };
 
       const { data: allAllocations } = await supabase
         .from("allocations")

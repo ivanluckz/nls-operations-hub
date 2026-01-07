@@ -71,15 +71,21 @@ const ModeratorActivities = () => {
 
       setActivities(activitiesData || []);
 
-      const { data: teachersData } = await supabase
-        .from("profiles")
-        .select(`
-          id,
-          full_name,
-          user_roles!inner(role)
-        `)
-        .eq("user_roles.role", "teacher")
-        .order("full_name");
+      // First fetch teacher user_ids
+      const { data: teacherRoles } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "teacher");
+
+      const teacherUserIds = (teacherRoles || []).map(r => r.user_id);
+
+      const { data: teachersData } = teacherUserIds.length > 0
+        ? await supabase
+            .from("profiles")
+            .select("id, full_name")
+            .in("id", teacherUserIds)
+            .order("full_name")
+        : { data: [] };
 
       setTeachers(teachersData || []);
     } catch (error) {
