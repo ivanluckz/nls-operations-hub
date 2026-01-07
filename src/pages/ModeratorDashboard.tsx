@@ -13,6 +13,7 @@ import {
   Download,
   ClipboardCheck,
   AlertTriangle,
+  ListChecks,
 } from "lucide-react";
 
 interface Stats {
@@ -245,6 +246,20 @@ const ModeratorDashboard = () => {
               </div>
               <span className="text-xs font-normal">
                 View all student assignments
+              </span>
+            </Button>
+
+            <Button
+              onClick={() => navigate("/moderator/activity-roster")}
+              variant="outline"
+              className="h-auto py-4 flex flex-col items-start gap-2"
+            >
+              <div className="flex items-center gap-2">
+                <ListChecks className="w-5 h-5" />
+                <span className="font-semibold">Activity Roster</span>
+              </div>
+              <span className="text-xs font-normal">
+                View activities and enrolled students
               </span>
             </Button>
 
