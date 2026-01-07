@@ -73,19 +73,26 @@ const PreExcuseStudents = () => {
         setUserRole(roleData.role);
       }
 
-      // Fetch all students
-      const { data: studentsData } = await supabase
-        .from("profiles")
-        .select(`
-          id,
-          full_name,
-          email,
-          user_roles!inner(role)
-        `)
-        .eq("user_roles.role", "student")
-        .order("full_name");
+      // Fetch all student role user_ids first
+      const { data: studentRoles } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "student");
 
-      setStudents(studentsData || []);
+      const studentUserIds = (studentRoles || []).map(r => r.user_id);
+
+      // Fetch profiles for those users
+      let studentsData: Student[] = [];
+      if (studentUserIds.length > 0) {
+        const { data } = await supabase
+          .from("profiles")
+          .select("id, full_name, email")
+          .in("id", studentUserIds)
+          .order("full_name");
+        studentsData = data || [];
+      }
+
+      setStudents(studentsData);
 
       // Fetch all activities
       const { data: activitiesData } = await supabase

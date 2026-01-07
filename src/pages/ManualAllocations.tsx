@@ -97,13 +97,18 @@ const ManualAllocations = () => {
 
       setUserRole((roleData as any)?.role || "");
 
+      // First fetch student user_ids
+      const { data: studentRoles } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "student");
+
+      const studentUserIds = (studentRoles || []).map(r => r.user_id);
+
       const [studentsRes, activitiesRes, preferencesRes, allocationsRes] = await Promise.all([
-        supabase.from("profiles").select(`
-          id, 
-          full_name, 
-          email,
-          user_roles!inner(role)
-        `).eq("user_roles.role", "student").order("full_name"),
+        studentUserIds.length > 0 
+          ? supabase.from("profiles").select("id, full_name, email").in("id", studentUserIds).order("full_name")
+          : Promise.resolve({ data: [] }),
         supabase.from("activities").select("id, title, capacity, days_of_week, current_enrollment").eq("is_active", true),
         supabase.from("preferences").select("*"),
         supabase.from("allocations").select("*")
