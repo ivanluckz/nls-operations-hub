@@ -104,6 +104,20 @@ serve(async (req) => {
       .sort((a, b) => b.count - a.count)
       .slice(0, 5);
 
+    // Build detailed records with names for AI context
+    const detailedRecords = notifications?.map(n => ({
+      studentName: studentMap.get(n.student_id) || "Unknown Student",
+      activityName: activityMap.get(n.activity_id) || "Unknown Activity",
+      status: n.status,
+      date: n.notified_at ? new Date(n.notified_at).toLocaleDateString() : "Unknown date",
+      notes: n.notes || ""
+    })) || [];
+
+    // Group by status for detailed breakdown
+    const absentRecords = detailedRecords.filter(r => r.status === "absent");
+    const lateRecords = detailedRecords.filter(r => r.status === "late");
+    const excusedRecords = detailedRecords.filter(r => r.status === "excused");
+
     // Build context for AI
     const dataContext = {
       dateRange: {
@@ -137,7 +151,8 @@ serve(async (req) => {
             content: `You are an assistant that generates professional weekly attendance summary reports for a school's co-curricular activity system. 
 Write in a formal but friendly tone. Be concise but informative. 
 Include actionable recommendations when appropriate.
-Format with clear sections using markdown.`
+Format with clear sections using markdown.
+IMPORTANT: Always mention specific student names when discussing attendance issues - this helps administrators follow up with individual students.`
           },
           {
             role: "user",
@@ -151,17 +166,27 @@ Statistics:
 - Late arrivals: ${dataContext.statistics.late}
 - Excused absences: ${dataContext.statistics.excused}
 
-Students with multiple issues this week:
+Students with multiple issues this week (PRIORITY - mention these by name):
 ${repeatOffenders.length > 0 ? repeatOffenders.map(s => `- ${s.name}: ${s.count} issues`).join("\n") : "None"}
 
 Activities with most attendance issues:
 ${problematicActivities.length > 0 ? problematicActivities.map(a => `- ${a.name}: ${a.count} issues`).join("\n") : "None"}
 
+Detailed Absent Students (mention by name):
+${absentRecords.length > 0 ? absentRecords.slice(0, 15).map(r => `- ${r.studentName} was absent from ${r.activityName} on ${r.date}`).join("\n") : "No absences"}
+
+Detailed Late Students (mention by name):
+${lateRecords.length > 0 ? lateRecords.slice(0, 10).map(r => `- ${r.studentName} was late to ${r.activityName} on ${r.date}`).join("\n") : "No late arrivals"}
+
+Excused Students:
+${excusedRecords.length > 0 ? excusedRecords.slice(0, 10).map(r => `- ${r.studentName} was excused from ${r.activityName} on ${r.date}${r.notes ? ` (${r.notes})` : ""}`).join("\n") : "No excused absences"}
+
 Please provide:
 1. An executive summary (2-3 sentences)
-2. Key highlights and concerns
-3. Recommendations for improvement
-4. Any positive trends to note`
+2. Key highlights and concerns - MENTION SPECIFIC STUDENT NAMES who need attention
+3. Breakdown by status type with student names
+4. Recommendations for improvement (mention specific students to follow up with)
+5. Any positive trends to note`
           }
         ],
       }),
