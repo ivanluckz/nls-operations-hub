@@ -1,12 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Save, Trash2 } from "lucide-react";
+import { ArrowLeft, Search, Trash2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { ManualAllocationInputSchema } from "@/lib/validation";
@@ -79,6 +80,17 @@ const ManualAllocations = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [userRole, setUserRole] = useState<string>("");
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredStudents = useMemo(() => {
+    if (!searchQuery.trim()) return students;
+    const query = searchQuery.toLowerCase();
+    return students.filter(
+      student =>
+        student.full_name.toLowerCase().includes(query) ||
+        student.email.toLowerCase().includes(query)
+    );
+  }, [students, searchQuery]);
 
   useEffect(() => {
     fetchData();
@@ -291,10 +303,23 @@ const ManualAllocations = () => {
       <main className="container mx-auto px-4 py-8">
         <Card className="shadow-card">
           <CardHeader>
-            <CardTitle>Manual Student Allocations</CardTitle>
-            <CardDescription>
-              Assign students to activities manually based on their preferences
-            </CardDescription>
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <CardTitle>Manual Student Allocations</CardTitle>
+                <CardDescription>
+                  Assign students to activities manually based on their preferences
+                </CardDescription>
+              </div>
+              <div className="relative w-full md:w-72">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search students..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="Monday" className="w-full">
@@ -326,7 +351,7 @@ const ManualAllocations = () => {
                               </TableRow>
                             </TableHeader>
                             <TableBody>
-                              {students.map(student => {
+                              {filteredStudents.map(student => {
                                 const prefs = getStudentPreferences(student.id, day, slot);
                                 const currentAlloc = getCurrentAllocation(student.id, day, slot);
                                 const availableActivities = getAvailableActivities(day);
