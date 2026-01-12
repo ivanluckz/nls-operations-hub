@@ -133,12 +133,33 @@ const ModeratorActivities = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Validate capacity
+    const capacity = parseInt(formData.capacity);
+    if (isNaN(capacity) || capacity < 1 || capacity > 1000) {
+      toast({
+        variant: "destructive",
+        title: "Invalid Capacity",
+        description: "Capacity must be a number between 1 and 1000",
+      });
+      return;
+    }
+
+    // Validate required fields
+    if (!formData.title.trim() || !formData.description.trim()) {
+      toast({
+        variant: "destructive",
+        title: "Missing Fields",
+        description: "Title and description are required",
+      });
+      return;
+    }
+
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
       // Determine teacher_in_charge value
-      let teacherInCharge = formData.teacher_in_charge;
+      let teacherInCharge = formData.teacher_in_charge.trim();
       if (formData.teacher_id) {
         const selectedTeacher = teachers.find(t => t.id === formData.teacher_id);
         if (selectedTeacher) {
@@ -158,13 +179,13 @@ const ModeratorActivities = () => {
       });
 
       const activityData = {
-        title: formData.title,
-        description: formData.description,
-        category: formData.category,
+        title: formData.title.trim(),
+        description: formData.description.trim(),
+        category: formData.category.trim(),
         teacher_id: formData.teacher_id || null,
         teacher_in_charge: teacherInCharge,
-        schedule: formData.schedule,
-        capacity: parseInt(formData.capacity),
+        schedule: formData.schedule.trim(),
+        capacity: capacity, // Now validated
         days_of_week: processedDays,
         created_by: user.id,
       };

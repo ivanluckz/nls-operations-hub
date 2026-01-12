@@ -65,6 +65,39 @@ export type Database = {
         }
         Relationships: []
       }
+      allocation_audit_log: {
+        Row: {
+          allocations_created: number | null
+          completed_at: string | null
+          error_message: string | null
+          id: string
+          started_at: string
+          status: string
+          triggered_by: string
+          validation_errors: number | null
+        }
+        Insert: {
+          allocations_created?: number | null
+          completed_at?: string | null
+          error_message?: string | null
+          id?: string
+          started_at?: string
+          status: string
+          triggered_by: string
+          validation_errors?: number | null
+        }
+        Update: {
+          allocations_created?: number | null
+          completed_at?: string | null
+          error_message?: string | null
+          id?: string
+          started_at?: string
+          status?: string
+          triggered_by?: string
+          validation_errors?: number | null
+        }
+        Relationships: []
+      }
       allocations: {
         Row: {
           activity_id: string
