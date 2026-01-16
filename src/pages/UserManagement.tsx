@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Users, Shield, UserCog, GraduationCap, UserX, Trash2, Edit } from "lucide-react";
+import { ArrowLeft, Users, Shield, UserCog, GraduationCap, UserX, Trash2, Edit, Search } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -50,6 +50,7 @@ const UserManagement = () => {
   const [editingUser, setEditingUser] = useState<Profile | null>(null);
   const [editName, setEditName] = useState("");
   const [editRole, setEditRole] = useState<"student" | "moderator" | "admin" | "teacher">("student");
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     fetchUsers();
@@ -189,6 +190,15 @@ const UserManagement = () => {
     }
   };
 
+  const filterBySearch = (userList: Profile[]) => {
+    if (!searchQuery.trim()) return userList;
+    const query = searchQuery.toLowerCase();
+    return userList.filter(user =>
+      user.full_name?.toLowerCase().includes(query) ||
+      user.email?.toLowerCase().includes(query)
+    );
+  };
+
   const getUsersByRole = (role: string) => {
     return users.filter(user => user.roles[0]?.role === role);
   };
@@ -268,10 +278,11 @@ const UserManagement = () => {
     );
   }
 
-  const adminUsers = getUsersByRole("admin");
-  const moderatorUsers = getUsersByRole("moderator");
-  const teacherUsers = getUsersByRole("teacher");
-  const studentUsers = getUsersByRole("student");
+  const filteredUsers = filterBySearch(users);
+  const adminUsers = filterBySearch(getUsersByRole("admin"));
+  const moderatorUsers = filterBySearch(getUsersByRole("moderator"));
+  const teacherUsers = filterBySearch(getUsersByRole("teacher"));
+  const studentUsers = filterBySearch(getUsersByRole("student"));
 
   return (
     <div className="min-h-screen bg-background">
@@ -337,12 +348,21 @@ const UserManagement = () => {
             <CardDescription>
               Browse and manage users organized by their role
             </CardDescription>
+            <div className="relative mt-4">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by name or email..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="all" className="w-full">
               <TabsList className="grid w-full grid-cols-5">
                 <TabsTrigger value="all">
-                  All ({users.length})
+                  All ({filteredUsers.length})
                 </TabsTrigger>
                 <TabsTrigger value="admin">
                   Admins ({adminUsers.length})
@@ -359,7 +379,7 @@ const UserManagement = () => {
               </TabsList>
 
               <TabsContent value="all" className="mt-6">
-                {renderUserTable(users)}
+                {renderUserTable(filteredUsers)}
               </TabsContent>
 
               <TabsContent value="admin" className="mt-6">
