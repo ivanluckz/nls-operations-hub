@@ -8,9 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Search, Trash2 } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { ManualAllocationInputSchema } from "@/lib/validation";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
 interface Student {
   id: string;
@@ -69,6 +69,14 @@ interface Allocation {
 }
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+const SLOTS = [
+  { day: 'Monday', slot: 1, label: 'Mon' },
+  { day: 'Tuesday', slot: 1, label: 'Tue' },
+  { day: 'Wednesday', slot: 1, label: 'Wed S1' },
+  { day: 'Wednesday', slot: 2, label: 'Wed S2' },
+  { day: 'Thursday', slot: 1, label: 'Thu' },
+  { day: 'Friday', slot: 1, label: 'Fri' },
+];
 
 const ManualAllocations = () => {
   const navigate = useNavigate();
@@ -78,7 +86,6 @@ const ManualAllocations = () => {
   const [preferences, setPreferences] = useState<Map<string, Preference>>(new Map());
   const [allocations, setAllocations] = useState<Map<string, Allocation[]>>(new Map());
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [userRole, setUserRole] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -109,7 +116,6 @@ const ManualAllocations = () => {
 
       setUserRole((roleData as any)?.role || "");
 
-      // First fetch student user_ids
       const { data: studentRoles } = await supabase
         .from("user_roles")
         .select("user_id")
@@ -137,7 +143,6 @@ const ManualAllocations = () => {
 
       const allocsMap = new Map<string, Allocation[]>();
       (allocationsRes.data || []).forEach(alloc => {
-        const key = `${alloc.student_id}-${alloc.day_of_week}-${alloc.slot_number}`;
         if (!allocsMap.has(alloc.student_id)) {
           allocsMap.set(alloc.student_id, []);
         }
@@ -160,7 +165,6 @@ const ManualAllocations = () => {
     const activity = activities.find(a => a.id === activityId);
     if (!activity) return;
 
-    // Validate input data
     const validation = ManualAllocationInputSchema.safeParse({
       studentId,
       activityId,
@@ -250,24 +254,6 @@ const ManualAllocations = () => {
     }
   };
 
-  const getStudentPreferences = (studentId: string, day: string, slot: number) => {
-    const pref = preferences.get(studentId);
-    if (!pref) return [];
-
-    const dayLower = day.toLowerCase();
-    const slotSuffix = day === 'Wednesday' ? `_slot${slot}` : '';
-    
-    const choices = [
-      pref[`${dayLower}${slotSuffix}_first_choice` as keyof Preference],
-      pref[`${dayLower}${slotSuffix}_second_choice` as keyof Preference],
-      pref[`${dayLower}${slotSuffix}_third_choice` as keyof Preference],
-      pref[`${dayLower}${slotSuffix}_fourth_choice` as keyof Preference],
-      pref[`${dayLower}${slotSuffix}_fifth_choice` as keyof Preference],
-    ].filter(Boolean);
-
-    return choices;
-  };
-
   const getCurrentAllocation = (studentId: string, day: string, slot: number) => {
     const studentAllocs = allocations.get(studentId) || [];
     return studentAllocs.find(a => a.day_of_week === day && a.slot_number === slot);
@@ -307,7 +293,7 @@ const ManualAllocations = () => {
               <div>
                 <CardTitle>Manual Student Allocations</CardTitle>
                 <CardDescription>
-                  Assign students to activities manually based on their preferences
+                  Assign students to activities for all days at once
                 </CardDescription>
               </div>
               <div className="relative w-full md:w-72">
@@ -322,109 +308,78 @@ const ManualAllocations = () => {
             </div>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="Monday" className="w-full">
-              <TabsList className="grid w-full grid-cols-5">
-                {DAYS.map(day => (
-                  <TabsTrigger key={day} value={day}>{day}</TabsTrigger>
-                ))}
-              </TabsList>
-
-              {DAYS.map(day => {
-                const slots = day === 'Wednesday' ? [1, 2] : [1];
-                return (
-                  <TabsContent key={day} value={day} className="space-y-6">
-                    {slots.map(slot => (
-                      <div key={slot} className="space-y-4">
-                        {day === 'Wednesday' && (
-                          <h3 className="text-lg font-semibold">Slot {slot}</h3>
-                        )}
-                        <div className="rounded-md border overflow-x-auto">
-                          <Table>
-                            <TableHeader>
-                              <TableRow>
-                                <TableHead className="min-w-[150px]">Student</TableHead>
-                                <TableHead className="min-w-[200px]">Email</TableHead>
-                                <TableHead className="min-w-[300px]">Preferences (Ranked)</TableHead>
-                                <TableHead className="min-w-[250px]">Current Allocation</TableHead>
-                                <TableHead className="min-w-[250px]">Assign Activity</TableHead>
-                                <TableHead className="w-[100px]">Action</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {filteredStudents.map(student => {
-                                const prefs = getStudentPreferences(student.id, day, slot);
-                                const currentAlloc = getCurrentAllocation(student.id, day, slot);
-                                const availableActivities = getAvailableActivities(day);
-
-                                return (
-                                  <TableRow key={student.id}>
-                                    <TableCell className="font-medium">{student.full_name}</TableCell>
-                                    <TableCell className="text-sm">{student.email}</TableCell>
-                                    <TableCell>
-                                      <div className="flex flex-wrap gap-1">
-                                        {prefs.length > 0 ? (
-                                          prefs.map((prefId, index) => {
-                                            const activity = activities.find(a => a.id === prefId);
-                                            return activity ? (
-                                              <Badge key={index} variant="secondary" className="text-xs">
-                                                {index + 1}. {activity.title}
-                                              </Badge>
-                                            ) : null;
-                                          })
-                                        ) : (
-                                          <span className="text-sm text-muted-foreground">No preferences</span>
-                                        )}
-                                      </div>
-                                    </TableCell>
-                                    <TableCell>
-                                      {currentAlloc ? (
-                                        <Badge>
-                                          {activities.find(a => a.id === currentAlloc.activity_id)?.title || 'Unknown'}
-                                        </Badge>
-                                      ) : (
-                                        <span className="text-sm text-muted-foreground">Not allocated</span>
-                                      )}
-                                    </TableCell>
-                                    <TableCell>
-                                      <Select
-                                        value={currentAlloc?.activity_id || ""}
-                                        onValueChange={(value) => handleAllocate(student.id, value, day, slot)}
-                                      >
-                                        <SelectTrigger>
-                                          <SelectValue placeholder="Select activity" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          {availableActivities.map(activity => (
-                                            <SelectItem key={activity.id} value={activity.id}>
-                                              {activity.title} ({activity.current_enrollment}/{activity.capacity})
-                                            </SelectItem>
-                                          ))}
-                                        </SelectContent>
-                                      </Select>
-                                    </TableCell>
-                                    <TableCell>
-                                      {currentAlloc && (
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          onClick={() => handleRemoveAllocation(student.id, day, slot)}
-                                        >
-                                          <Trash2 className="w-4 h-4 text-destructive" />
-                                        </Button>
-                                      )}
-                                    </TableCell>
-                                  </TableRow>
-                                );
-                              })}
-                            </TableBody>
-                          </Table>
-                        </div>
-                      </div>
+            <ScrollArea className="w-full whitespace-nowrap">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="sticky left-0 bg-background z-10 min-w-[150px]">Student</TableHead>
+                    {SLOTS.map((slotInfo) => (
+                      <TableHead key={`${slotInfo.day}-${slotInfo.slot}`} className="min-w-[180px] text-center">
+                        {slotInfo.label}
+                      </TableHead>
                     ))}
-                  </TabsContent>
-                );
-              })}
-            </Tabs>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredStudents.map(student => (
+                    <TableRow key={student.id}>
+                      <TableCell className="sticky left-0 bg-background z-10 font-medium">
+                        <div>
+                          <div className="font-medium">{student.full_name}</div>
+                          <div className="text-xs text-muted-foreground">{student.email}</div>
+                        </div>
+                      </TableCell>
+                      {SLOTS.map((slotInfo) => {
+                        const currentAlloc = getCurrentAllocation(student.id, slotInfo.day, slotInfo.slot);
+                        const availableActivities = getAvailableActivities(slotInfo.day);
+
+                        return (
+                          <TableCell key={`${slotInfo.day}-${slotInfo.slot}`} className="min-w-[180px]">
+                            <div className="flex items-center gap-1">
+                              <Select
+                                value={currentAlloc?.activity_id || "unassigned"}
+                                onValueChange={(value) => {
+                                  if (value === "unassigned") {
+                                    handleRemoveAllocation(student.id, slotInfo.day, slotInfo.slot);
+                                  } else {
+                                    handleAllocate(student.id, value, slotInfo.day, slotInfo.slot);
+                                  }
+                                }}
+                              >
+                                <SelectTrigger className="w-[160px]">
+                                  <SelectValue placeholder="Select..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="unassigned">
+                                    <span className="text-muted-foreground">Not assigned</span>
+                                  </SelectItem>
+                                  {availableActivities.map(activity => (
+                                    <SelectItem key={activity.id} value={activity.id}>
+                                      {activity.title} ({activity.current_enrollment}/{activity.capacity})
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              {currentAlloc && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 shrink-0"
+                                  onClick={() => handleRemoveAllocation(student.id, slotInfo.day, slotInfo.slot)}
+                                >
+                                  <Trash2 className="w-4 h-4 text-destructive" />
+                                </Button>
+                              )}
+                            </div>
+                          </TableCell>
+                        );
+                      })}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              <ScrollBar orientation="horizontal" />
+            </ScrollArea>
           </CardContent>
         </Card>
       </main>
