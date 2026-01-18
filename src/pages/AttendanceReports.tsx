@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, AlertTriangle, Clock, UserX, CheckCircle, Calendar } from "lucide-react";
+import { PDFReportGenerator } from "@/components/PDFReportGenerator";
 import { format } from "date-fns";
 
 interface AttendanceNotification {
@@ -35,10 +36,13 @@ const AttendanceReports = () => {
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterDate, setFilterDate] = useState<string>("");
   const [userRole, setUserRole] = useState<string>("admin");
+  const [activities, setActivities] = useState<{ id: string; title: string }[]>([]);
+  const [students, setStudents] = useState<{ id: string; full_name: string }[]>([]);
 
   useEffect(() => {
     fetchUserRole();
     fetchNotifications();
+    fetchActivitiesAndStudents();
   }, [filterStatus, filterDate]);
 
   const fetchUserRole = async () => {
@@ -53,6 +57,48 @@ const AttendanceReports = () => {
 
     if (roleData) {
       setUserRole(roleData.role);
+    }
+  };
+
+  const fetchActivitiesAndStudents = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Get user role
+      const { data: roleData } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .single();
+
+      const role = roleData?.role;
+      const isAdminOrMod = role === "admin" || role === "moderator";
+
+      // Fetch activities (for teachers, only their activities)
+      let activitiesQuery = supabase
+        .from("activities")
+        .select("id, title")
+        .eq("is_active", true)
+        .order("title");
+
+      if (!isAdminOrMod) {
+        activitiesQuery = activitiesQuery.eq("teacher_id", user.id);
+      }
+
+      const { data: activitiesData } = await activitiesQuery;
+      setActivities(activitiesData || []);
+
+      // Fetch students (only for admin/moderator)
+      if (isAdminOrMod) {
+        const { data: studentsData } = await supabase
+          .from("profiles")
+          .select("id, full_name")
+          .order("full_name");
+        setStudents(studentsData || []);
+      }
+    } catch (error) {
+      console.error("Error fetching activities/students:", error);
     }
   };
 
@@ -236,6 +282,13 @@ const AttendanceReports = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* PDF Report Generator */}
+        <PDFReportGenerator 
+          activities={activities} 
+          students={students} 
+          userRole={userRole as "admin" | "moderator" | "teacher"} 
+        />
 
         {/* Filters */}
         <Card>
