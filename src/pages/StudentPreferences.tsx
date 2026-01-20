@@ -150,8 +150,16 @@ const StudentPreferences = () => {
     }
   };
 
-  const getActivitiesByDay = (day: string) => {
-    let filtered = activities.filter(a => a.days_of_week && a.days_of_week.includes(day));
+  const getActivitiesByDay = (day: string, slot?: number) => {
+    let filtered: Activity[];
+    
+    // Wednesday activities are stored as "Wednesday Slot 1" or "Wednesday Slot 2"
+    if (day === 'Wednesday' && slot) {
+      const slotKey = `Wednesday Slot ${slot}`;
+      filtered = activities.filter(a => a.days_of_week && a.days_of_week.includes(slotKey));
+    } else {
+      filtered = activities.filter(a => a.days_of_week && a.days_of_week.includes(day));
+    }
     
     // Apply search filter
     if (searchQuery) {
@@ -383,7 +391,7 @@ const StudentPreferences = () => {
   const renderDayPreferences = (day: string, slot?: number) => {
     const dayLower = day.toLowerCase();
     const slotSuffix = slot ? `_slot${slot}` : '';
-    const dayActivities = getActivitiesByDay(day);
+    const dayActivities = getActivitiesByDay(day, slot);
     const cardTitle = slot ? `${day} · Slot ${slot}` : day;
     const allSelected = getAllSelectedActivityIds();
     
