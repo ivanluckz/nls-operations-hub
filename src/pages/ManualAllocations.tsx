@@ -259,7 +259,12 @@ const ManualAllocations = () => {
     return studentAllocs.find(a => a.day_of_week === day && a.slot_number === slot);
   };
 
-  const getAvailableActivities = (day: string) => {
+  const getAvailableActivities = (day: string, slot: number) => {
+    // Wednesday activities are stored as "Wednesday Slot 1" or "Wednesday Slot 2"
+    if (day === 'Wednesday') {
+      const slotKey = `Wednesday Slot ${slot}`;
+      return activities.filter(a => a.days_of_week.includes(slotKey));
+    }
     return activities.filter(a => a.days_of_week.includes(day));
   };
 
@@ -331,7 +336,7 @@ const ManualAllocations = () => {
                       </TableCell>
                       {SLOTS.map((slotInfo) => {
                         const currentAlloc = getCurrentAllocation(student.id, slotInfo.day, slotInfo.slot);
-                        const availableActivities = getAvailableActivities(slotInfo.day);
+                        const availableActivities = getAvailableActivities(slotInfo.day, slotInfo.slot);
 
                         return (
                           <TableCell key={`${slotInfo.day}-${slotInfo.slot}`} className="min-w-[180px]">
