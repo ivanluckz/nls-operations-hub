@@ -246,7 +246,7 @@ const StudentPreferences = () => {
         updateData[key] = preferences[key as keyof typeof preferences] || null;
       });
 
-      const { error } = await supabase.from("preferences").upsert([updateData]);
+      const { error } = await supabase.from("preferences").upsert([updateData], { onConflict: 'student_id' });
 
       if (error) throw error;
 
@@ -323,7 +323,7 @@ const StudentPreferences = () => {
         friday_third_choice: validation.data.friday_third_choice ?? null,
         friday_fourth_choice: validation.data.friday_fourth_choice ?? null,
         friday_fifth_choice: validation.data.friday_fifth_choice ?? null,
-      }]);
+      }], { onConflict: 'student_id' });
 
       if (error) throw error;
 
