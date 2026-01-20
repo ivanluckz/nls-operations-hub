@@ -132,7 +132,9 @@ serve(async (req) => {
       
       for (const slot of slots) {
         const slotSuffix = day === 'Wednesday' ? `_slot${slot}` : '';
-        const dayActivities = activities.filter(a => a.days_of_week && a.days_of_week.includes(day));
+        // Wednesday activities are stored as "Wednesday Slot 1" or "Wednesday Slot 2"
+        const dayFilter = day === 'Wednesday' ? `Wednesday Slot ${slot}` : day;
+        const dayActivities = activities.filter(a => a.days_of_week && a.days_of_week.includes(dayFilter));
         const capacityTracker = new Map(dayActivities.map(a => [a.id, { capacity: a.capacity, enrolled: 0 }]));
 
         // Process all 5 preference ranks
