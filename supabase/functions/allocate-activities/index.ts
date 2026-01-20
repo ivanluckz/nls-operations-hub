@@ -73,9 +73,9 @@ serve(async (req) => {
       .eq("triggered_by", user.id)
       .gte("started_at", oneHourAgo);
 
-    if (recentAllocations && recentAllocations.length >= 3) {
+    if (recentAllocations && recentAllocations.length >= 10) {
       return new Response(
-        JSON.stringify({ error: "Rate limit exceeded. Maximum 3 allocations per hour." }),
+        JSON.stringify({ error: "Rate limit exceeded. Maximum 10 allocations per hour." }),
         { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
