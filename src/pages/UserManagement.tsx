@@ -137,6 +137,12 @@ const UserManagement = () => {
   };
 
   const handleBanUser = async (userId: string, currentBanStatus: boolean) => {
+    // Add confirmation dialog for destructive operations (Issue #42)
+    const action = currentBanStatus ? "unban" : "ban";
+    if (!confirm(`Are you sure you want to ${action} this user?`)) {
+      return;
+    }
+
     try {
       const { error } = await supabase
         .from("profiles")
