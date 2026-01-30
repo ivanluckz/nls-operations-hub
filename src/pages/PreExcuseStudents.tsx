@@ -9,8 +9,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, UserCheck, Calendar, Search } from "lucide-react";
-import { format } from "date-fns";
+import { ArrowLeft, UserCheck, Calendar, Search, AlertCircle } from "lucide-react";
+import { format, differenceInDays, parseISO } from "date-fns";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { SESSION_STATUS, ATTENDANCE_STATUS, USER_ROLES, QUERY_LIMITS, DATE_RANGE_LIMITS } from "@/lib/constants";
 
 interface Student {
   id: string;
@@ -35,6 +37,7 @@ interface Allocation {
 const PreExcuseStudents = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  // Issue #50: Add loading state to prevent duplicate submissions
   const [loading, setLoading] = useState(false);
   const [students, setStudents] = useState<Student[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
@@ -45,7 +48,8 @@ const PreExcuseStudents = () => {
   const [excuseDate, setExcuseDate] = useState<string>(format(new Date(), "yyyy-MM-dd"));
   const [reason, setReason] = useState<string>("");
   const [searchTerm, setSearchTerm] = useState<string>("");
-  const [userRole, setUserRole] = useState<string>("admin");
+  const [userRole, setUserRole] = useState<string>(USER_ROLES.ADMIN);
+  const [dateError, setDateError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchInitialData();
@@ -56,6 +60,23 @@ const PreExcuseStudents = () => {
       fetchStudentAllocations(selectedStudent);
     }
   }, [selectedStudent]);
+
+  // Issue #20: Validate date range
+  useEffect(() => {
+    if (excuseDate) {
+      const selectedDate = parseISO(excuseDate);
+      const today = new Date();
+      const daysDiff = differenceInDays(selectedDate, today);
+      
+      if (daysDiff < -DATE_RANGE_LIMITS.MAX_DAYS_PAST) {
+        setDateError(`Date cannot be more than ${DATE_RANGE_LIMITS.MAX_DAYS_PAST} days in the past`);
+      } else if (daysDiff > DATE_RANGE_LIMITS.MAX_DAYS_FUTURE) {
+        setDateError(`Date cannot be more than ${DATE_RANGE_LIMITS.MAX_DAYS_FUTURE} days in the future`);
+      } else {
+        setDateError(null);
+      }
+    }
+  }, [excuseDate]);
 
   const fetchInitialData = async () => {
     try {
@@ -73,11 +94,12 @@ const PreExcuseStudents = () => {
         setUserRole(roleData.role);
       }
 
-      // Fetch all student role user_ids first
+      // Fetch all student role user_ids first with limit
       const { data: studentRoles } = await supabase
         .from("user_roles")
         .select("user_id")
-        .eq("role", "student");
+        .eq("role", USER_ROLES.STUDENT)
+        .limit(QUERY_LIMITS.STUDENTS);
 
       const studentUserIds = (studentRoles || []).map(r => r.user_id);
 
@@ -88,22 +110,29 @@ const PreExcuseStudents = () => {
           .from("profiles")
           .select("id, full_name, email")
           .in("id", studentUserIds)
-          .order("full_name");
+          .order("full_name")
+          .limit(QUERY_LIMITS.STUDENTS);
         studentsData = data || [];
       }
 
       setStudents(studentsData);
 
-      // Fetch all activities
+      // Fetch all activities with limit
       const { data: activitiesData } = await supabase
         .from("activities")
         .select("id, title, days_of_week")
         .eq("is_active", true)
-        .order("title");
+        .order("title")
+        .limit(QUERY_LIMITS.ACTIVITIES);
 
       setActivities(activitiesData || []);
     } catch (error) {
       console.error("Error fetching data:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to load initial data",
+      });
     }
   };
 
@@ -120,12 +149,12 @@ const PreExcuseStudents = () => {
         `)
         .eq("student_id", studentId);
 
-      const formattedAllocations: Allocation[] = (data || []).map((item: any) => ({
-        student_id: item.student_id,
-        activity_id: item.activity_id,
-        day_of_week: item.day_of_week,
-        student_name: item.profiles?.full_name || "Unknown",
-        activity_title: item.activities?.title || "Unknown",
+      const formattedAllocations: Allocation[] = (data || []).map((item: Record<string, unknown>) => ({
+        student_id: item.student_id as string,
+        activity_id: item.activity_id as string,
+        day_of_week: item.day_of_week as string,
+        student_name: (item.profiles as { full_name?: string })?.full_name || "Unknown",
+        activity_title: (item.activities as { title?: string })?.title || "Unknown",
       }));
 
       setAllocations(formattedAllocations);
@@ -143,6 +172,19 @@ const PreExcuseStudents = () => {
       });
       return;
     }
+
+    // Issue #20: Prevent submission if date is out of range
+    if (dateError) {
+      toast({
+        variant: "destructive",
+        title: "Invalid Date",
+        description: dateError,
+      });
+      return;
+    }
+
+    // Issue #50: Prevent duplicate submissions
+    if (loading) return;
 
     setLoading(true);
     try {
@@ -170,7 +212,7 @@ const PreExcuseStudents = () => {
           .eq("id", selectedActivity)
           .single();
 
-        // Create a new session
+        // Issue #7: Create a new session with explicit error handling
         const { data: newSession, error: sessionError } = await supabase
           .from("attendance_sessions")
           .insert({
@@ -179,12 +221,20 @@ const PreExcuseStudents = () => {
             session_date: excuseDate,
             day_of_week: selectedDay,
             slot_number: 1,
-            status: "draft"
+            status: SESSION_STATUS.DRAFT
           })
           .select()
           .single();
 
-        if (sessionError) throw sessionError;
+        if (sessionError) {
+          console.error("Session creation error:", sessionError);
+          throw new Error(`Failed to create attendance session: ${sessionError.message}`);
+        }
+        
+        if (!newSession) {
+          throw new Error("Session was not created - no data returned");
+        }
+        
         sessionId = newSession.id;
       }
 
@@ -201,7 +251,7 @@ const PreExcuseStudents = () => {
         const { error: updateError } = await supabase
           .from("attendance_records")
           .update({
-            status: "excused",
+            status: ATTENDANCE_STATUS.EXCUSED,
             marked_by: user.id
           })
           .eq("id", existingRecord.id);
@@ -214,7 +264,7 @@ const PreExcuseStudents = () => {
           .insert({
             session_id: sessionId,
             student_id: selectedStudent,
-            status: "excused",
+            status: ATTENDANCE_STATUS.EXCUSED,
             marked_by: user.id
           });
 
@@ -228,7 +278,7 @@ const PreExcuseStudents = () => {
           session_id: sessionId,
           student_id: selectedStudent,
           activity_id: selectedActivity,
-          status: "excused",
+          status: ATTENDANCE_STATUS.EXCUSED,
           notes: reason || "Pre-excused by admin/moderator",
           acknowledged_by: user.id,
           acknowledged_at: new Date().toISOString()
@@ -252,12 +302,12 @@ const PreExcuseStudents = () => {
       setSelectedDay("");
       setReason("");
       setAllocations([]);
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error pre-excusing student:", error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.message || "Failed to pre-excuse student",
+        description: error instanceof Error ? error.message : "Failed to pre-excuse student",
       });
     } finally {
       setLoading(false);
@@ -293,7 +343,7 @@ const PreExcuseStudents = () => {
               Pre-Excuse a Student
             </CardTitle>
             <CardDescription>
-              Excuse a student for a past, present, or future date
+              Excuse a student for a past, present, or future date (within {DATE_RANGE_LIMITS.MAX_DAYS_PAST} days past or {DATE_RANGE_LIMITS.MAX_DAYS_FUTURE} days future)
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -396,9 +446,16 @@ const PreExcuseStudents = () => {
                 value={excuseDate}
                 onChange={(e) => setExcuseDate(e.target.value)}
               />
-              <p className="text-xs text-muted-foreground">
-                You can select past, present, or future dates
-              </p>
+              {dateError ? (
+                <Alert variant="destructive" className="py-2">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{dateError}</AlertDescription>
+                </Alert>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  You can select dates within {DATE_RANGE_LIMITS.MAX_DAYS_PAST} days past or {DATE_RANGE_LIMITS.MAX_DAYS_FUTURE} days future
+                </p>
+              )}
             </div>
 
             {/* Reason */}
@@ -415,7 +472,7 @@ const PreExcuseStudents = () => {
             {/* Submit Button */}
             <Button 
               onClick={handlePreExcuse} 
-              disabled={loading || !selectedStudent || !selectedActivity || !selectedDay || !excuseDate}
+              disabled={loading || !selectedStudent || !selectedActivity || !selectedDay || !excuseDate || !!dateError}
               className="w-full"
             >
               {loading ? "Processing..." : "Pre-Excuse Student"}

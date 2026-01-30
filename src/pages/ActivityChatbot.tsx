@@ -7,12 +7,11 @@ import { ArrowLeft, Send, Bot, User, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { CHATBOT_LIMITS } from "@/lib/constants";
 
 type Message = { role: "user" | "assistant"; content: string };
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/activity-chatbot`;
-const MAX_MESSAGE_LENGTH = 2000;
-const MAX_CONVERSATION_LENGTH = 50;
 
 async function streamChat({
   messages,
@@ -25,9 +24,20 @@ async function streamChat({
   onDone: () => void;
   onError: (error: string) => void;
 }) {
-  // Get the current session token for authentication
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session?.access_token) {
+  // Issue #3: Refresh token before making request
+  const { data: { session }, error: refreshError } = await supabase.auth.refreshSession();
+  
+  if (refreshError || !session?.access_token) {
+    // Try to get existing session as fallback
+    const { data: { session: existingSession } } = await supabase.auth.getSession();
+    if (!existingSession?.access_token) {
+      throw new Error("Please log in to use the chatbot");
+    }
+  }
+  
+  const accessToken = session?.access_token || (await supabase.auth.getSession()).data.session?.access_token;
+  
+  if (!accessToken) {
     throw new Error("Please log in to use the chatbot");
   }
 
@@ -35,7 +45,7 @@ async function streamChat({
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${session.access_token}`,
+      Authorization: `Bearer ${accessToken}`,
     },
     body: JSON.stringify({ messages }),
   });
@@ -76,7 +86,9 @@ async function streamChat({
         const parsed = JSON.parse(jsonStr);
         const content = parsed.choices?.[0]?.delta?.content as string | undefined;
         if (content) onDelta(content);
-      } catch {
+      } catch (parseError) {
+        // Issue #13: Log JSON parse failures for debugging
+        console.warn("Failed to parse streaming response chunk:", jsonStr, parseError);
         textBuffer = line + "\n" + textBuffer;
         break;
       }
@@ -94,9 +106,14 @@ const ActivityChatbot = () => {
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // Issue #44: Use requestAnimationFrame for smooth scrolling without memory issues
   useEffect(() => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      requestAnimationFrame(() => {
+        if (scrollRef.current) {
+          scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+        }
+      });
     }
   }, [messages]);
 
@@ -105,17 +122,27 @@ const ActivityChatbot = () => {
 
     // Validate message length
     const trimmedInput = input.trim();
-    if (trimmedInput.length > MAX_MESSAGE_LENGTH) {
+    if (trimmedInput.length > CHATBOT_LIMITS.MAX_MESSAGE_LENGTH) {
       toast({
         title: "Message too long",
-        description: `Please limit messages to ${MAX_MESSAGE_LENGTH} characters`,
+        description: `Please limit messages to ${CHATBOT_LIMITS.MAX_MESSAGE_LENGTH} characters`,
         variant: "destructive"
       });
       return;
     }
 
     const userMsg: Message = { role: "user", content: trimmedInput };
-    setMessages(prev => [...prev, userMsg]);
+    
+    // Issue #44: Cleanup old messages when exceeding limit
+    setMessages(prev => {
+      const updated = [...prev, userMsg];
+      if (updated.length > CHATBOT_LIMITS.MAX_CONVERSATION_LENGTH * 2) {
+        // Keep only the most recent messages
+        return updated.slice(-CHATBOT_LIMITS.MAX_CONVERSATION_LENGTH * 2);
+      }
+      return updated;
+    });
+    
     setInput("");
     setIsLoading(true);
 
@@ -134,7 +161,7 @@ const ActivityChatbot = () => {
 
     try {
       // Limit conversation history to prevent abuse
-      const recentMessages = [...messages, userMsg].slice(-MAX_CONVERSATION_LENGTH);
+      const recentMessages = [...messages, userMsg].slice(-CHATBOT_LIMITS.MAX_CONVERSATION_LENGTH);
       
       await streamChat({
         messages: recentMessages,

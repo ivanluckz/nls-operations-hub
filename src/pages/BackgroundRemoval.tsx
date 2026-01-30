@@ -1,19 +1,46 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Download, Upload, Loader2 } from "lucide-react";
-import { removeBackground, loadImage } from "@/utils/removeBackground";
+import { Download, Upload, Loader2, AlertTriangle } from "lucide-react";
+import { removeBackground, loadImage, validateImageFile, checkWebGPUSupport, ImageValidationError, WebGPUError } from "@/utils/removeBackground";
 import { useToast } from "@/hooks/use-toast";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { IMAGE_LIMITS } from "@/lib/constants";
 
 const BackgroundRemoval = () => {
   const [originalImage, setOriginalImage] = useState<string | null>(null);
   const [processedImage, setProcessedImage] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [webGPUSupported, setWebGPUSupported] = useState<boolean | null>(null);
+  const [webGPUError, setWebGPUError] = useState<string | null>(null);
   const { toast } = useToast();
+
+  // Issue #36: Check WebGPU support on mount
+  useEffect(() => {
+    const checkSupport = async () => {
+      const result = await checkWebGPUSupport();
+      setWebGPUSupported(result.supported);
+      if (!result.supported) {
+        setWebGPUError(result.error || 'WebGPU is not supported');
+      }
+    };
+    checkSupport();
+  }, []);
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
+
+    // Issue #5: Validate file before processing
+    const validation = validateImageFile(file);
+    if (!validation.valid) {
+      toast({
+        title: "Invalid File",
+        description: validation.error,
+        variant: "destructive",
+      });
+      return;
+    }
 
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -38,10 +65,22 @@ const BackgroundRemoval = () => {
         description: "Background removed successfully",
       });
     } catch (error) {
-      console.error(error);
+      console.error("Background removal error:", error);
+      
+      // Issue #1 & #36: Provide specific error messages
+      let errorMessage = "Failed to remove background. Please try again.";
+      
+      if (error instanceof ImageValidationError) {
+        errorMessage = error.message;
+      } else if (error instanceof WebGPUError) {
+        errorMessage = error.message;
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: "Error",
-        description: "Failed to remove background. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -67,6 +106,17 @@ const BackgroundRemoval = () => {
           </p>
         </div>
 
+        {/* Issue #36: Show WebGPU compatibility warning */}
+        {webGPUSupported === false && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Browser Not Supported</AlertTitle>
+            <AlertDescription>
+              {webGPUError}
+            </AlertDescription>
+          </Alert>
+        )}
+
         <Card className="p-6">
           <div className="space-y-6">
             <div>
@@ -74,7 +124,7 @@ const BackgroundRemoval = () => {
                 <div className="border-2 border-dashed border-border rounded-lg p-12 text-center hover:border-primary transition-colors">
                   <Upload className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
                   <p className="text-lg font-medium mb-2">Click to upload image</p>
-                  <p className="text-sm text-muted-foreground">PNG, JPG up to 10MB</p>
+                  <p className="text-sm text-muted-foreground">PNG, JPG up to {IMAGE_LIMITS.MAX_SIZE_MB}MB</p>
                 </div>
                 <input
                   id="file-upload"
@@ -118,7 +168,7 @@ const BackgroundRemoval = () => {
               {originalImage && !processedImage && (
                 <Button
                   onClick={handleRemoveBackground}
-                  disabled={isProcessing}
+                  disabled={isProcessing || webGPUSupported === false}
                   size="lg"
                 >
                   {isProcessing ? (

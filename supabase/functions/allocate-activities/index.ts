@@ -100,7 +100,8 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    // Create audit log entry
+    // Issue #26: Create audit log entry with backup timestamp
+    const backupTimestamp = new Date().toISOString();
     const { data: auditLog, error: auditError } = await serviceClient
       .from("allocation_audit_log")
       .insert({
@@ -115,8 +116,18 @@ serve(async (req) => {
     }
 
     try {
-      // Clear existing allocations
-      await serviceClient.from("allocations").delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      // Issue #26: Fetch existing allocations count for rollback reference
+      const { data: existingAllocations, error: existingError } = await serviceClient
+        .from("allocations")
+        .select("id, student_id, activity_id, day_of_week, slot_number, preference_rank")
+        .limit(10000);
+
+      if (existingError) {
+        console.error("Error fetching existing allocations:", existingError);
+      }
+
+      const existingCount = existingAllocations?.length || 0;
+      console.log(`Backup created at ${backupTimestamp}: ${existingCount} existing allocations`);
 
       const { data: preferences, error: prefError } = await serviceClient
         .from("preferences")
@@ -195,13 +206,47 @@ serve(async (req) => {
         console.warn(`Found ${validationErrors.length} validation errors during allocation`);
       }
 
+      // Issue #26: Insert new allocations FIRST, then delete old ones
+      // This ensures we don't lose data if insertion fails
+      console.log(`Attempting to insert ${allocations.length} new allocations...`);
+      
       const { error: insertError } = await serviceClient
         .from("allocations")
         .insert(allocations);
 
       if (insertError) {
         console.error("Error inserting allocations:", insertError);
-        throw insertError;
+        // Issue #26: Rollback - don't delete old allocations if insert failed
+        if (auditLog) {
+          await serviceClient
+            .from("allocation_audit_log")
+            .update({
+              completed_at: new Date().toISOString(),
+              status: "failed",
+              error_message: `Insert failed: ${insertError.message}. Old allocations preserved.`,
+              allocations_created: 0,
+              validation_errors: validationErrors.length
+            })
+            .eq("id", auditLog.id);
+        }
+        throw new Error(`Failed to insert new allocations: ${insertError.message}. Previous allocations have been preserved.`);
+      }
+
+      // Issue #26: Only delete old allocations after successful insert
+      // Delete allocations that were created before this run (have different IDs)
+      if (existingAllocations && existingAllocations.length > 0) {
+        const oldIds = existingAllocations.map(a => a.id);
+        const { error: deleteError } = await serviceClient
+          .from("allocations")
+          .delete()
+          .in("id", oldIds);
+
+        if (deleteError) {
+          console.warn("Warning: Could not clean up old allocations:", deleteError);
+          // Don't fail the operation - new allocations are already in place
+        } else {
+          console.log(`Cleaned up ${oldIds.length} old allocations`);
+        }
       }
 
       console.log(`Successfully allocated ${allocations.length} student-day combinations`);
@@ -226,12 +271,15 @@ serve(async (req) => {
         JSON.stringify({ 
           success: true, 
           allocated: allocations.length,
+          previous_count: existingCount,
           validation_errors: validationErrors.length,
           warnings: validationErrors.length > 0 ? validationErrors : undefined
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
-    } catch (innerError: any) {
+    } catch (innerError: unknown) {
+      const errorMessage = innerError instanceof Error ? innerError.message : String(innerError);
+      
       // Update audit log with failure
       if (auditLog) {
         await serviceClient
@@ -239,16 +287,17 @@ serve(async (req) => {
           .update({
             completed_at: new Date().toISOString(),
             status: "failed",
-            error_message: innerError.message
+            error_message: errorMessage
           })
           .eq("id", auditLog.id);
       }
       throw innerError;
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
     console.error("Allocation error:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: errorMessage }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
