@@ -81,11 +81,13 @@ const StudentPreferences = () => {
 
   const fetchActivities = async () => {
     try {
+      // Issue #34: Add query limit to prevent unbounded queries
       const { data } = await supabase
         .from("activities")
         .select("*")
         .eq("is_active", true)
-        .order("title");
+        .order("title")
+        .limit(500);
 
       setActivities(data || []);
     } catch (error) {

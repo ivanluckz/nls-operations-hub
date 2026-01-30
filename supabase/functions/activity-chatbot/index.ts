@@ -21,6 +21,7 @@ const getCorsHeaders = (req: Request) => ({
 
 const MAX_MESSAGE_LENGTH = 2000;
 const MAX_MESSAGES = 50;
+const RATE_LIMIT_RETRY_SECONDS = 60;
 
 serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
@@ -140,11 +141,22 @@ Be friendly, concise, and helpful. If you don't know something specific, suggest
     });
 
     if (!response.ok) {
+      // Issue #12: Add Retry-After header and descriptive message for rate limits
       if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again later." }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return new Response(
+          JSON.stringify({ 
+            error: `Rate limit exceeded. You've sent too many requests. Please wait ${RATE_LIMIT_RETRY_SECONDS} seconds before trying again.`,
+            retry_after: RATE_LIMIT_RETRY_SECONDS
+          }), 
+          {
+            status: 429,
+            headers: { 
+              ...corsHeaders, 
+              "Content-Type": "application/json",
+              "Retry-After": String(RATE_LIMIT_RETRY_SECONDS)
+            },
+          }
+        );
       }
       if (response.status === 402) {
         return new Response(JSON.stringify({ error: "Service temporarily unavailable." }), {

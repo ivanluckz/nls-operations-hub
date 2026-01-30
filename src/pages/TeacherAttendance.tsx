@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Camera, Save, Upload, AlertCircle } from "lucide-react";
 import { BrowserQRCodeReader } from "@zxing/library";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { SESSION_STATUS, ATTENDANCE_STATUS, USER_ROLES, QR_SCAN_COOLDOWN_MS } from "@/lib/constants";
 
 interface Activity {
   id: string;
@@ -41,11 +42,13 @@ const TeacherAttendance = () => {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [userRole, setUserRole] = useState<string>("teacher");
+  const [userRole, setUserRole] = useState<string>(USER_ROLES.TEACHER);
   const codeReader = useRef<BrowserQRCodeReader | null>(null);
+  // Issue #27: Debouncing for QR scans to prevent duplicate records
+  const lastScanRef = useRef<number>(0);
 
   // Check if user can excuse students (only admins and moderators)
-  const canExcuseStudents = userRole === "admin" || userRole === "moderator";
+  const canExcuseStudents = userRole === USER_ROLES.ADMIN || userRole === USER_ROLES.MODERATOR;
 
   useEffect(() => {
     fetchActivities();
@@ -89,8 +92,8 @@ const TeacherAttendance = () => {
         .single();
 
       const fetchedUserRole = roleData?.role;
-      setUserRole(fetchedUserRole || "teacher");
-      const isAdminOrMod = fetchedUserRole === "admin" || fetchedUserRole === "moderator";
+      setUserRole(fetchedUserRole || USER_ROLES.TEACHER);
+      const isAdminOrMod = fetchedUserRole === USER_ROLES.ADMIN || fetchedUserRole === USER_ROLES.MODERATOR;
 
       let query = supabase
         .from("activities")
@@ -123,10 +126,11 @@ const TeacherAttendance = () => {
         .eq("activity_id", selectedActivity)
         .eq("day_of_week", selectedDay);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const studentList: Student[] = (data || []).map((item: any) => ({
         student_id: item.student_id,
-        student_name: item.profiles.full_name,
-        student_email: item.profiles.email,
+        student_name: item.profiles?.full_name || 'Unknown',
+        student_email: item.profiles?.email || '',
       }));
 
       setStudents(studentList);
@@ -136,7 +140,7 @@ const TeacherAttendance = () => {
       studentList.forEach(student => {
         newAttendance.set(student.student_id, {
           student_id: student.student_id,
-          status: "absent"
+          status: ATTENDANCE_STATUS.ABSENT as "absent"
         });
       });
       setAttendance(newAttendance);
@@ -152,7 +156,7 @@ const TeacherAttendance = () => {
 
       const today = new Date().toISOString().split('T')[0];
       
-      // Check if session exists
+      // Check if session exists - Issue #37: Use constant instead of hardcoded status
       const { data: existingSession } = await supabase
         .from("attendance_sessions")
         .select("id, status")
@@ -160,14 +164,14 @@ const TeacherAttendance = () => {
         .eq("teacher_id", user.id)
         .eq("session_date", today)
         .eq("day_of_week", selectedDay)
-        .eq("status", "draft")
+        .eq("status", SESSION_STATUS.DRAFT)
         .maybeSingle();
 
       if (existingSession) {
         setSessionId(existingSession.id);
         await loadExistingAttendance(existingSession.id);
       } else {
-        // Create new session
+        // Create new session with constant status
         const { data: newSession, error } = await supabase
           .from("attendance_sessions")
           .insert({
@@ -176,7 +180,7 @@ const TeacherAttendance = () => {
             session_date: today,
             day_of_week: selectedDay,
             slot_number: 1,
-            status: "draft"
+            status: SESSION_STATUS.DRAFT
           })
           .select()
           .single();
@@ -228,11 +232,26 @@ const TeacherAttendance = () => {
         scanQRCode();
       }
     } catch (error) {
+      // Issue #39: Specific error handling for camera permissions
       console.error("Error accessing camera:", error);
+      
+      let errorMessage = "Unable to access camera";
+      if (error instanceof Error) {
+        if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+          errorMessage = "Camera permission denied. Please allow camera access in your browser settings.";
+        } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
+          errorMessage = "No camera found. Please connect a camera and try again.";
+        } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
+          errorMessage = "Camera is already in use by another application.";
+        } else if (error.name === 'OverconstrainedError') {
+          errorMessage = "Camera does not support the required settings.";
+        }
+      }
+      
       toast({
         variant: "destructive",
         title: "Camera Error",
-        description: "Unable to access camera",
+        description: errorMessage,
       });
       setScanning(false);
     }
@@ -263,11 +282,18 @@ const TeacherAttendance = () => {
     if (!codeReader.current || !videoRef.current) return;
 
     try {
-      const result = await codeReader.current.decodeFromVideoDevice(
+      await codeReader.current.decodeFromVideoDevice(
         undefined,
         videoRef.current,
         (result) => {
           if (result) {
+            // Issue #27: Debounce QR scans to prevent duplicate records
+            const now = Date.now();
+            if (now - lastScanRef.current < QR_SCAN_COOLDOWN_MS) {
+              return; // Skip duplicate scan
+            }
+            lastScanRef.current = now;
+
             try {
               const rawData = JSON.parse(result.getText());
               
@@ -298,7 +324,7 @@ const TeacherAttendance = () => {
               
               // Check if already marked
               const existing = attendance.get(studentId);
-              if (existing && existing.status !== "absent") {
+              if (existing && existing.status !== ATTENDANCE_STATUS.ABSENT) {
                 toast({
                   title: "Already Marked",
                   description: `${students.find(s => s.student_id === studentId)?.student_name} is already marked as ${existing.status}`,
@@ -306,7 +332,7 @@ const TeacherAttendance = () => {
                 return;
               }
               
-              markAttendance(studentId, "present", new Date().toISOString());
+              markAttendance(studentId, ATTENDANCE_STATUS.PRESENT as "present", new Date().toISOString());
               stopScanning();
             } catch (e) {
               console.error("Invalid QR code:", e);
@@ -338,7 +364,7 @@ const TeacherAttendance = () => {
 
   const markAttendance = (studentId: string, status: "present" | "late" | "absent" | "excused", scannedAt?: string) => {
     // Only allow admins/mods to mark as excused
-    if (status === "excused" && !canExcuseStudents) {
+    if (status === ATTENDANCE_STATUS.EXCUSED && !canExcuseStudents) {
       toast({
         variant: "destructive",
         title: "Not Authorized",
@@ -412,11 +438,11 @@ const TeacherAttendance = () => {
       // Save records first
       await saveDraft();
 
-      // Update session status
+      // Issue #33: Update session status to "submitted" instead of just "finalized"
       const { error } = await supabase
         .from("attendance_sessions")
         .update({ 
-          status: "finalized",
+          status: SESSION_STATUS.SUBMITTED,
           finalized_at: new Date().toISOString()
         })
         .eq("id", sessionId);
@@ -425,7 +451,7 @@ const TeacherAttendance = () => {
 
       // Notify about absences (would typically trigger notifications to mods/admins)
       const absentStudents = Array.from(attendance.values())
-        .filter(r => r.status === "absent");
+        .filter(r => r.status === ATTENDANCE_STATUS.ABSENT);
 
       toast({
         title: "Attendance Finalized",
@@ -445,7 +471,7 @@ const TeacherAttendance = () => {
     }
   };
 
-  const absentCount = Array.from(attendance.values()).filter(r => r.status === "absent").length;
+  const absentCount = Array.from(attendance.values()).filter(r => r.status === ATTENDANCE_STATUS.ABSENT).length;
 
   return (
     <div className="min-h-screen bg-background">
@@ -553,9 +579,9 @@ const TeacherAttendance = () => {
                       <div key={student.student_id} className="flex items-center justify-between p-4 border rounded-lg">
                         <div className="flex items-center gap-4">
                           <Checkbox
-                            checked={record?.status === "present"}
+                            checked={record?.status === ATTENDANCE_STATUS.PRESENT}
                             onCheckedChange={(checked) => 
-                              markAttendance(student.student_id, checked ? "present" : "absent")
+                              markAttendance(student.student_id, checked ? ATTENDANCE_STATUS.PRESENT as "present" : ATTENDANCE_STATUS.ABSENT as "absent")
                             }
                           />
                         <div>
@@ -570,31 +596,31 @@ const TeacherAttendance = () => {
                         </div>
                         <div className="flex flex-wrap gap-2">
                           <Badge
-                            variant={record?.status === "present" ? "default" : "outline"}
+                            variant={record?.status === ATTENDANCE_STATUS.PRESENT ? "default" : "outline"}
                             className="cursor-pointer"
-                            onClick={() => markAttendance(student.student_id, "present")}
+                            onClick={() => markAttendance(student.student_id, ATTENDANCE_STATUS.PRESENT as "present")}
                           >
                             Present
                           </Badge>
                           <Badge
-                            variant={record?.status === "late" ? "default" : "outline"}
+                            variant={record?.status === ATTENDANCE_STATUS.LATE ? "default" : "outline"}
                             className="cursor-pointer bg-amber-100 text-amber-800 hover:bg-amber-200"
-                            onClick={() => markAttendance(student.student_id, "late")}
+                            onClick={() => markAttendance(student.student_id, ATTENDANCE_STATUS.LATE as "late")}
                           >
                             Late
                           </Badge>
                           <Badge
-                            variant={record?.status === "absent" ? "destructive" : "outline"}
+                            variant={record?.status === ATTENDANCE_STATUS.ABSENT ? "destructive" : "outline"}
                             className="cursor-pointer"
-                            onClick={() => markAttendance(student.student_id, "absent")}
+                            onClick={() => markAttendance(student.student_id, ATTENDANCE_STATUS.ABSENT as "absent")}
                           >
                             Absent
                           </Badge>
                           {canExcuseStudents && (
                             <Badge
-                              variant={record?.status === "excused" ? "default" : "outline"}
+                              variant={record?.status === ATTENDANCE_STATUS.EXCUSED ? "default" : "outline"}
                               className="cursor-pointer bg-blue-100 text-blue-800 hover:bg-blue-200"
-                              onClick={() => markAttendance(student.student_id, "excused")}
+                              onClick={() => markAttendance(student.student_id, ATTENDANCE_STATUS.EXCUSED as "excused")}
                             >
                               Excused
                             </Badge>

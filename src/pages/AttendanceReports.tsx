@@ -118,6 +118,7 @@ const AttendanceReports = () => {
       const role = roleData?.role;
       const isAdminOrMod = role === "admin" || role === "moderator";
 
+      // Issue #53: Add query limit to prevent unbounded queries
       let query = supabase
         .from("attendance_notifications")
         .select(`
@@ -135,7 +136,8 @@ const AttendanceReports = () => {
             email
           )
         `)
-        .order("notified_at", { ascending: false });
+        .order("notified_at", { ascending: false })
+        .limit(500);
 
       // Teachers only see their own activities
       if (!isAdminOrMod) {
@@ -336,8 +338,13 @@ const AttendanceReports = () => {
             {loading ? (
               <div className="text-center py-8 text-muted-foreground">Loading...</div>
             ) : notifications.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                No attendance issues found
+              <div className="text-center py-8 text-muted-foreground space-y-2">
+                <p className="font-medium">No attendance issues found</p>
+                <p className="text-sm">
+                  {filterStatus !== "all" || filterDate 
+                    ? "Try adjusting your filters to see more results." 
+                    : "Great news! All students are present and accounted for."}
+                </p>
               </div>
             ) : (
               <Table>

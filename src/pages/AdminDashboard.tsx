@@ -1,15 +1,26 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { LogOut, Users, Shield, UserCog, ClipboardCheck, AlertTriangle, UserCheck, Sparkles, BookOpen } from "lucide-react";
+import { LogOut, Users, Shield, UserCog, ClipboardCheck, AlertTriangle, UserCheck, Sparkles, BookOpen, Loader2 } from "lucide-react";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
+  // Issue #18: Add loading state to prevent double-clicks on logout
+  const [loggingOut, setLoggingOut] = useState(false);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate("/auth");
+    if (loggingOut) return;
+    
+    setLoggingOut(true);
+    try {
+      await supabase.auth.signOut();
+      navigate("/auth");
+    } catch (error) {
+      console.error("Logout error:", error);
+      setLoggingOut(false);
+    }
   };
 
   return (
@@ -20,9 +31,13 @@ const AdminDashboard = () => {
             <h1 className="text-3xl font-bold text-foreground">Admin Dashboard</h1>
             <p className="text-muted-foreground">Manage all users and roles</p>
           </div>
-          <Button onClick={handleLogout} variant="outline">
-            <LogOut className="mr-2 h-4 w-4" />
-            Logout
+          <Button onClick={handleLogout} variant="outline" disabled={loggingOut}>
+            {loggingOut ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <LogOut className="mr-2 h-4 w-4" />
+            )}
+            {loggingOut ? "Logging out..." : "Logout"}
           </Button>
         </div>
       </header>
