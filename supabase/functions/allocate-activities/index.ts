@@ -2,10 +2,23 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+// Issue #21: Use specific allowed origins instead of wildcard
+const getAllowedOrigin = (req: Request): string => {
+  const origin = req.headers.get("Origin") || "";
+  const allowedOrigins = [
+    "https://id-preview--f393e585-fc10-4a2e-a662-735d93b755e9.lovable.app",
+    "https://nls-co-curricular.lovable.app",
+    "http://localhost:5173",
+    "http://localhost:3000"
+  ];
+  return allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
 };
+
+const getCorsHeaders = (req: Request) => ({
+  "Access-Control-Allow-Origin": getAllowedOrigin(req),
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+});
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'] as const;
 const DayOfWeekEnum = z.enum(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']);
@@ -22,6 +35,8 @@ const AllocationSchema = z.object({
 });
 
 serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
+  
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -65,7 +80,7 @@ serve(async (req) => {
       );
     }
 
-    // Rate limiting check - max 3 allocations per hour
+    // Rate limiting check - max 10 allocations per hour
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
     const { data: recentAllocations } = await supabaseClient
       .from("allocation_audit_log")
@@ -103,91 +118,91 @@ serve(async (req) => {
       // Clear existing allocations
       await serviceClient.from("allocations").delete().neq('id', '00000000-0000-0000-0000-000000000000');
 
-    const { data: preferences, error: prefError } = await serviceClient
-      .from("preferences")
-      .select("*");
+      const { data: preferences, error: prefError } = await serviceClient
+        .from("preferences")
+        .select("*");
 
-    if (prefError) {
-      console.error("Error fetching preferences:", prefError);
-      throw prefError;
-    }
+      if (prefError) {
+        console.error("Error fetching preferences:", prefError);
+        throw prefError;
+      }
 
-    const { data: activities, error: actError } = await serviceClient
-      .from("activities")
-      .select("id, capacity, days_of_week");
+      const { data: activities, error: actError } = await serviceClient
+        .from("activities")
+        .select("id, capacity, days_of_week");
 
-    if (actError) {
-      console.error("Error fetching activities:", actError);
-      throw actError;
-    }
+      if (actError) {
+        console.error("Error fetching activities:", actError);
+        throw actError;
+      }
 
-    type AllocationInput = z.infer<typeof AllocationSchema>;
-    const allocations: AllocationInput[] = [];
-    const validationErrors: string[] = [];
+      type AllocationInput = z.infer<typeof AllocationSchema>;
+      const allocations: AllocationInput[] = [];
+      const validationErrors: string[] = [];
 
-    // Process each day separately (Wednesday has 2 slots, others have 1)
-    for (const day of DAYS) {
-      const dayLower = day.toLowerCase();
-      const slots = day === 'Wednesday' ? [1, 2] : [1];
-      
-      for (const slot of slots) {
-        const slotSuffix = day === 'Wednesday' ? `_slot${slot}` : '';
-        // Wednesday activities are stored as "Wednesday Slot 1" or "Wednesday Slot 2"
-        const dayFilter = day === 'Wednesday' ? `Wednesday Slot ${slot}` : day;
-        const dayActivities = activities.filter(a => a.days_of_week && a.days_of_week.includes(dayFilter));
-        const capacityTracker = new Map(dayActivities.map(a => [a.id, { capacity: a.capacity, enrolled: 0 }]));
+      // Process each day separately (Wednesday has 2 slots, others have 1)
+      for (const day of DAYS) {
+        const dayLower = day.toLowerCase();
+        const slots = day === 'Wednesday' ? [1, 2] : [1];
+        
+        for (const slot of slots) {
+          const slotSuffix = day === 'Wednesday' ? `_slot${slot}` : '';
+          // Wednesday activities are stored as "Wednesday Slot 1" or "Wednesday Slot 2"
+          const dayFilter = day === 'Wednesday' ? `Wednesday Slot ${slot}` : day;
+          const dayActivities = activities.filter(a => a.days_of_week && a.days_of_week.includes(dayFilter));
+          const capacityTracker = new Map(dayActivities.map(a => [a.id, { capacity: a.capacity, enrolled: 0 }]));
 
-        // Process all 5 preference ranks
-        for (let rank = 1; rank <= 5; rank++) {
-          const choiceLabel = ['first', 'second', 'third', 'fourth', 'fifth'][rank - 1];
-          
-          for (const pref of preferences || []) {
-            // Skip if student already allocated for this day-slot combination
-            if (allocations.some(a => a.student_id === pref.student_id && a.day_of_week === day && a.slot_number === slot)) continue;
+          // Process all 5 preference ranks
+          for (let rank = 1; rank <= 5; rank++) {
+            const choiceLabel = ['first', 'second', 'third', 'fourth', 'fifth'][rank - 1];
             
-            const choiceId = pref[`${dayLower}${slotSuffix}_${choiceLabel}_choice`];
-            if (!choiceId) continue;
-            
-            const activity = capacityTracker.get(choiceId);
-            if (activity && activity.enrolled < activity.capacity) {
-              const allocationData = {
-                student_id: pref.student_id,
-                activity_id: choiceId,
-                day_of_week: day,
-                slot_number: slot,
-                preference_rank: rank,
-                status: "allocated" as const,
-              };
+            for (const pref of preferences || []) {
+              // Skip if student already allocated for this day-slot combination
+              if (allocations.some(a => a.student_id === pref.student_id && a.day_of_week === day && a.slot_number === slot)) continue;
+              
+              const choiceId = pref[`${dayLower}${slotSuffix}_${choiceLabel}_choice`];
+              if (!choiceId) continue;
+              
+              const activity = capacityTracker.get(choiceId);
+              if (activity && activity.enrolled < activity.capacity) {
+                const allocationData = {
+                  student_id: pref.student_id,
+                  activity_id: choiceId,
+                  day_of_week: day,
+                  slot_number: slot,
+                  preference_rank: rank,
+                  status: "allocated" as const,
+                };
 
-              // Validate allocation data
-              const validation = AllocationSchema.safeParse(allocationData);
-              if (validation.success) {
-                allocations.push(validation.data);
-                activity.enrolled++;
-              } else {
-                validationErrors.push(
-                  `Invalid allocation for student ${pref.student_id}: ${validation.error.message}`
-                );
-                console.error("Validation error:", validation.error.format());
+                // Validate allocation data
+                const validation = AllocationSchema.safeParse(allocationData);
+                if (validation.success) {
+                  allocations.push(validation.data);
+                  activity.enrolled++;
+                } else {
+                  validationErrors.push(
+                    `Invalid allocation for student ${pref.student_id}: ${validation.error.message}`
+                  );
+                  console.error("Validation error:", validation.error.format());
+                }
               }
             }
           }
         }
       }
-    }
 
-    if (validationErrors.length > 0) {
-      console.warn(`Found ${validationErrors.length} validation errors during allocation`);
-    }
+      if (validationErrors.length > 0) {
+        console.warn(`Found ${validationErrors.length} validation errors during allocation`);
+      }
 
-    const { error: insertError } = await serviceClient
-      .from("allocations")
-      .insert(allocations);
+      const { error: insertError } = await serviceClient
+        .from("allocations")
+        .insert(allocations);
 
-    if (insertError) {
-      console.error("Error inserting allocations:", insertError);
-      throw insertError;
-    }
+      if (insertError) {
+        console.error("Error inserting allocations:", insertError);
+        throw insertError;
+      }
 
       console.log(`Successfully allocated ${allocations.length} student-day combinations`);
       if (validationErrors.length > 0) {

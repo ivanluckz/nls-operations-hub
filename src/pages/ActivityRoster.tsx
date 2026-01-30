@@ -64,7 +64,7 @@ const ActivityRoster = () => {
         .eq("is_active", true)
         .order("title");
 
-      // Fetch all allocations with student info
+      // Issue #28: Add query limit to prevent loading all records
       const { data: allocationsData } = await supabase
         .from("allocations")
         .select(`
@@ -75,7 +75,8 @@ const ActivityRoster = () => {
             full_name,
             email
           )
-        `);
+        `)
+        .limit(5000); // Reasonable limit for school-sized datasets
 
       // Group students by activity
       const activitiesWithStudents: ActivityWithStudents[] = (activitiesData || []).map(activity => {

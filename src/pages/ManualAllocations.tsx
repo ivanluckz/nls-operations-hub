@@ -109,12 +109,12 @@ const ManualAllocations = () => {
       if (!user) return;
 
       const { data: roleData } = await supabase
-        .from("user_roles" as any)
+        .from("user_roles")
         .select("role")
         .eq("user_id", user.id)
         .single();
 
-      setUserRole((roleData as any)?.role || "");
+      setUserRole(roleData?.role || "");
 
       const { data: studentRoles } = await supabase
         .from("user_roles")

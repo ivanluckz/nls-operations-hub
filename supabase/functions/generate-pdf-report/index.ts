@@ -2,10 +2,23 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
 import { jsPDF } from "https://esm.sh/jspdf@2.5.1";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+// Issue #21: Use specific allowed origins instead of wildcard
+const getAllowedOrigin = (req: Request): string => {
+  const origin = req.headers.get("Origin") || "";
+  const allowedOrigins = [
+    "https://id-preview--f393e585-fc10-4a2e-a662-735d93b755e9.lovable.app",
+    "https://nls-co-curricular.lovable.app",
+    "http://localhost:5173",
+    "http://localhost:3000"
+  ];
+  return allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
 };
+
+const getCorsHeaders = (req: Request) => ({
+  "Access-Control-Allow-Origin": getAllowedOrigin(req),
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+});
 
 interface ReportRequest {
   reportType: "activity" | "student" | "all";
@@ -16,6 +29,8 @@ interface ReportRequest {
 }
 
 serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
+  
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -77,8 +92,16 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Calculate date range (default to last 30 days)
-    const end = endDate ? new Date(endDate) : new Date();
-    const start = startDate ? new Date(startDate) : new Date(end.getTime() - 30 * 24 * 60 * 60 * 1000);
+    let end = endDate ? new Date(endDate) : new Date();
+    let start = startDate ? new Date(startDate) : new Date(end.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    // Issue #35: Validate date range - swap if start is after end
+    if (start > end) {
+      const temp = start;
+      start = end;
+      end = temp;
+      console.log("Date range swapped: start was after end");
+    }
 
     console.log(`Generating ${reportType} report from ${start.toISOString()} to ${end.toISOString()}`);
 

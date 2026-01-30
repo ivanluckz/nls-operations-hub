@@ -1,15 +1,30 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+// Issue #21: Use specific allowed origins instead of wildcard
+const getAllowedOrigin = (req: Request): string => {
+  const origin = req.headers.get("Origin") || "";
+  const allowedOrigins = [
+    "https://id-preview--f393e585-fc10-4a2e-a662-735d93b755e9.lovable.app",
+    "https://nls-co-curricular.lovable.app",
+    "http://localhost:5173",
+    "http://localhost:3000"
+  ];
+  return allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
 };
+
+const getCorsHeaders = (req: Request) => ({
+  "Access-Control-Allow-Origin": getAllowedOrigin(req),
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+});
 
 const MAX_MESSAGE_LENGTH = 2000;
 const MAX_MESSAGES = 50;
 
 serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
+  
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -147,6 +162,7 @@ Be friendly, concise, and helpful. If you don't know something specific, suggest
     });
   } catch (error) {
     console.error("Chatbot error:", error);
+    const corsHeaders = getCorsHeaders(req);
     return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
