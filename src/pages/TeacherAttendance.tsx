@@ -238,6 +238,27 @@ const TeacherAttendance = () => {
     }
   };
 
+  // Issue #32: QR code data validation schema
+  const validateQRData = (data: unknown): { valid: boolean; studentId?: string; error?: string } => {
+    if (!data || typeof data !== 'object') {
+      return { valid: false, error: "Invalid QR code format" };
+    }
+    
+    const qrData = data as Record<string, unknown>;
+    
+    // Validate studentId is a string and looks like a UUID
+    if (typeof qrData.studentId !== 'string') {
+      return { valid: false, error: "Missing or invalid student ID" };
+    }
+    
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(qrData.studentId)) {
+      return { valid: false, error: "Invalid student ID format" };
+    }
+    
+    return { valid: true, studentId: qrData.studentId };
+  };
+
   const scanQRCode = async () => {
     if (!codeReader.current || !videoRef.current) return;
 
@@ -248,33 +269,45 @@ const TeacherAttendance = () => {
         (result) => {
           if (result) {
             try {
-              const data = JSON.parse(result.getText());
-              if (data.studentId) {
-                // Validate that student is in the enrolled students list
-                const isEnrolled = students.some(s => s.student_id === data.studentId);
-                
-                if (!isEnrolled) {
-                  toast({
-                    variant: "destructive",
-                    title: "Invalid QR Code",
-                    description: "This student is not enrolled in this activity.",
-                  });
-                  return;
-                }
-                
-                // Check if already marked
-                const existing = attendance.get(data.studentId);
-                if (existing && existing.status !== "absent") {
-                  toast({
-                    title: "Already Marked",
-                    description: `${students.find(s => s.student_id === data.studentId)?.student_name} is already marked as ${existing.status}`,
-                  });
-                  return;
-                }
-                
-                markAttendance(data.studentId, "present", new Date().toISOString());
-                stopScanning();
+              const rawData = JSON.parse(result.getText());
+              
+              // Issue #32: Validate QR data against schema
+              const validation = validateQRData(rawData);
+              if (!validation.valid || !validation.studentId) {
+                toast({
+                  variant: "destructive",
+                  title: "Invalid QR Code",
+                  description: validation.error || "Could not read QR code data.",
+                });
+                return;
               }
+              
+              const studentId = validation.studentId;
+              
+              // Validate that student is in the enrolled students list
+              const isEnrolled = students.some(s => s.student_id === studentId);
+              
+              if (!isEnrolled) {
+                toast({
+                  variant: "destructive",
+                  title: "Invalid QR Code",
+                  description: "This student is not enrolled in this activity.",
+                });
+                return;
+              }
+              
+              // Check if already marked
+              const existing = attendance.get(studentId);
+              if (existing && existing.status !== "absent") {
+                toast({
+                  title: "Already Marked",
+                  description: `${students.find(s => s.student_id === studentId)?.student_name} is already marked as ${existing.status}`,
+                });
+                return;
+              }
+              
+              markAttendance(studentId, "present", new Date().toISOString());
+              stopScanning();
             } catch (e) {
               console.error("Invalid QR code:", e);
               toast({

@@ -18,18 +18,28 @@ const Index = () => {
       const { data: { user } } = await supabase.auth.getUser();
       
       if (user) {
-        const { data: roleData } = await supabase
-          .from("user_roles" as any)
+        const { data: roleData, error: roleError } = await supabase
+          .from("user_roles")
           .select("role")
           .eq("user_id", user.id)
           .single();
 
-        const role = (roleData as any)?.role;
+        if (roleError) {
+          console.error("Error fetching user role:", roleError);
+          // If role fetch fails, redirect to student dashboard as fallback
+          navigate("/student");
+          return;
+        }
+
+        const role = roleData?.role;
         if (role === "admin") {
           navigate("/admin");
         } else if (role === "moderator") {
           navigate("/moderator");
+        } else if (role === "teacher") {
+          navigate("/teacher");
         } else {
+          // Default to student for any other role or missing role
           navigate("/student");
         }
       }

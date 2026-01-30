@@ -161,9 +161,37 @@ const ManualAllocations = () => {
     }
   };
 
+  // Track pending allocations to prevent concurrent requests
+  const [pendingAllocations, setPendingAllocations] = useState<Set<string>>(new Set());
+
   const handleAllocate = async (studentId: string, activityId: string, day: string, slot: number) => {
+    const allocationKey = `${studentId}-${day}-${slot}`;
+    
+    // Prevent concurrent allocation requests for the same student/day/slot
+    if (pendingAllocations.has(allocationKey)) {
+      return;
+    }
+
     const activity = activities.find(a => a.id === activityId);
     if (!activity) return;
+
+    // Check capacity before allocation (Issue #15 & #41)
+    const currentAllocations = allocations.get(studentId) || [];
+    const existingAllocation = currentAllocations.find(
+      a => a.day_of_week === day && a.slot_number === slot
+    );
+    
+    // If not replacing an existing allocation in this activity, check capacity
+    if (!existingAllocation || existingAllocation.activity_id !== activityId) {
+      if (activity.current_enrollment >= activity.capacity) {
+        toast({
+          variant: "destructive",
+          title: "Activity Full",
+          description: `${activity.title} has reached its capacity of ${activity.capacity} students`,
+        });
+        return;
+      }
+    }
 
     const validation = ManualAllocationInputSchema.safeParse({
       studentId,
@@ -181,12 +209,10 @@ const ManualAllocations = () => {
       return;
     }
 
-    const currentAllocations = allocations.get(studentId) || [];
-    const existingAllocation = currentAllocations.find(
-      a => a.day_of_week === day && a.slot_number === slot
-    );
-
     if (existingAllocation && existingAllocation.activity_id === activityId) return;
+
+    // Mark as pending
+    setPendingAllocations(prev => new Set(prev).add(allocationKey));
 
     try {
       if (existingAllocation) {
@@ -220,6 +246,13 @@ const ManualAllocations = () => {
         variant: "destructive",
         title: "Error",
         description: error.message || "Failed to allocate student",
+      });
+    } finally {
+      // Clear pending state
+      setPendingAllocations(prev => {
+        const next = new Set(prev);
+        next.delete(allocationKey);
+        return next;
       });
     }
   };

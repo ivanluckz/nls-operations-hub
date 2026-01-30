@@ -144,6 +144,16 @@ const ModeratorActivities = () => {
       return;
     }
 
+    // Issue #41: Validate capacity >= current enrollment when editing
+    if (editingActivity && capacity < editingActivity.current_enrollment) {
+      toast({
+        variant: "destructive",
+        title: "Invalid Capacity",
+        description: `Capacity cannot be less than current enrollment (${editingActivity.current_enrollment} students)`,
+      });
+      return;
+    }
+
     // Validate required fields
     if (!formData.title.trim() || !formData.description.trim()) {
       toast({
