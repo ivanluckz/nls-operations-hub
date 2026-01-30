@@ -52,7 +52,20 @@ const TeacherAttendance = () => {
     codeReader.current = new BrowserQRCodeReader();
     
     return () => {
-      stopScanning();
+      // Properly cleanup video stream
+      if (videoRef.current && videoRef.current.srcObject) {
+        const stream = videoRef.current.srcObject as MediaStream;
+        stream.getTracks().forEach(track => {
+          track.stop();
+          track.enabled = false;
+        });
+        videoRef.current.srcObject = null;
+      }
+      // Reset and nullify the code reader to prevent memory leaks
+      if (codeReader.current) {
+        codeReader.current.reset();
+        codeReader.current = null;
+      }
     };
   }, []);
 
