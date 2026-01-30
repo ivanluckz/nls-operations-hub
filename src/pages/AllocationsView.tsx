@@ -50,12 +50,12 @@ const AllocationsView = () => {
       if (!user) return;
 
       const { data: roleData } = await supabase
-        .from("user_roles" as any)
+        .from("user_roles")
         .select("role")
         .eq("user_id", user.id)
         .single();
 
-      setUserRole((roleData as any)?.role || "");
+      setUserRole(roleData?.role || "");
 
       // First fetch student user_ids
       const { data: studentRoles } = await supabase
@@ -73,9 +73,11 @@ const AllocationsView = () => {
             .order("full_name")
         : { data: [] };
 
+      // Issue #28: Add query limit to prevent loading all records
       const { data: allAllocations } = await supabase
         .from("allocations")
-        .select("student_id, activity_id, day_of_week, slot_number, activities(title)");
+        .select("student_id, activity_id, day_of_week, slot_number, activities(title)")
+        .limit(5000); // Reasonable limit for school-sized datasets
 
       const studentAllocations: StudentAllocation[] = (students || []).map(student => {
         const studentAllocs = (allAllocations || []).filter(a => a.student_id === student.id);

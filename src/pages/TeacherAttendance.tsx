@@ -83,14 +83,14 @@ const TeacherAttendance = () => {
 
       // Check if user is admin or moderator
       const { data: roleData } = await supabase
-        .from("user_roles" as any)
+        .from("user_roles")
         .select("role")
         .eq("user_id", user.id)
         .single();
 
-      const userRole = (roleData as any)?.role;
-      setUserRole(userRole || "teacher");
-      const isAdminOrMod = userRole === "admin" || userRole === "moderator";
+      const fetchedUserRole = roleData?.role;
+      setUserRole(fetchedUserRole || "teacher");
+      const isAdminOrMod = fetchedUserRole === "admin" || fetchedUserRole === "moderator";
 
       let query = supabase
         .from("activities")

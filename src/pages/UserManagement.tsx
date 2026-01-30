@@ -66,12 +66,12 @@ const UserManagement = () => {
       if (profilesError) throw profilesError;
 
       const { data: rolesData } = await supabase
-        .from("user_roles" as any)
+        .from("user_roles")
         .select("user_id, role");
 
       const usersWithRoles: Profile[] = profilesData?.map(profile => ({
         ...profile,
-        roles: ((rolesData || []) as any[]).filter((r: any) => r.user_id === profile.id)
+        roles: (rolesData || []).filter((r) => r.user_id === profile.id)
       })) || [];
 
       setUsers(usersWithRoles);
@@ -107,14 +107,14 @@ const UserManagement = () => {
 
       // Update role
       const { error: deleteError } = await supabase
-        .from("user_roles" as any)
+        .from("user_roles")
         .delete()
         .eq("user_id", editingUser.id);
 
       if (deleteError) throw deleteError;
 
       const { error: insertError } = await supabase
-        .from("user_roles" as any)
+        .from("user_roles")
         .insert({ user_id: editingUser.id, role: editRole });
 
       if (insertError) throw insertError;
