@@ -37,7 +37,7 @@
    Settings,
    LayoutDashboard,
  } from "lucide-react";
- import schoolLogo from "@/assets/school-logo.png";
+ import nlsLogo from "@/assets/nls-logo.png";
  
  const menuItems = [
    {
@@ -165,9 +165,9 @@
        <SidebarHeader className="p-4">
          <div className="flex items-center gap-3">
            <img
-             src={schoolLogo}
+             src={nlsLogo}
              alt="NLS Logo"
-             className="h-10 w-10 rounded-lg object-contain bg-white p-1"
+             className="h-10 w-10 rounded-lg object-cover"
            />
            {!collapsed && (
              <div className="flex flex-col">
