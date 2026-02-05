@@ -260,7 +260,7 @@ const ActivityRoster = () => {
                             <span>•</span>
                             <span className="flex items-center gap-1">
                               <Users className="w-4 h-4" />
-                              {activity.students.length} / {activity.capacity}
+                              {activity.uniqueStudentCount} / {activity.capacity}
                             </span>
                             <span>•</span>
                             <div className="flex gap-1">
