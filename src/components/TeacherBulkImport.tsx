@@ -73,8 +73,17 @@
    { full_name: "Stacy Hill", email: "stacy.hill@ntare-louisenlund.org" },
    { full_name: "Svenja Budziak", email: "svenja.budziak@ntare-louisenlund.org" },
    { full_name: "Usama Elkashef", email: "usama.elkashef@ntare-louisenlund.org" },
-   { full_name: "Welford McLellan Jr", email: "welford.mclellan@ntare-louisenlund.org" },
- ];
+  { full_name: "Welford McLellan Jr", email: "welford.mclellan@ntare-louisenlund.org" },
+  { full_name: "Ayako Seo", email: "ayako.seo@ntare-louisenlund.org" },
+  { full_name: "Alain Mugisha", email: "mugisha.alain@ntare-louisenlund.org" },
+  { full_name: "Baptist Semanaza", email: "semanaza.baptist@ntare-louisenlund.org" },
+  { full_name: "Noella Dushake", email: "noella.dushake@ntare-louisenlund.org" },
+  { full_name: "Clement Tuyisenge", email: "clement.tuyisenge@ntare-louisenlund.org" },
+  { full_name: "Aimable Ndayishimiye", email: "aimable.ndayishimiye@ntare-louisenlund.org" },
+  { full_name: "Eric Ndatimana", email: "eric.ndatimana@ntare-louisenlund.org" },
+  { full_name: "Simon Cyuzuzo", email: "simon.cyuzuzo@ntare-louisenlund.org" },
+  { full_name: "Joyce Ndatimana", email: "joyce.ndatimana@ntare-louisenlund.org" },
+];
  
  interface TeacherBulkImportProps {
    onComplete: () => void;
