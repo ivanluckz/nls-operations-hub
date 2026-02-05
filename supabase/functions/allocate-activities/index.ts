@@ -129,6 +129,34 @@ serve(async (req) => {
       const existingCount = existingAllocations?.length || 0;
       console.log(`Backup created at ${backupTimestamp}: ${existingCount} existing allocations`);
 
+      // Delete existing allocations FIRST to avoid unique constraint violations
+      // The unique constraint on (student_id, day_of_week, slot_number) prevents insert-then-delete
+      if (existingAllocations && existingAllocations.length > 0) {
+        const oldIds = existingAllocations.map(a => a.id);
+        console.log(`Deleting ${oldIds.length} existing allocations before creating new ones...`);
+        const { error: deleteError } = await serviceClient
+          .from("allocations")
+          .delete()
+          .in("id", oldIds);
+
+        if (deleteError) {
+          console.error("Error deleting old allocations:", deleteError);
+          if (auditLog) {
+            await serviceClient
+              .from("allocation_audit_log")
+              .update({
+                completed_at: new Date().toISOString(),
+                status: "failed",
+                error_message: `Failed to clear old allocations: ${deleteError.message}`,
+                allocations_created: 0
+              })
+              .eq("id", auditLog.id);
+          }
+          throw new Error(`Failed to clear old allocations: ${deleteError.message}`);
+        }
+        console.log(`Successfully deleted ${oldIds.length} old allocations`);
+      }
+
       const { data: preferences, error: prefError } = await serviceClient
         .from("preferences")
         .select("*");
@@ -216,37 +244,19 @@ serve(async (req) => {
 
       if (insertError) {
         console.error("Error inserting allocations:", insertError);
-        // Issue #26: Rollback - don't delete old allocations if insert failed
         if (auditLog) {
           await serviceClient
             .from("allocation_audit_log")
             .update({
               completed_at: new Date().toISOString(),
               status: "failed",
-              error_message: `Insert failed: ${insertError.message}. Old allocations preserved.`,
+              error_message: `Insert failed: ${insertError.message}`,
               allocations_created: 0,
               validation_errors: validationErrors.length
             })
             .eq("id", auditLog.id);
         }
-        throw new Error(`Failed to insert new allocations: ${insertError.message}. Previous allocations have been preserved.`);
-      }
-
-      // Issue #26: Only delete old allocations after successful insert
-      // Delete allocations that were created before this run (have different IDs)
-      if (existingAllocations && existingAllocations.length > 0) {
-        const oldIds = existingAllocations.map(a => a.id);
-        const { error: deleteError } = await serviceClient
-          .from("allocations")
-          .delete()
-          .in("id", oldIds);
-
-        if (deleteError) {
-          console.warn("Warning: Could not clean up old allocations:", deleteError);
-          // Don't fail the operation - new allocations are already in place
-        } else {
-          console.log(`Cleaned up ${oldIds.length} old allocations`);
-        }
+        throw new Error(`Failed to insert new allocations: ${insertError.message}`);
       }
 
       console.log(`Successfully allocated ${allocations.length} student-day combinations`);
