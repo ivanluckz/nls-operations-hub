@@ -11,3 +11,6 @@ verify_jwt = true
 
 [functions.generate-pdf-report]
 verify_jwt = true
+
+[functions.import-students]
+verify_jwt = false

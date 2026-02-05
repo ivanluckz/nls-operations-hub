@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Users, Shield, UserCog, GraduationCap, UserX, Trash2, Edit, Search } from "lucide-react";
+import StudentBulkImport from "@/components/StudentBulkImport";
 import {
   Table,
   TableBody,
@@ -303,6 +304,7 @@ const UserManagement = () => {
               <p className="text-muted-foreground">View and manage users by role</p>
             </div>
           </div>
+           <StudentBulkImport onComplete={fetchUsers} />
         </div>
       </header>
 
