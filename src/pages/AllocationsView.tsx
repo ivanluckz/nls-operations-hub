@@ -7,7 +7,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Search } from "lucide-react";
+import { ArrowLeft, Search, FileDown, Loader2 } from "lucide-react";
+import { toast as sonnerToast } from "sonner";
 
 interface StudentAllocation {
   student_id: string;
@@ -31,6 +32,8 @@ const AllocationsView = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState<string>("");
+  const [isExporting, setIsExporting] = useState(false);
+  const [activeTab, setActiveTab] = useState("all");
 
   useEffect(() => {
     fetchData();
@@ -113,6 +116,47 @@ const AllocationsView = () => {
     navigate(userRole === 'admin' ? '/admin' : '/moderator');
   };
 
+  const handleExportPDF = async () => {
+    setIsExporting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-allocations-pdf", {
+        body: {
+          filterDay: activeTab !== "all" ? activeTab : undefined,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.pdf) {
+        const binaryString = atob(data.pdf);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        const blob = new Blob([bytes], { type: "application/pdf" });
+        
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = data.filename || "student-allocations.pdf";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+
+        sonnerToast.success("PDF exported successfully!", {
+          description: `${data.statistics?.totalStudents || 0} students included`,
+        });
+      }
+    } catch (error: unknown) {
+      console.error("Error exporting PDF:", error);
+      const message = error instanceof Error ? error.message : "Failed to export PDF";
+      sonnerToast.error(message);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -151,7 +195,23 @@ const AllocationsView = () => {
               />
             </div>
 
-            <Tabs defaultValue="all" className="w-full">
+            <div className="flex justify-end">
+              <Button onClick={handleExportPDF} disabled={isExporting} variant="outline">
+                {isExporting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Exporting...
+                  </>
+                ) : (
+                  <>
+                    <FileDown className="mr-2 h-4 w-4" />
+                    Export PDF
+                  </>
+                )}
+              </Button>
+            </div>
+
+            <Tabs defaultValue="all" className="w-full" value={activeTab} onValueChange={setActiveTab}>
               <TabsList>
                 <TabsTrigger value="all">All Days</TabsTrigger>
                 {DAYS.map(day => (
