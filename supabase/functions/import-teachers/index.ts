@@ -11,6 +11,46 @@
    full_name: string;
  }
  
+// Helper function to link teacher to their activities
+async function linkTeacherToActivities(supabaseAdmin: any, userId: string, fullName: string) {
+  const normalizedName = fullName.toLowerCase().trim();
+  
+  // Find activities where teacher_in_charge matches the teacher's name
+  const { data: activities, error } = await supabaseAdmin
+    .from("activities")
+    .select("id, title, teacher_in_charge")
+    .is("teacher_id", null);
+  
+  if (error) {
+    console.error("Error fetching activities:", error);
+    return 0;
+  }
+  
+  let linkedCount = 0;
+  
+  for (const activity of activities || []) {
+    const activityTeacher = activity.teacher_in_charge.toLowerCase().trim();
+    
+    // Check for exact match or partial match
+    if (activityTeacher === normalizedName || 
+        activityTeacher.includes(normalizedName) || 
+        normalizedName.includes(activityTeacher)) {
+      
+      const { error: updateError } = await supabaseAdmin
+        .from("activities")
+        .update({ teacher_id: userId })
+        .eq("id", activity.id);
+      
+      if (!updateError) {
+        console.log(`Linked teacher ${fullName} to activity: ${activity.title}`);
+        linkedCount++;
+      }
+    }
+  }
+  
+  return linkedCount;
+}
+
  serve(async (req) => {
    // Handle CORS preflight
    if (req.method === "OPTIONS") {
@@ -101,8 +141,12 @@
          console.log(`Updated ${email} role to teacher`);
        }
  
+      // Link to activities even for existing users
+      const linkedCount = await linkTeacherToActivities(supabaseAdmin, existingProfile.id, full_name);
+      console.log(`Linked existing teacher ${email} to ${linkedCount} activities`);
+
        return new Response(
-         JSON.stringify({ exists: true, message: "User already exists" }),
+        JSON.stringify({ exists: true, message: "User already exists", linkedActivities: linkedCount }),
          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
        );
      }
@@ -144,12 +188,16 @@
          .insert({ user_id: inviteData.user.id, role: "teacher" });
  
        console.log(`Assigned teacher role to ${email}`);
+
+      // Link to activities
+      const linkedCount = await linkTeacherToActivities(supabaseAdmin, inviteData.user.id, full_name);
+      console.log(`Linked new teacher ${email} to ${linkedCount} activities`);
      }
  
      console.log(`Successfully invited teacher ${email}`);
  
      return new Response(
-       JSON.stringify({ success: true, message: "Invite sent", userId: inviteData.user?.id }),
+      JSON.stringify({ success: true, message: "Invite sent", userId: inviteData.user?.id, linkedActivities: 0 }),
        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
      );
  
