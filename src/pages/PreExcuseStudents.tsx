@@ -20,12 +20,6 @@ interface Student {
   email: string;
 }
 
-interface Activity {
-  id: string;
-  title: string;
-  days_of_week: string[];
-}
-
 interface Allocation {
   student_id: string;
   activity_id: string;
@@ -40,7 +34,6 @@ const PreExcuseStudents = () => {
   // Issue #50: Add loading state to prevent duplicate submissions
   const [loading, setLoading] = useState(false);
   const [students, setStudents] = useState<Student[]>([]);
-  const [activities, setActivities] = useState<Activity[]>([]);
   const [allocations, setAllocations] = useState<Allocation[]>([]);
   const [selectedStudent, setSelectedStudent] = useState<string>("");
   const [selectedActivity, setSelectedActivity] = useState<string>("");
@@ -58,8 +51,25 @@ const PreExcuseStudents = () => {
   useEffect(() => {
     if (selectedStudent) {
       fetchStudentAllocations(selectedStudent);
+      // Reset activity and day when student changes
+      setSelectedActivity("");
+      setSelectedDay("");
+    } else {
+      setAllocations([]);
     }
   }, [selectedStudent]);
+
+  // Auto-select day when activity changes based on allocations
+  useEffect(() => {
+    if (selectedActivity && allocations.length > 0) {
+      const activityAllocations = allocations.filter(a => a.activity_id === selectedActivity);
+      if (activityAllocations.length === 1) {
+        setSelectedDay(activityAllocations[0].day_of_week);
+      } else if (!activityAllocations.find(a => a.day_of_week === selectedDay)) {
+        setSelectedDay("");
+      }
+    }
+  }, [selectedActivity, allocations]);
 
   // Issue #20: Validate date range
   useEffect(() => {
@@ -116,16 +126,6 @@ const PreExcuseStudents = () => {
       }
 
       setStudents(studentsData);
-
-      // Fetch all activities with limit
-      const { data: activitiesData } = await supabase
-        .from("activities")
-        .select("id, title, days_of_week")
-        .eq("is_active", true)
-        .order("title")
-        .limit(QUERY_LIMITS.ACTIVITIES);
-
-      setActivities(activitiesData || []);
     } catch (error) {
       console.error("Error fetching data:", error);
       toast({
@@ -319,7 +319,18 @@ const PreExcuseStudents = () => {
     s.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const selectedActivityData = activities.find(a => a.id === selectedActivity);
+  // Get unique activities from allocations
+  const studentActivities = allocations.reduce((acc, alloc) => {
+    if (!acc.find(a => a.activity_id === alloc.activity_id)) {
+      acc.push({ activity_id: alloc.activity_id, activity_title: alloc.activity_title });
+    }
+    return acc;
+  }, [] as { activity_id: string; activity_title: string }[]);
+
+  // Get available days for selected activity from allocations
+  const availableDays = allocations
+    .filter(a => a.activity_id === selectedActivity)
+    .map(a => a.day_of_week);
 
   return (
     <div className="min-h-screen bg-background">
@@ -381,13 +392,13 @@ const PreExcuseStudents = () => {
             {/* Student's Allocations */}
             {selectedStudent && allocations.length > 0 && (
               <div className="space-y-2">
-                <Label>Student's Activities</Label>
+                <Label>Quick Select (Student's Allocations)</Label>
                 <div className="flex flex-wrap gap-2">
                   {allocations.map((alloc, idx) => (
                     <Badge 
                       key={idx} 
-                      variant="outline"
-                      className="cursor-pointer hover:bg-muted"
+                      variant={selectedActivity === alloc.activity_id && selectedDay === alloc.day_of_week ? "default" : "outline"}
+                      className="cursor-pointer hover:bg-muted transition-colors"
                       onClick={() => {
                         setSelectedActivity(alloc.activity_id);
                         setSelectedDay(alloc.day_of_week);
@@ -400,18 +411,34 @@ const PreExcuseStudents = () => {
               </div>
             )}
 
+            {selectedStudent && allocations.length === 0 && (
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  This student has no activity allocations. They must be allocated to activities first.
+                </AlertDescription>
+              </Alert>
+            )}
+
             {/* Activity Selection */}
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Activity *</Label>
-                <Select value={selectedActivity} onValueChange={setSelectedActivity}>
+                <Select 
+                  value={selectedActivity} 
+                  onValueChange={(value) => {
+                    setSelectedActivity(value);
+                    setSelectedDay("");
+                  }}
+                  disabled={!selectedStudent || allocations.length === 0}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Select activity" />
                   </SelectTrigger>
                   <SelectContent>
-                    {activities.map(activity => (
-                      <SelectItem key={activity.id} value={activity.id}>
-                        {activity.title}
+                    {studentActivities.map(activity => (
+                      <SelectItem key={activity.activity_id} value={activity.activity_id}>
+                        {activity.activity_title}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -420,12 +447,16 @@ const PreExcuseStudents = () => {
 
               <div className="space-y-2">
                 <Label>Day *</Label>
-                <Select value={selectedDay} onValueChange={setSelectedDay} disabled={!selectedActivity}>
+                <Select 
+                  value={selectedDay} 
+                  onValueChange={setSelectedDay} 
+                  disabled={!selectedActivity || availableDays.length === 0}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Select day" />
                   </SelectTrigger>
                   <SelectContent>
-                    {selectedActivityData?.days_of_week.map(day => (
+                    {availableDays.map(day => (
                       <SelectItem key={day} value={day}>
                         {day}
                       </SelectItem>
