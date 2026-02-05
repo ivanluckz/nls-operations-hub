@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Users, Shield, UserCog, GraduationCap, UserX, Trash2, Edit, Search } from "lucide-react";
+ import { Users, Shield, UserCog, GraduationCap, UserX, Trash2, Edit, Search } from "lucide-react";
 import StudentBulkImport from "@/components/StudentBulkImport";
 import TeacherBulkImport from "@/components/TeacherBulkImport";
+ import { AdminLayout } from "@/components/admin/AdminLayout";
+ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Table,
   TableBody,
@@ -39,13 +40,13 @@ interface Profile {
   id: string;
   email: string;
   full_name: string;
+   avatar_url: string | null;
   roles: Array<{ role: "student" | "moderator" | "admin" | "teacher" }>;
   banned: boolean;
   created_at: string;
 }
 
 const UserManagement = () => {
-  const navigate = useNavigate();
   const { toast } = useToast();
   const [users, setUsers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -62,7 +63,7 @@ const UserManagement = () => {
     try {
       const { data: profilesData, error: profilesError } = await supabase
         .from("profiles")
-        .select("*")
+         .select("id, email, full_name, avatar_url, banned, created_at")
         .order("created_at", { ascending: false });
 
       if (profilesError) throw profilesError;
@@ -95,6 +96,15 @@ const UserManagement = () => {
     setEditRole(user.roles[0]?.role || "student");
   };
 
+   const getInitials = (name: string) => {
+     return name
+       .split(" ")
+       .map((n) => n[0])
+       .join("")
+       .toUpperCase()
+       .slice(0, 2);
+   };
+ 
   const handleUpdateUser = async () => {
     if (!editingUser) return;
 
@@ -215,6 +225,7 @@ const UserManagement = () => {
     <Table>
       <TableHeader>
         <TableRow>
+           <TableHead className="w-12"></TableHead>
           <TableHead>Name</TableHead>
           <TableHead>Email</TableHead>
           <TableHead>Status</TableHead>
@@ -225,20 +236,28 @@ const UserManagement = () => {
       <TableBody>
         {filteredUsers.length === 0 ? (
           <TableRow>
-            <TableCell colSpan={5} className="text-center text-muted-foreground">
+             <TableCell colSpan={6} className="text-center text-muted-foreground">
               No users found in this category
             </TableCell>
           </TableRow>
         ) : (
           filteredUsers.map((user) => (
             <TableRow key={user.id}>
+               <TableCell>
+                 <Avatar className="h-8 w-8">
+                   <AvatarImage src={user.avatar_url || undefined} />
+                   <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                     {getInitials(user.full_name)}
+                   </AvatarFallback>
+                 </Avatar>
+               </TableCell>
               <TableCell className="font-medium">{user.full_name}</TableCell>
               <TableCell>{user.email}</TableCell>
               <TableCell>
                 {user.banned ? (
                   <Badge variant="destructive">Banned</Badge>
                 ) : (
-                  <Badge variant="outline" className="bg-green-500/10 text-green-700 border-green-500/20">
+                   <Badge variant="outline" className="bg-success/10 text-success border-success/20">
                     Active
                   </Badge>
                 )}
@@ -293,28 +312,21 @@ const UserManagement = () => {
   const studentUsers = filterBySearch(getUsersByRole("student"));
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-4">
-            <Button onClick={() => navigate("/admin")} variant="ghost" size="icon">
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <div>
-              <h1 className="text-3xl font-bold text-foreground">User Management</h1>
-              <p className="text-muted-foreground">View and manage users by role</p>
-            </div>
-          </div>
+     <AdminLayout>
+       <div className="space-y-6">
+         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+           <div>
+             <h1 className="text-3xl font-bold tracking-tight">User Management</h1>
+             <p className="text-muted-foreground">View and manage users by role</p>
+           </div>
            <div className="flex gap-2">
              <TeacherBulkImport onComplete={fetchUsers} />
              <StudentBulkImport onComplete={fetchUsers} />
            </div>
         </div>
-      </header>
 
-      <main className="container mx-auto px-4 py-8">
         {/* Stats Cards */}
-        <div className="grid gap-4 md:grid-cols-4 mb-8">
+         <div className="grid gap-4 md:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Admins</CardTitle>
@@ -412,7 +424,6 @@ const UserManagement = () => {
             </Tabs>
           </CardContent>
         </Card>
-      </main>
 
       <Dialog open={!!editingUser} onOpenChange={() => setEditingUser(null)}>
         <DialogContent>
@@ -454,7 +465,8 @@ const UserManagement = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+       </div>
+     </AdminLayout>
   );
 };
 
