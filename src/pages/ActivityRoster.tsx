@@ -29,6 +29,7 @@ interface Student {
 
 interface ActivityWithStudents extends Activity {
   students: Student[];
+  uniqueStudentCount: number;
 }
 
 const ActivityRoster = () => {
@@ -99,9 +100,13 @@ const ActivityRoster = () => {
           day_of_week: alloc.day_of_week,
         }));
 
+        // Count unique students (not total enrollments across days)
+        const uniqueStudentIds = new Set(students.map(s => s.student_id));
+
         return {
           ...activity,
           students,
+          uniqueStudentCount: uniqueStudentIds.size,
         };
       });
 
@@ -203,15 +208,15 @@ const ActivityRoster = () => {
           <Card>
             <CardContent className="pt-4">
               <div className="text-2xl font-bold">
-                {activities.reduce((sum, a) => sum + a.students.length, 0)}
+                {activities.reduce((sum, a) => sum + a.uniqueStudentCount, 0)}
               </div>
-              <p className="text-sm text-muted-foreground">Total Enrollments</p>
+              <p className="text-sm text-muted-foreground">Unique Students</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-4">
               <div className="text-2xl font-bold">
-                {activities.filter(a => a.students.length > 0).length}
+                {activities.filter(a => a.uniqueStudentCount > 0).length}
               </div>
               <p className="text-sm text-muted-foreground">Active Activities</p>
             </CardContent>
@@ -219,7 +224,7 @@ const ActivityRoster = () => {
           <Card>
             <CardContent className="pt-4">
               <div className="text-2xl font-bold">
-                {activities.filter(a => a.students.length === 0).length}
+                {activities.filter(a => a.uniqueStudentCount === 0).length}
               </div>
               <p className="text-sm text-muted-foreground">Empty Activities</p>
             </CardContent>
@@ -269,9 +274,9 @@ const ActivityRoster = () => {
                         </div>
                         <div className="flex items-center gap-2">
                           <Badge 
-                            variant={activity.students.length > 0 ? "default" : "secondary"}
+                            variant={activity.uniqueStudentCount > 0 ? "default" : "secondary"}
                           >
-                            {activity.students.length} students
+                            {activity.uniqueStudentCount} students
                           </Badge>
                           {expandedActivities.has(activity.id) ? (
                             <ChevronUp className="w-5 h-5" />
