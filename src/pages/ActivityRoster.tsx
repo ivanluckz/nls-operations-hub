@@ -64,19 +64,27 @@ const ActivityRoster = () => {
         .eq("is_active", true)
         .order("title");
 
-      // Issue #28: Add query limit to prevent loading all records
+      // Fetch allocations (without join - no FK relationship)
       const { data: allocationsData } = await supabase
         .from("allocations")
-        .select(`
-          activity_id,
-          day_of_week,
-          student_id,
-          profiles:student_id (
-            full_name,
-            email
-          )
-        `)
-        .limit(5000); // Reasonable limit for school-sized datasets
+        .select("activity_id, day_of_week, student_id")
+        .limit(5000);
+
+      // Get unique student IDs and fetch their profiles separately
+      const studentIds = [...new Set((allocationsData || []).map(a => a.student_id))];
+      
+      // Fetch profiles in batches if needed (Supabase has query limits)
+      let profilesMap: Record<string, { full_name: string; email: string }> = {};
+      if (studentIds.length > 0) {
+        const { data: profilesData } = await supabase
+          .from("profiles")
+          .select("id, full_name, email")
+          .in("id", studentIds);
+        
+        (profilesData || []).forEach(p => {
+          profilesMap[p.id] = { full_name: p.full_name, email: p.email };
+        });
+      }
 
       // Group students by activity
       const activitiesWithStudents: ActivityWithStudents[] = (activitiesData || []).map(activity => {
@@ -84,10 +92,10 @@ const ActivityRoster = () => {
           a => a.activity_id === activity.id
         );
 
-        const students: Student[] = activityAllocations.map((alloc: any) => ({
+        const students: Student[] = activityAllocations.map((alloc) => ({
           student_id: alloc.student_id,
-          student_name: alloc.profiles?.full_name || "Unknown",
-          student_email: alloc.profiles?.email || "",
+          student_name: profilesMap[alloc.student_id]?.full_name || "Unknown",
+          student_email: profilesMap[alloc.student_id]?.email || "",
           day_of_week: alloc.day_of_week,
         }));
 
