@@ -9,7 +9,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Plus, Edit, Trash2, Users, Search } from "lucide-react";
+import { ArrowLeft, Plus, Edit, Trash2, Users, Search, X } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface Activity {
   id: string;
@@ -52,12 +53,12 @@ const ModeratorActivities = () => {
     title: "",
     description: "",
     category: "",
-    teacher_id: "",
-    teacher_in_charge: "",
+    teacher_ids: [] as string[],
     schedule: "",
     capacity: "",
     days_of_week: ["Monday"] as string[],
   });
+  const [teacherSearchTerm, setTeacherSearchTerm] = useState("");
 
   useEffect(() => {
     fetchData();
@@ -104,12 +105,20 @@ const ModeratorActivities = () => {
   const handleOpenDialog = (activity?: Activity) => {
     if (activity) {
       setEditingActivity(activity);
+      // Find teacher IDs that match the teacher_in_charge names
+      const teacherNames = activity.teacher_in_charge.split(',').map(n => n.trim().toLowerCase());
+      const matchingTeacherIds = teachers
+        .filter(t => teacherNames.some(name => t.full_name.toLowerCase().includes(name) || name.includes(t.full_name.toLowerCase())))
+        .map(t => t.id);
+      // Also include the directly assigned teacher_id
+      if (activity.teacher_id && !matchingTeacherIds.includes(activity.teacher_id)) {
+        matchingTeacherIds.push(activity.teacher_id);
+      }
       setFormData({
         title: activity.title,
         description: activity.description,
         category: activity.category,
-        teacher_id: activity.teacher_id || "",
-        teacher_in_charge: activity.teacher_in_charge || "",
+        teacher_ids: matchingTeacherIds,
         schedule: activity.schedule,
         capacity: activity.capacity.toString(),
         days_of_week: activity.days_of_week,
@@ -120,13 +129,13 @@ const ModeratorActivities = () => {
         title: "",
         description: "",
         category: "",
-        teacher_id: "",
-        teacher_in_charge: "",
+        teacher_ids: [],
         schedule: "",
         capacity: "",
         days_of_week: ["Monday"],
       });
     }
+    setTeacherSearchTerm("");
     setDialogOpen(true);
   };
 
@@ -168,17 +177,16 @@ const ModeratorActivities = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      // Determine teacher_in_charge value
-      let teacherInCharge = formData.teacher_in_charge.trim();
-      if (formData.teacher_id) {
-        const selectedTeacher = teachers.find(t => t.id === formData.teacher_id);
-        if (selectedTeacher) {
-          teacherInCharge = teacherInCharge 
-            ? `${selectedTeacher.full_name}, ${teacherInCharge}` 
-            : selectedTeacher.full_name;
-        }
-      }
-      if (!teacherInCharge) teacherInCharge = "TBD";
+      // Build teacher_in_charge from selected teachers
+      const selectedTeacherNames = formData.teacher_ids
+        .map(id => teachers.find(t => t.id === id)?.full_name)
+        .filter(Boolean);
+      const teacherInCharge = selectedTeacherNames.length > 0 
+        ? selectedTeacherNames.join(", ") 
+        : "TBD";
+      
+      // Use first selected teacher as primary teacher_id
+      const primaryTeacherId = formData.teacher_ids.length > 0 ? formData.teacher_ids[0] : null;
 
       // Convert Wednesday Slot 1/2 to just "Wednesday" for the DB but keep the slot info
       const processedDays = formData.days_of_week.map(day => {
@@ -192,7 +200,7 @@ const ModeratorActivities = () => {
         title: formData.title.trim(),
         description: formData.description.trim(),
         category: formData.category.trim(),
-        teacher_id: formData.teacher_id || null,
+        teacher_id: primaryTeacherId,
         teacher_in_charge: teacherInCharge,
         schedule: formData.schedule.trim(),
         capacity: capacity, // Now validated
@@ -351,32 +359,70 @@ const ModeratorActivities = () => {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="teacher">Assign Teacher (from registered teachers)</Label>
-                  <select
-                    id="teacher"
-                    value={formData.teacher_id}
-                    onChange={(e) => setFormData({ ...formData, teacher_id: e.target.value })}
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  >
-                    <option value="">No teacher assigned yet</option>
-                    {teachers.map(teacher => (
-                      <option key={teacher.id} value={teacher.id}>{teacher.full_name}</option>
-                    ))}
-                  </select>
-                  <p className="text-xs text-muted-foreground">
-                    Teachers appear here after they register with their name matching an activity
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="teacher_in_charge">Teacher(s) In Charge (Manual Entry)</Label>
+                  <Label>Assign Teachers</Label>
+                  {formData.teacher_ids.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-2">
+                      {formData.teacher_ids.map(id => {
+                        const teacher = teachers.find(t => t.id === id);
+                        return teacher ? (
+                          <Badge key={id} variant="secondary" className="flex items-center gap-1">
+                            {teacher.full_name}
+                            <button
+                              type="button"
+                              onClick={() => setFormData({
+                                ...formData,
+                                teacher_ids: formData.teacher_ids.filter(tid => tid !== id)
+                              })}
+                              className="ml-1 hover:text-destructive"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </Badge>
+                        ) : null;
+                      })}
+                    </div>
+                  )}
                   <Input
-                    id="teacher_in_charge"
-                    placeholder="e.g., Teacher Smith, Teacher Johnson"
-                    value={formData.teacher_in_charge}
-                    onChange={(e) => setFormData({ ...formData, teacher_in_charge: e.target.value })}
+                    placeholder="Search teachers..."
+                    value={teacherSearchTerm}
+                    onChange={(e) => setTeacherSearchTerm(e.target.value)}
                   />
+                  {teacherSearchTerm && (
+                    <ScrollArea className="h-32 border rounded-md">
+                      <div className="p-2 space-y-1">
+                        {teachers
+                          .filter(t => 
+                            t.full_name.toLowerCase().includes(teacherSearchTerm.toLowerCase()) &&
+                            !formData.teacher_ids.includes(t.id)
+                          )
+                          .map(teacher => (
+                            <button
+                              key={teacher.id}
+                              type="button"
+                              onClick={() => {
+                                setFormData({
+                                  ...formData,
+                                  teacher_ids: [...formData.teacher_ids, teacher.id]
+                                });
+                                setTeacherSearchTerm("");
+                              }}
+                              className="w-full text-left px-2 py-1.5 text-sm rounded hover:bg-muted"
+                            >
+                              {teacher.full_name}
+                            </button>
+                          ))
+                        }
+                        {teachers.filter(t => 
+                          t.full_name.toLowerCase().includes(teacherSearchTerm.toLowerCase()) &&
+                          !formData.teacher_ids.includes(t.id)
+                        ).length === 0 && (
+                          <p className="text-sm text-muted-foreground p-2">No teachers found</p>
+                        )}
+                      </div>
+                    </ScrollArea>
+                  )}
                   <p className="text-xs text-muted-foreground">
-                    Enter teacher name(s) manually. Use commas to separate multiple teachers.
+                    Search and select one or more teachers. The first selected teacher will be the primary.
                   </p>
                 </div>
                 <div className="space-y-2">
