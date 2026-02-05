@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, UserCheck, Calendar, Search, AlertCircle } from "lucide-react";
 import { format, differenceInDays, parseISO } from "date-fns";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Skeleton } from "@/components/ui/skeleton";
 import { SESSION_STATUS, ATTENDANCE_STATUS, USER_ROLES, QUERY_LIMITS, DATE_RANGE_LIMITS } from "@/lib/constants";
 
 interface Student {
@@ -33,6 +34,7 @@ const PreExcuseStudents = () => {
   const { toast } = useToast();
   // Issue #50: Add loading state to prevent duplicate submissions
   const [loading, setLoading] = useState(false);
+  const [loadingAllocations, setLoadingAllocations] = useState(false);
   const [students, setStudents] = useState<Student[]>([]);
   const [allocations, setAllocations] = useState<Allocation[]>([]);
   const [selectedStudent, setSelectedStudent] = useState<string>("");
@@ -137,6 +139,7 @@ const PreExcuseStudents = () => {
   };
 
   const fetchStudentAllocations = async (studentId: string) => {
+    setLoadingAllocations(true);
     try {
       const { data } = await supabase
         .from("allocations")
@@ -160,6 +163,8 @@ const PreExcuseStudents = () => {
       setAllocations(formattedAllocations);
     } catch (error) {
       console.error("Error fetching allocations:", error);
+    } finally {
+      setLoadingAllocations(false);
     }
   };
 
@@ -390,7 +395,18 @@ const PreExcuseStudents = () => {
             </div>
 
             {/* Student's Allocations */}
-            {selectedStudent && allocations.length > 0 && (
+            {selectedStudent && loadingAllocations && (
+              <div className="space-y-2">
+                <Label>Loading Allocations...</Label>
+                <div className="flex flex-wrap gap-2">
+                  <Skeleton className="h-6 w-32" />
+                  <Skeleton className="h-6 w-28" />
+                  <Skeleton className="h-6 w-36" />
+                </div>
+              </div>
+            )}
+
+            {selectedStudent && !loadingAllocations && allocations.length > 0 && (
               <div className="space-y-2">
                 <Label>Quick Select (Student's Allocations)</Label>
                 <div className="flex flex-wrap gap-2">
@@ -411,7 +427,7 @@ const PreExcuseStudents = () => {
               </div>
             )}
 
-            {selectedStudent && allocations.length === 0 && (
+            {selectedStudent && !loadingAllocations && allocations.length === 0 && (
               <Alert>
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
@@ -435,7 +451,12 @@ const PreExcuseStudents = () => {
                   <SelectTrigger>
                     <SelectValue placeholder="Select activity" />
                   </SelectTrigger>
-                  <SelectContent>
+                <SelectContent>
+                  {loadingAllocations && (
+                    <div className="p-2">
+                      <Skeleton className="h-4 w-full" />
+                    </div>
+                  )}
                     {studentActivities.map(activity => (
                       <SelectItem key={activity.activity_id} value={activity.activity_id}>
                         {activity.activity_title}
