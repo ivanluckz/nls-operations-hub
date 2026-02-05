@@ -17,6 +17,8 @@ const Auth = () => {
   } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [isInviteFlow, setIsInviteFlow] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
   const [passwordForm, setPasswordForm] = useState({
     password: "",
     confirmPassword: ""
@@ -59,6 +61,45 @@ const Auth = () => {
     
     checkInviteToken();
   }, [toast]);
+
+  // Handle forgot password / reset request
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!resetEmail.trim()) {
+      toast({
+        variant: "destructive",
+        title: "Email Required",
+        description: "Please enter your email address"
+      });
+      return;
+    }
+    
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail.trim().toLowerCase(), {
+        redirectTo: `${window.location.origin}/auth`
+      });
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Password Reset Email Sent",
+        description: "Check your email for a link to set your password. If you don't see it, check your spam folder."
+      });
+      
+      setShowForgotPassword(false);
+      setResetEmail("");
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Failed to Send Reset Email",
+        description: error.message || "Could not send reset email. Please try again."
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Handle password setup for invited users
   const handleSetPassword = async (e: React.FormEvent) => {
@@ -268,6 +309,59 @@ const Auth = () => {
     }
   };
 
+  // Show forgot password form
+  if (showForgotPassword) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-hero p-4">
+        <Card className="w-full max-w-md shadow-elevated">
+          <CardHeader className="space-y-1 flex flex-col items-center">
+            <div className="w-16 h-16 rounded-full bg-gradient-primary flex items-center justify-center mb-2">
+              <KeyRound className="w-8 h-8 text-primary-foreground" />
+            </div>
+            <CardTitle className="text-2xl font-bold text-center">
+              Reset Password
+            </CardTitle>
+            <CardDescription className="text-center">
+              Enter your email to receive a password reset link
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleForgotPassword} className="space-y-4">
+              <div className="rounded-lg bg-muted p-3 mb-4">
+                <p className="text-sm text-muted-foreground">
+                  <strong>First time logging in?</strong> If you received an invitation email but haven't set your password yet, 
+                  enter your email below and we'll send you a link to set your password.
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="reset-email">Email</Label>
+                <Input
+                  id="reset-email"
+                  type="email"
+                  value={resetEmail}
+                  onChange={(e) => setResetEmail(e.target.value)}
+                  required
+                  placeholder="your.email@ntare-louisenlund.org"
+                />
+              </div>
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? "Sending..." : "Send Reset Link"}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full"
+                onClick={() => setShowForgotPassword(false)}
+              >
+                Back to Login
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   // Show password setup form for invited users
   if (isInviteFlow) {
     return (
@@ -365,6 +459,14 @@ const Auth = () => {
                 </div>
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? "Logging in..." : "Login"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="link"
+                  className="w-full text-sm"
+                  onClick={() => setShowForgotPassword(true)}
+                >
+                  Forgot password? / First time logging in?
                 </Button>
               </form>
             </TabsContent>
