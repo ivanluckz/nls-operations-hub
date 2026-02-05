@@ -1,20 +1,26 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
-import { GraduationCap } from "lucide-react";
+import { GraduationCap, KeyRound } from "lucide-react";
+
 const Auth = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const {
     toast
   } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [isInviteFlow, setIsInviteFlow] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({
+    password: "",
+    confirmPassword: ""
+  });
   const [loginForm, setLoginForm] = useState({
     email: "",
     password: ""
@@ -26,6 +32,107 @@ const Auth = () => {
     fullName: "",
     role: "student" as "student" | "moderator"
   });
+
+  // Check for invite token in URL hash or search params
+  useEffect(() => {
+    const checkInviteToken = async () => {
+      const hash = window.location.hash;
+      
+      // Check for invite/recovery token in URL hash
+      if (hash && (hash.includes('type=invite') || hash.includes('type=recovery'))) {
+        setIsInviteFlow(true);
+        
+        // Supabase will automatically process the token
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Error processing invite:', error);
+          toast({
+            variant: "destructive",
+            title: "Invalid or Expired Link",
+            description: "This invitation link is no longer valid. Please contact your administrator."
+          });
+          setIsInviteFlow(false);
+        }
+      }
+    };
+    
+    checkInviteToken();
+  }, [toast]);
+
+  // Handle password setup for invited users
+  const handleSetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (passwordForm.password !== passwordForm.confirmPassword) {
+      toast({
+        variant: "destructive",
+        title: "Passwords don't match",
+        description: "Please make sure your passwords match"
+      });
+      return;
+    }
+    
+    if (passwordForm.password.length < 8) {
+      toast({
+        variant: "destructive",
+        title: "Password too short",
+        description: "Password must be at least 8 characters"
+      });
+      return;
+    }
+    
+    if (!/[A-Z]/.test(passwordForm.password) || !/[a-z]/.test(passwordForm.password) || !/[0-9]/.test(passwordForm.password)) {
+      toast({
+        variant: "destructive",
+        title: "Weak password",
+        description: "Password must contain uppercase, lowercase, and numbers"
+      });
+      return;
+    }
+    
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase.auth.updateUser({
+        password: passwordForm.password
+      });
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Password Set Successfully!",
+        description: "You can now access your account."
+      });
+      
+      // Get user role and redirect
+      if (data.user) {
+        const { data: roleData } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", data.user.id)
+          .single();
+        
+        const role = (roleData as any)?.role;
+        
+        if (role === "moderator" || role === "admin") {
+          navigate("/moderator");
+        } else if (role === "teacher") {
+          navigate("/teacher");
+        } else {
+          navigate("/student");
+        }
+      }
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Failed to Set Password",
+        description: error.message || "Could not set password. Please try again."
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -160,6 +267,66 @@ const Auth = () => {
       setIsLoading(false);
     }
   };
+
+  // Show password setup form for invited users
+  if (isInviteFlow) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-hero p-4">
+        <Card className="w-full max-w-md shadow-elevated">
+          <CardHeader className="space-y-1 flex flex-col items-center">
+            <div className="w-16 h-16 rounded-full bg-gradient-primary flex items-center justify-center mb-2">
+              <KeyRound className="w-8 h-8 text-primary-foreground" />
+            </div>
+            <CardTitle className="text-2xl font-bold text-center">
+              Welcome!
+            </CardTitle>
+            <CardDescription className="text-center">
+              Set up your password to complete your account setup
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSetPassword} className="space-y-4">
+              <div className="rounded-lg bg-muted p-3 mb-4">
+                <p className="text-sm text-muted-foreground">
+                  You've been invited to join the Co-Curricular Allocation system. 
+                  Please create a secure password for your account.
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="new-password">Password</Label>
+                <Input
+                  id="new-password"
+                  type="password"
+                  value={passwordForm.password}
+                  onChange={(e) => setPasswordForm({ ...passwordForm, password: e.target.value })}
+                  required
+                  placeholder="Enter your new password"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Must be 8+ characters with uppercase, lowercase, and numbers
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirm-new-password">Confirm Password</Label>
+                <Input
+                  id="confirm-new-password"
+                  type="password"
+                  value={passwordForm.confirmPassword}
+                  onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+                  required
+                  placeholder="Confirm your password"
+                />
+              </div>
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? "Setting Password..." : "Set Password & Continue"}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return <div className="min-h-screen flex items-center justify-center bg-gradient-hero p-4">
       <Card className="w-full max-w-md shadow-elevated">
         <CardHeader className="space-y-1 flex flex-col items-center">
