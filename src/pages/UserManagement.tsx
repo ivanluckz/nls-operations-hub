@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Users, Shield, UserCog, GraduationCap, UserX, Trash2, Edit, Search } from "lucide-react";
 import StudentBulkImport from "@/components/StudentBulkImport";
+import TeacherBulkImport from "@/components/TeacherBulkImport";
 import {
   Table,
   TableBody,
@@ -304,7 +305,10 @@ const UserManagement = () => {
               <p className="text-muted-foreground">View and manage users by role</p>
             </div>
           </div>
-           <StudentBulkImport onComplete={fetchUsers} />
+           <div className="flex gap-2">
+             <TeacherBulkImport onComplete={fetchUsers} />
+             <StudentBulkImport onComplete={fetchUsers} />
+           </div>
         </div>
       </header>
 
