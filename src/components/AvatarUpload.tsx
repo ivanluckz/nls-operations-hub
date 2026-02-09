@@ -83,12 +83,18 @@
        const fileName = `${userId}/avatar.${fileExt}`;
  
        // Delete existing avatar if present
-       if (avatarUrl) {
-         const oldPath = avatarUrl.split("/avatars/")[1];
-         if (oldPath) {
-           await supabase.storage.from("avatars").remove([oldPath]);
-         }
-       }
+        if (avatarUrl) {
+          try {
+            const url = new URL(avatarUrl);
+            const pathMatch = url.pathname.match(/\/avatars\/(.+)/);
+            if (pathMatch?.[1]) {
+              const { error: removeError } = await supabase.storage.from("avatars").remove([pathMatch[1]]);
+              if (removeError) console.error("Old avatar cleanup failed:", removeError);
+            }
+          } catch {
+            // Invalid URL, skip cleanup
+          }
+        }
  
        // Upload new avatar
        const { error: uploadError } = await supabase.storage
@@ -141,7 +147,14 @@
      setUploading(true);
      try {
        // Remove from storage
-       const path = avatarUrl.split("/avatars/")[1]?.split("?")[0];
+        let path: string | undefined;
+        try {
+          const url = new URL(avatarUrl);
+          const pathMatch = url.pathname.match(/\/avatars\/(.+)/);
+          path = pathMatch?.[1];
+        } catch {
+          path = undefined;
+        }
        if (path) {
          await supabase.storage.from("avatars").remove([path]);
        }

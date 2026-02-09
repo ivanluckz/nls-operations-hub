@@ -153,7 +153,7 @@ const Auth = () => {
           .eq("user_id", data.user.id)
           .single();
         
-        const role = (roleData as any)?.role;
+        const role = roleData?.role;
         
         if (role === "moderator" || role === "admin") {
           navigate("/moderator");
@@ -189,8 +189,8 @@ const Auth = () => {
       if (data.user) {
         const {
           data: roleData
-        } = await supabase.from("user_roles" as any).select("role").eq("user_id", data.user.id).single();
-        const role = (roleData as any)?.role;
+        } = await supabase.from("user_roles").select("role").eq("user_id", data.user.id).single();
+        const role = roleData?.role;
         if (role === "moderator" || role === "admin") {
           navigate("/moderator");
         } else if (role === "teacher") {

@@ -60,14 +60,14 @@ const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
 
       // Fetch role from secure user_roles table
       const { data: roleData, error: roleError } = await supabase
-        .from("user_roles" as any)
+        .from("user_roles")
         .select("role")
         .eq("user_id", userId)
         .single();
 
       if (roleError) throw roleError;
       
-      setUserRole((roleData as any)?.role || null);
+      setUserRole(roleData?.role || null);
     } catch (error) {
       console.error("Error fetching user role:", error);
     } finally {
