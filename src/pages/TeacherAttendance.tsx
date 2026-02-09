@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -7,15 +7,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Camera, Save, Upload, AlertCircle } from "lucide-react";
-import { BrowserQRCodeReader } from "@zxing/library";
+import { ArrowLeft, Save, Upload, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { SESSION_STATUS, ATTENDANCE_STATUS, USER_ROLES, QR_SCAN_COOLDOWN_MS } from "@/lib/constants";
+import { SESSION_STATUS, ATTENDANCE_STATUS, USER_ROLES, LATE_GRACE_PERIOD_MINUTES, ABSENT_THRESHOLD_MINUTES } from "@/lib/constants";
+import QRScanner from "@/components/attendance/QRScanner";
+import BulkActions from "@/components/attendance/BulkActions";
 
 interface Activity {
   id: string;
   title: string;
   days_of_week: string[];
+  schedule: string;
 }
 
 interface Student {
@@ -30,46 +32,50 @@ interface AttendanceRecord {
   scanned_at?: string;
 }
 
+/** Parse a schedule string like "3:00 PM - 4:00 PM" to extract start time as Date today */
+const parseActivityStartTime = (schedule: string): Date | null => {
+  const match = schedule.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+  if (!match) return null;
+  let hours = parseInt(match[1]);
+  const minutes = parseInt(match[2]);
+  const ampm = match[3].toUpperCase();
+  if (ampm === "PM" && hours !== 12) hours += 12;
+  if (ampm === "AM" && hours === 12) hours = 0;
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes);
+};
+
+/** Determine auto status based on scan time vs activity start */
+const getAutoStatus = (scannedAt: string, activitySchedule: string): "present" | "late" => {
+  const startTime = parseActivityStartTime(activitySchedule);
+  if (!startTime) return "present"; // Can't determine, default to present
+
+  const scanTime = new Date(scannedAt);
+  const diffMinutes = (scanTime.getTime() - startTime.getTime()) / (1000 * 60);
+
+  if (diffMinutes <= LATE_GRACE_PERIOD_MINUTES) return "present";
+  if (diffMinutes <= ABSENT_THRESHOLD_MINUTES) return "late";
+  return "late"; // Beyond threshold but still scanned = late, teacher can override
+};
+
 const TeacherAttendance = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const videoRef = useRef<HTMLVideoElement>(null);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [selectedActivity, setSelectedActivity] = useState<string>("");
   const [selectedDay, setSelectedDay] = useState<string>("");
   const [students, setStudents] = useState<Student[]>([]);
   const [attendance, setAttendance] = useState<Map<string, AttendanceRecord>>(new Map());
   const [sessionId, setSessionId] = useState<string | null>(null);
-  const [scanning, setScanning] = useState(false);
   const [loading, setLoading] = useState(false);
   const [userRole, setUserRole] = useState<string>(USER_ROLES.TEACHER);
-  const codeReader = useRef<BrowserQRCodeReader | null>(null);
-  // Issue #27: Debouncing for QR scans to prevent duplicate records
-  const lastScanRef = useRef<number>(0);
 
-  // Check if user can excuse students (only admins and moderators)
   const canExcuseStudents = userRole === USER_ROLES.ADMIN || userRole === USER_ROLES.MODERATOR;
+
+  const selectedActivityData = activities.find(a => a.id === selectedActivity);
 
   useEffect(() => {
     fetchActivities();
-    codeReader.current = new BrowserQRCodeReader();
-    
-    return () => {
-      // Properly cleanup video stream
-      if (videoRef.current && videoRef.current.srcObject) {
-        const stream = videoRef.current.srcObject as MediaStream;
-        stream.getTracks().forEach(track => {
-          track.stop();
-          track.enabled = false;
-        });
-        videoRef.current.srcObject = null;
-      }
-      // Reset and nullify the code reader to prevent memory leaks
-      if (codeReader.current) {
-        codeReader.current.reset();
-        codeReader.current = null;
-      }
-    };
   }, []);
 
   useEffect(() => {
@@ -84,7 +90,6 @@ const TeacherAttendance = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Check if user is admin or moderator
       const { data: roleData } = await supabase
         .from("user_roles")
         .select("role")
@@ -97,10 +102,9 @@ const TeacherAttendance = () => {
 
       let query = supabase
         .from("activities")
-        .select("id, title, days_of_week")
+        .select("id, title, days_of_week, schedule")
         .order("title");
 
-      // Teachers only see their own activities, admins/mods see all
       if (!isAdminOrMod) {
         query = query.eq("teacher_id", user.id);
       }
@@ -134,8 +138,7 @@ const TeacherAttendance = () => {
       }));
 
       setStudents(studentList);
-      
-      // Initialize all as absent
+
       const newAttendance = new Map<string, AttendanceRecord>();
       studentList.forEach(student => {
         newAttendance.set(student.student_id, {
@@ -155,8 +158,7 @@ const TeacherAttendance = () => {
       if (!user) return;
 
       const today = new Date().toISOString().split('T')[0];
-      
-      // Check if session exists - Issue #37: Use constant instead of hardcoded status
+
       const { data: existingSession } = await supabase
         .from("attendance_sessions")
         .select("id, status")
@@ -171,7 +173,6 @@ const TeacherAttendance = () => {
         setSessionId(existingSession.id);
         await loadExistingAttendance(existingSession.id);
       } else {
-        // Create new session with constant status
         const { data: newSession, error } = await supabase
           .from("attendance_sessions")
           .insert({
@@ -198,12 +199,12 @@ const TeacherAttendance = () => {
     }
   };
 
-  const loadExistingAttendance = async (sessionId: string) => {
+  const loadExistingAttendance = async (sid: string) => {
     try {
       const { data } = await supabase
         .from("attendance_records")
         .select("student_id, status")
-        .eq("session_id", sessionId);
+        .eq("session_id", sid);
 
       if (data && data.length > 0) {
         const newAttendance = new Map(attendance);
@@ -220,150 +221,13 @@ const TeacherAttendance = () => {
     }
   };
 
-  const startScanning = async () => {
-    try {
-      setScanning(true);
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: "environment" } 
-      });
-      
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        scanQRCode();
-      }
-    } catch (error) {
-      // Issue #39: Specific error handling for camera permissions
-      console.error("Error accessing camera:", error);
-      
-      let errorMessage = "Unable to access camera";
-      if (error instanceof Error) {
-        if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
-          errorMessage = "Camera permission denied. Please allow camera access in your browser settings.";
-        } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
-          errorMessage = "No camera found. Please connect a camera and try again.";
-        } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
-          errorMessage = "Camera is already in use by another application.";
-        } else if (error.name === 'OverconstrainedError') {
-          errorMessage = "Camera does not support the required settings.";
-        }
-      }
-      
-      toast({
-        variant: "destructive",
-        title: "Camera Error",
-        description: errorMessage,
-      });
-      setScanning(false);
-    }
-  };
-
-  // Issue #32: QR code data validation schema
-  const validateQRData = (data: unknown): { valid: boolean; studentId?: string; error?: string } => {
-    if (!data || typeof data !== 'object') {
-      return { valid: false, error: "Invalid QR code format" };
-    }
-    
-    const qrData = data as Record<string, unknown>;
-    
-    // Validate studentId is a string and looks like a UUID
-    if (typeof qrData.studentId !== 'string') {
-      return { valid: false, error: "Missing or invalid student ID" };
-    }
-    
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(qrData.studentId)) {
-      return { valid: false, error: "Invalid student ID format" };
-    }
-    
-    return { valid: true, studentId: qrData.studentId };
-  };
-
-  const scanQRCode = async () => {
-    if (!codeReader.current || !videoRef.current) return;
-
-    try {
-      await codeReader.current.decodeFromVideoDevice(
-        undefined,
-        videoRef.current,
-        (result) => {
-          if (result) {
-            // Issue #27: Debounce QR scans to prevent duplicate records
-            const now = Date.now();
-            if (now - lastScanRef.current < QR_SCAN_COOLDOWN_MS) {
-              return; // Skip duplicate scan
-            }
-            lastScanRef.current = now;
-
-            try {
-              const rawData = JSON.parse(result.getText());
-              
-              // Issue #32: Validate QR data against schema
-              const validation = validateQRData(rawData);
-              if (!validation.valid || !validation.studentId) {
-                toast({
-                  variant: "destructive",
-                  title: "Invalid QR Code",
-                  description: validation.error || "Could not read QR code data.",
-                });
-                return;
-              }
-              
-              const studentId = validation.studentId;
-              
-              // Validate that student is in the enrolled students list
-              const isEnrolled = students.some(s => s.student_id === studentId);
-              
-              if (!isEnrolled) {
-                toast({
-                  variant: "destructive",
-                  title: "Invalid QR Code",
-                  description: "This student is not enrolled in this activity.",
-                });
-                return;
-              }
-              
-              // Check if already marked
-              const existing = attendance.get(studentId);
-              if (existing && existing.status !== ATTENDANCE_STATUS.ABSENT) {
-                toast({
-                  title: "Already Marked",
-                  description: `${students.find(s => s.student_id === studentId)?.student_name} is already marked as ${existing.status}`,
-                });
-                return;
-              }
-              
-              markAttendance(studentId, ATTENDANCE_STATUS.PRESENT as "present", new Date().toISOString());
-              stopScanning();
-            } catch (e) {
-              console.error("Invalid QR code:", e);
-              toast({
-                variant: "destructive",
-                title: "Invalid QR Code",
-                description: "Could not read QR code data.",
-              });
-            }
-          }
-        }
-      );
-    } catch (error) {
-      console.error("Error scanning QR code:", error);
-    }
-  };
-
-  const stopScanning = () => {
-    if (videoRef.current && videoRef.current.srcObject) {
-      const stream = videoRef.current.srcObject as MediaStream;
-      stream.getTracks().forEach(track => track.stop());
-      videoRef.current.srcObject = null;
-    }
-    if (codeReader.current) {
-      codeReader.current.reset();
-    }
-    setScanning(false);
+  const handleQRScanned = (studentId: string, scannedAt: string) => {
+    const schedule = selectedActivityData?.schedule || "";
+    const autoStatus = getAutoStatus(scannedAt, schedule);
+    markAttendance(studentId, autoStatus, scannedAt);
   };
 
   const markAttendance = (studentId: string, status: "present" | "late" | "absent" | "excused", scannedAt?: string) => {
-    // Only allow admins/mods to mark as excused
     if (status === ATTENDANCE_STATUS.EXCUSED && !canExcuseStudents) {
       toast({
         variant: "destructive",
@@ -376,19 +240,30 @@ const TeacherAttendance = () => {
     const newAttendance = new Map(attendance);
     newAttendance.set(studentId, { student_id: studentId, status, scanned_at: scannedAt });
     setAttendance(newAttendance);
+  };
 
-    const student = students.find(s => s.student_id === studentId);
-    if (student) {
-      toast({
-        title: "Marked",
-        description: `${student.student_name} marked as ${status}${scannedAt ? ' at ' + new Date(scannedAt).toLocaleTimeString() : ''}`,
-      });
-    }
+  const handleBulkMark = (status: "present" | "absent") => {
+    const newAttendance = new Map(attendance);
+    students.forEach(student => {
+      const existing = newAttendance.get(student.student_id);
+      // Don't override excused students
+      if (existing?.status !== ATTENDANCE_STATUS.EXCUSED) {
+        newAttendance.set(student.student_id, {
+          student_id: student.student_id,
+          status,
+        });
+      }
+    });
+    setAttendance(newAttendance);
+    toast({
+      title: `All Marked ${status.charAt(0).toUpperCase() + status.slice(1)}`,
+      description: `${students.length} student(s) marked as ${status}`,
+    });
   };
 
   const saveDraft = async () => {
     if (!sessionId) return;
-    
+
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -401,30 +276,21 @@ const TeacherAttendance = () => {
         marked_by: user.id
       }));
 
-      // Delete existing records for this session
       await supabase
         .from("attendance_records")
         .delete()
         .eq("session_id", sessionId);
 
-      // Insert new records
       const { error } = await supabase
         .from("attendance_records")
         .insert(records);
 
       if (error) throw error;
 
-      toast({
-        title: "Draft Saved",
-        description: "Attendance saved as draft",
-      });
+      toast({ title: "Draft Saved", description: "Attendance saved as draft" });
     } catch (error) {
       console.error("Error saving draft:", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to save draft",
-      });
+      toast({ variant: "destructive", title: "Error", description: "Failed to save draft" });
     } finally {
       setLoading(false);
     }
@@ -435,13 +301,11 @@ const TeacherAttendance = () => {
 
     setLoading(true);
     try {
-      // Save records first
       await saveDraft();
 
-      // Issue #33: Update session status to "submitted" instead of just "finalized"
       const { error } = await supabase
         .from("attendance_sessions")
-        .update({ 
+        .update({
           status: SESSION_STATUS.SUBMITTED,
           finalized_at: new Date().toISOString()
         })
@@ -449,7 +313,6 @@ const TeacherAttendance = () => {
 
       if (error) throw error;
 
-      // Notify about absences (would typically trigger notifications to mods/admins)
       const absentStudents = Array.from(attendance.values())
         .filter(r => r.status === ATTENDANCE_STATUS.ABSENT);
 
@@ -461,17 +324,16 @@ const TeacherAttendance = () => {
       navigate(`/${userRole}`);
     } catch (error) {
       console.error("Error finalizing attendance:", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to finalize attendance",
-      });
+      toast({ variant: "destructive", title: "Error", description: "Failed to finalize attendance" });
     } finally {
       setLoading(false);
     }
   };
 
+  const presentCount = Array.from(attendance.values()).filter(r => r.status === ATTENDANCE_STATUS.PRESENT).length;
+  const lateCount = Array.from(attendance.values()).filter(r => r.status === ATTENDANCE_STATUS.LATE).length;
   const absentCount = Array.from(attendance.values()).filter(r => r.status === ATTENDANCE_STATUS.ABSENT).length;
+  const excusedCount = Array.from(attendance.values()).filter(r => r.status === ATTENDANCE_STATUS.EXCUSED).length;
 
   return (
     <div className="min-h-screen bg-background">
@@ -541,31 +403,29 @@ const TeacherAttendance = () => {
               </Alert>
             )}
 
-            <Card className="shadow-card">
-              <CardHeader>
-                <CardTitle>QR Code Scanner</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {!scanning ? (
-                  <Button onClick={startScanning} className="w-full">
-                    <Camera className="w-4 h-4 mr-2" />
-                    Start Scanning
-                  </Button>
-                ) : (
-                  <div className="space-y-4">
-                    <video
-                      ref={videoRef}
-                      autoPlay
-                      playsInline
-                      className="w-full rounded-lg bg-black"
-                    />
-                    <Button onClick={stopScanning} variant="outline" className="w-full">
-                      Stop Scanning
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <BulkActions
+              studentCount={students.length}
+              onMarkAll={handleBulkMark}
+              presentCount={presentCount}
+              lateCount={lateCount}
+              absentCount={absentCount}
+              excusedCount={excusedCount}
+            />
+
+            <QRScanner
+              students={students}
+              attendance={attendance}
+              onStudentScanned={handleQRScanned}
+            />
+
+            {selectedActivityData?.schedule && (
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  Auto-late detection active — Students scanned more than {LATE_GRACE_PERIOD_MINUTES} min after start ({selectedActivityData.schedule}) are automatically marked late.
+                </AlertDescription>
+              </Alert>
+            )}
 
             <Card className="shadow-card">
               <CardHeader>
@@ -580,11 +440,11 @@ const TeacherAttendance = () => {
                         <div className="flex items-center gap-4">
                           <Checkbox
                             checked={record?.status === ATTENDANCE_STATUS.PRESENT}
-                            onCheckedChange={(checked) => 
+                            onCheckedChange={(checked) =>
                               markAttendance(student.student_id, checked ? ATTENDANCE_STATUS.PRESENT as "present" : ATTENDANCE_STATUS.ABSENT as "absent")
                             }
                           />
-                        <div>
+                          <div>
                             <p className="font-medium">{student.student_name}</p>
                             <p className="text-sm text-muted-foreground">{student.student_email}</p>
                             {record?.scanned_at && (

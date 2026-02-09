@@ -51,6 +51,18 @@ export const CHATBOT_LIMITS = {
 
 export const QR_SCAN_COOLDOWN_MS = 500;
 
+export const SCAN_MODE = {
+  SINGLE: 'single',
+  CONTINUOUS: 'continuous',
+} as const;
+
+export type ScanMode = typeof SCAN_MODE[keyof typeof SCAN_MODE];
+
+// Auto-late detection: grace period in minutes after activity start
+export const LATE_GRACE_PERIOD_MINUTES = 5;
+// After this many minutes, auto-mark as absent (can be overridden)
+export const ABSENT_THRESHOLD_MINUTES = 15;
+
 export const DATE_RANGE_LIMITS = {
   MAX_DAYS_PAST: 30,
   MAX_DAYS_FUTURE: 30
