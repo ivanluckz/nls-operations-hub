@@ -2,11 +2,23 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
 import { jsPDF } from "https://esm.sh/jspdf@2.5.1";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+const ALLOWED_ORIGINS = [
+  "https://id-preview--f393e585-fc10-4a2e-a662-735d93b755e9.lovable.app",
+  "https://nls-co-curricular.lovable.app",
+  "http://localhost:5173",
+  "http://localhost:3000",
+];
+
+const getAllowedOrigin = (req: Request): string => {
+  const origin = req.headers.get("Origin") || "";
+  return ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+};
+
+const getCorsHeaders = (req: Request) => ({
+  "Access-Control-Allow-Origin": getAllowedOrigin(req),
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+});
 
 interface AllocationData {
   student_id: string;
@@ -21,6 +33,7 @@ interface AllocationData {
 }
 
 serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
