@@ -1,0 +1,105 @@
+/* Matrix Theme — Dark green terminal aesthetic */
+
+:root {
+  --background: 120 10% 4%;
+  --foreground: 120 100% 75%;
+  --card: 120 10% 7%;
+  --card-foreground: 120 80% 70%;
+  --popover: 120 10% 6%;
+  --popover-foreground: 120 80% 70%;
+  --primary: 120 100% 40%;
+  --primary-foreground: 120 10% 4%;
+  --secondary: 120 15% 12%;
+  --secondary-foreground: 120 80% 65%;
+  --muted: 120 10% 14%;
+  --muted-foreground: 120 30% 45%;
+  --accent: 120 100% 35%;
+  --accent-foreground: 120 10% 4%;
+  --destructive: 0 70% 45%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 120 20% 15%;
+  --input: 120 15% 12%;
+  --ring: 120 100% 40%;
+  --radius: 0.5rem;
+  --sidebar-background: 120 10% 5%;
+  --sidebar-foreground: 120 80% 65%;
+  --sidebar-primary: 120 100% 40%;
+  --sidebar-primary-foreground: 120 10% 4%;
+  --sidebar-accent: 120 15% 12%;
+  --sidebar-accent-foreground: 120 80% 65%;
+  --sidebar-border: 120 20% 12%;
+  --sidebar-ring: 120 100% 40%;
+}
+
+.dark {
+  --background: 120 10% 4%;
+  --foreground: 120 100% 75%;
+  --card: 120 10% 7%;
+  --card-foreground: 120 80% 70%;
+  --primary: 120 100% 40%;
+  --primary-foreground: 120 10% 4%;
+  --muted: 120 10% 14%;
+  --muted-foreground: 120 30% 45%;
+  --border: 120 20% 15%;
+}
+
+/* Glow effect on primary buttons */
+[data-slot="button"].bg-primary,
+button.bg-primary {
+  box-shadow: 0 0 12px hsl(120 100% 40% / 0.4), 0 0 30px hsl(120 100% 40% / 0.15);
+  text-shadow: 0 0 6px hsl(120 100% 60% / 0.5);
+}
+
+/* Terminal-style monospace for headings */
+h1, h2, h3 {
+  font-family: 'Courier New', 'Consolas', monospace !important;
+  text-shadow: 0 0 8px hsl(120 100% 50% / 0.3);
+}
+
+/* Card glow borders */
+[data-slot="card"],
+.rounded-lg.border {
+  border-color: hsl(120 30% 18%) !important;
+  box-shadow: 0 0 6px hsl(120 100% 40% / 0.08);
+}
+
+/* Subtle scanline overlay */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    hsl(120 100% 50% / 0.015) 2px,
+    hsl(120 100% 50% / 0.015) 4px
+  );
+}
+
+/* Input glow on focus */
+input:focus, textarea:focus {
+  box-shadow: 0 0 8px hsl(120 100% 40% / 0.3) !important;
+}
+
+/* Badge tweaks */
+[data-slot="badge"] {
+  text-shadow: 0 0 4px hsl(120 100% 50% / 0.3);
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: hsl(120 10% 6%);
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(120 40% 20%);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(120 60% 30%);
+}
