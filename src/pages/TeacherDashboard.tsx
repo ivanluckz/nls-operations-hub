@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { LogOut, GraduationCap, ClipboardCheck, AlertTriangle } from "lucide-react";
+import ActivityMessaging from "@/components/teacher/ActivityMessaging";
 
 interface Activity {
   id: string;
@@ -205,6 +206,8 @@ const TeacherDashboard = () => {
             </Tabs>
           </CardContent>
         </Card>
+
+        <ActivityMessaging />
       </main>
     </div>
   );

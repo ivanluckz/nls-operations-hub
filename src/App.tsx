@@ -25,7 +25,8 @@ import BackgroundRemoval from "./pages/BackgroundRemoval";
 import WeeklySummary from "./pages/WeeklySummary";
 import ActivityChatbot from "./pages/ActivityChatbot";
 import ActivityRoster from "./pages/ActivityRoster";
- import AdminProfile from "./pages/AdminProfile";
+import AdminProfile from "./pages/AdminProfile";
+import StudentMessages from "./pages/StudentMessages";
 
 const queryClient = new QueryClient();
 
@@ -53,6 +54,14 @@ const App = () => (
             element={
               <ProtectedRoute requiredRole="student">
                 <StudentPreferences />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/student/messages"
+            element={
+              <ProtectedRoute requiredRole="student">
+                <StudentMessages />
               </ProtectedRoute>
             }
           />

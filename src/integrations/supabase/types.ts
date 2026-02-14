@@ -65,6 +65,41 @@ export type Database = {
         }
         Relationships: []
       }
+      activity_messages: {
+        Row: {
+          activity_id: string
+          content: string
+          created_at: string
+          id: string
+          message_type: Database["public"]["Enums"]["message_type"]
+          sender_id: string
+        }
+        Insert: {
+          activity_id: string
+          content: string
+          created_at?: string
+          id?: string
+          message_type?: Database["public"]["Enums"]["message_type"]
+          sender_id: string
+        }
+        Update: {
+          activity_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          message_type?: Database["public"]["Enums"]["message_type"]
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_messages_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "activities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       allocation_audit_log: {
         Row: {
           allocations_created: number | null
@@ -593,6 +628,7 @@ export type Database = {
     Enums: {
       allocation_status: "pending" | "allocated" | "waitlisted"
       app_role: "student" | "moderator" | "admin" | "teacher"
+      message_type: "announcement" | "discussion"
       user_role: "student" | "moderator" | "admin" | "teacher"
     }
     CompositeTypes: {
@@ -723,6 +759,7 @@ export const Constants = {
     Enums: {
       allocation_status: ["pending", "allocated", "waitlisted"],
       app_role: ["student", "moderator", "admin", "teacher"],
+      message_type: ["announcement", "discussion"],
       user_role: ["student", "moderator", "admin", "teacher"],
     },
   },
