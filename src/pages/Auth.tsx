@@ -14,6 +14,9 @@ const Auth = () => {
     try {
       const { error } = await lovable.auth.signInWithOAuth("google", {
         redirect_uri: window.location.origin,
+        extraParams: {
+          hd: "ntare-louisenlund.org",
+        },
       });
       if (error) {
         toast({
