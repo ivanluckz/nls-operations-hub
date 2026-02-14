@@ -69,7 +69,11 @@ const CalendarSyncCard = () => {
 
       const data = await response.json();
       if (data.url) {
-        window.location.href = data.url;
+        // Use window.open as fallback for iframe environments, then try redirect
+        const opened = window.open(data.url, "_self");
+        if (!opened) {
+          window.location.href = data.url;
+        }
       }
     } catch (error) {
       console.error("Error getting auth URL:", error);
