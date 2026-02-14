@@ -12,6 +12,7 @@ import ReactMarkdown from "react-markdown";
 
 type Message = { role: "user" | "assistant"; content: string; timestamp: Date };
 
+// Hardcoded fallback ensures URL is never undefined at runtime
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://nbjoqsaeulvwxlnbevog.supabase.co";
 const CHAT_URL = `${SUPABASE_URL}/functions/v1/activity-chatbot`;
 
