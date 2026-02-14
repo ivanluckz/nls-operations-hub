@@ -283,6 +283,36 @@ export type Database = {
           },
         ]
       }
+      google_calendar_tokens: {
+        Row: {
+          access_token: string
+          created_at: string
+          id: string
+          refresh_token: string
+          token_expiry: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token: string
+          created_at?: string
+          id?: string
+          refresh_token: string
+          token_expiry: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string
+          created_at?: string
+          id?: string
+          refresh_token?: string
+          token_expiry?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       preferences: {
         Row: {
           friday_fifth_choice: string | null
