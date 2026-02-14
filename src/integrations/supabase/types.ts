@@ -188,6 +188,13 @@ export type Database = {
             referencedRelation: "attendance_sessions"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "attendance_notifications_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       attendance_records: {
@@ -221,6 +228,13 @@ export type Database = {
             columns: ["session_id"]
             isOneToOne: false
             referencedRelation: "attendance_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_records_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
