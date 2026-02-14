@@ -12,7 +12,7 @@ import ReactMarkdown from "react-markdown";
 
 type Message = { role: "user" | "assistant"; content: string; timestamp: Date };
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co`;
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://nbjoqsaeulvwxlnbevog.supabase.co";
 const CHAT_URL = `${SUPABASE_URL}/functions/v1/activity-chatbot`;
 
 async function streamChat({
