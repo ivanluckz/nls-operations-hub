@@ -9,6 +9,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { useTheme } from "@/hooks/use-custom-theme";
 
 const MatrixRain = lazy(() => import("./components/MatrixRain"));
+const SandboxedAnimation = lazy(() => import("./components/SandboxedAnimation"));
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import StudentDashboard from "./pages/StudentDashboard";
@@ -36,16 +37,21 @@ import ThemeManagement from "./pages/ThemeManagement";
 const queryClient = new QueryClient();
 
 const AppContent = () => {
-  const { activeThemeUrl } = useTheme();
-  const isMatrixTheme = activeThemeUrl?.includes("matrix") || activeThemeUrl?.includes("binary");
+  const { activeThemeUrl, activeJsUrl } = useTheme();
+  const isBuiltInAnimation = activeThemeUrl?.includes("matrix") || activeThemeUrl?.includes("binary");
 
   return (
     <>
-      {isMatrixTheme && (
+      {/* User-uploaded sandboxed JS animation takes priority */}
+      {activeJsUrl ? (
+        <Suspense fallback={null}>
+          <SandboxedAnimation jsUrl={activeJsUrl} />
+        </Suspense>
+      ) : isBuiltInAnimation ? (
         <Suspense fallback={null}>
           <MatrixRain />
         </Suspense>
-      )}
+      ) : null}
       <Toaster />
       <Sonner />
       <BrowserRouter>

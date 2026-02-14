@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
-  ArrowLeft, Upload, Trash2, Palette, Check, Eye, X, Loader2, Download
+  ArrowLeft, Upload, Trash2, Palette, Check, Eye, X, Loader2, Download, Code
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -20,12 +20,13 @@ interface ThemeRecord {
   name: string;
   description: string | null;
   css_url: string;
+  js_url: string | null;
   is_active: boolean;
   created_at: string;
-  profiles?: { full_name: string } | null;
 }
 
-const MAX_CSS_SIZE = 100 * 1024; // 100KB max
+const MAX_CSS_SIZE = 100 * 1024;
+const MAX_JS_SIZE = 50 * 1024; // 50KB max for JS
 
 const SAMPLE_CSS = `/* NLS Custom Theme Example */
 /* IMPORTANT: Use html:root and !important to override app styles */
@@ -61,11 +62,40 @@ html:root {
   --sidebar-ring: 220 70% 50% !important;
 }`;
 
+const SAMPLE_JS = `// Animation script — you get a full-screen <canvas> and ctx
+// Available globals: canvas, ctx
+
+const chars = '01';
+const fontSize = 14;
+const columns = Math.floor(canvas.width / fontSize);
+const drops = Array.from({ length: columns }, () => Math.random() * -100);
+
+function draw() {
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.font = fontSize + 'px monospace';
+
+  for (let i = 0; i < columns; i++) {
+    const char = chars[Math.floor(Math.random() * chars.length)];
+    const x = i * fontSize;
+    const y = drops[i] * fontSize;
+    ctx.fillStyle = 'hsl(120, 100%, ' + (50 + Math.random() * 30) + '%)';
+    ctx.fillText(char, x, y);
+    drops[i] += 0.05 + Math.random() * 0.08;
+    if (y > canvas.height && Math.random() > 0.98) {
+      drops[i] = Math.random() * -20;
+    }
+  }
+  requestAnimationFrame(draw);
+}
+draw();`;
+
 const ThemeManagement = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { activeThemeUrl, applyTheme, clearTheme } = useTheme();
+  const { activeThemeUrl, activeJsUrl, applyTheme, clearTheme } = useTheme();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const jsFileInputRef = useRef<HTMLInputElement>(null);
 
   const [themes, setThemes] = useState<ThemeRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -73,6 +103,7 @@ const ThemeManagement = () => {
   const [themeName, setThemeName] = useState("");
   const [themeDesc, setThemeDesc] = useState("");
   const [cssContent, setCssContent] = useState("");
+  const [jsContent, setJsContent] = useState("");
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
 
@@ -125,6 +156,26 @@ const ThemeManagement = () => {
     reader.readAsText(file);
   };
 
+  const handleJsFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.name.endsWith('.js')) {
+      toast({ title: "Invalid file", description: "Please upload a .js file", variant: "destructive" });
+      return;
+    }
+    if (file.size > MAX_JS_SIZE) {
+      toast({ title: "File too large", description: "JS file must be under 50KB", variant: "destructive" });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setJsContent(ev.target?.result as string);
+    };
+    reader.readAsText(file);
+  };
+
   const handleUploadTheme = async () => {
     if (!themeName.trim() || !cssContent.trim() || !userId) {
       toast({ title: "Missing info", description: "Theme name and CSS content are required", variant: "destructive" });
@@ -133,17 +184,30 @@ const ThemeManagement = () => {
 
     setIsUploading(true);
     try {
-      // Upload CSS file to storage
-      const fileName = `${userId}/${Date.now()}-${themeName.replace(/[^a-zA-Z0-9]/g, '-')}.css`;
-      const blob = new Blob([cssContent], { type: 'text/css' });
+      const safeName = themeName.replace(/[^a-zA-Z0-9]/g, '-');
+      const timestamp = Date.now();
 
-      const { error: uploadError } = await supabase.storage
+      // Upload CSS
+      const cssFileName = `${userId}/${timestamp}-${safeName}.css`;
+      const cssBlob = new Blob([cssContent], { type: 'text/css' });
+      const { error: cssUploadError } = await supabase.storage
         .from('themes')
-        .upload(fileName, blob, { contentType: 'text/css', upsert: false });
+        .upload(cssFileName, cssBlob, { contentType: 'text/css', upsert: false });
+      if (cssUploadError) throw cssUploadError;
+      const { data: cssUrlData } = supabase.storage.from('themes').getPublicUrl(cssFileName);
 
-      if (uploadError) throw uploadError;
-
-      const { data: urlData } = supabase.storage.from('themes').getPublicUrl(fileName);
+      // Upload JS if provided
+      let jsPublicUrl: string | null = null;
+      if (jsContent.trim()) {
+        const jsFileName = `${userId}/${timestamp}-${safeName}.js`;
+        const jsBlob = new Blob([jsContent], { type: 'application/javascript' });
+        const { error: jsUploadError } = await supabase.storage
+          .from('themes')
+          .upload(jsFileName, jsBlob, { contentType: 'application/javascript', upsert: false });
+        if (jsUploadError) throw jsUploadError;
+        const { data: jsUrlData } = supabase.storage.from('themes').getPublicUrl(jsFileName);
+        jsPublicUrl = jsUrlData.publicUrl;
+      }
 
       // Save theme record
       const { error: insertError } = await supabase
@@ -152,7 +216,8 @@ const ThemeManagement = () => {
           user_id: userId,
           name: themeName.trim(),
           description: themeDesc.trim() || null,
-          css_url: urlData.publicUrl,
+          css_url: cssUrlData.publicUrl,
+          js_url: jsPublicUrl,
         });
 
       if (insertError) throw insertError;
@@ -161,7 +226,9 @@ const ThemeManagement = () => {
       setThemeName("");
       setThemeDesc("");
       setCssContent("");
+      setJsContent("");
       if (fileInputRef.current) fileInputRef.current.value = "";
+      if (jsFileInputRef.current) jsFileInputRef.current.value = "";
       await fetchThemes();
     } catch (error) {
       console.error("Upload error:", error);
@@ -173,15 +240,21 @@ const ThemeManagement = () => {
 
   const handleDeleteTheme = async (theme: ThemeRecord) => {
     try {
-      // Remove from active if currently applied
       if (activeThemeUrl === theme.css_url) {
         clearTheme();
       }
 
-      // Extract path from URL for storage deletion
-      const urlParts = theme.css_url.split('/themes/');
-      if (urlParts[1]) {
-        await supabase.storage.from('themes').remove([decodeURIComponent(urlParts[1])]);
+      // Delete CSS from storage
+      const cssPath = theme.css_url.split('/themes/')[1];
+      if (cssPath) {
+        await supabase.storage.from('themes').remove([decodeURIComponent(cssPath)]);
+      }
+      // Delete JS from storage if exists
+      if (theme.js_url) {
+        const jsPath = theme.js_url.split('/themes/')[1];
+        if (jsPath) {
+          await supabase.storage.from('themes').remove([decodeURIComponent(jsPath)]);
+        }
       }
 
       const { error } = await supabase.from('user_themes').delete().eq('id', theme.id);
@@ -195,19 +268,18 @@ const ThemeManagement = () => {
     }
   };
 
-  const handlePreview = (cssUrl: string) => {
+  const handlePreview = (cssUrl: string, jsUrl: string | null) => {
     if (previewUrl === cssUrl) {
       setPreviewUrl(null);
-      // Restore active theme or clear
-      applyTheme(activeThemeUrl);
+      applyTheme(activeThemeUrl, activeJsUrl);
     } else {
       setPreviewUrl(cssUrl);
-      applyTheme(cssUrl);
+      applyTheme(cssUrl, jsUrl);
     }
   };
 
-  const handleApply = (cssUrl: string) => {
-    applyTheme(cssUrl);
+  const handleApply = (cssUrl: string, jsUrl: string | null) => {
+    applyTheme(cssUrl, jsUrl);
     setPreviewUrl(null);
     toast({ title: "Theme applied!", description: "Your custom theme is now active" });
   };
@@ -216,6 +288,10 @@ const ThemeManagement = () => {
     setCssContent(SAMPLE_CSS);
     setThemeName("My Custom Theme");
     setThemeDesc("A custom color scheme");
+  };
+
+  const loadSampleJs = () => {
+    setJsContent(SAMPLE_JS);
   };
 
   return (
@@ -232,17 +308,17 @@ const ThemeManagement = () => {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-foreground">Custom Themes</h1>
-            <p className="text-sm text-muted-foreground">Upload CSS files to personalize your experience</p>
+            <p className="text-sm text-muted-foreground">Upload CSS & JS files to personalize your experience</p>
           </div>
         </div>
 
-        {/* Active theme banner */}
         {activeThemeUrl && (
           <Card className="mb-6 border-primary/30 bg-primary/5">
             <CardContent className="flex items-center justify-between py-3">
               <div className="flex items-center gap-2">
                 <Check className="h-4 w-4 text-primary" />
                 <span className="text-sm font-medium">Custom theme active</span>
+                {activeJsUrl && <Badge variant="outline" className="text-[10px]">+ Animation</Badge>}
               </div>
               <Button variant="outline" size="sm" onClick={clearTheme}>
                 <X className="h-3 w-3 mr-1" /> Reset to default
@@ -257,7 +333,7 @@ const ThemeManagement = () => {
             <CardHeader>
               <CardTitle className="text-lg">Upload Theme</CardTitle>
               <CardDescription>
-                Upload a .css file to create a custom theme. 
+                Upload CSS for colors + optional JS for canvas animations.{" "}
                 <Button variant="link" size="sm" className="px-1 h-auto" onClick={loadSample}>
                   Load sample CSS
                 </Button>
@@ -266,67 +342,56 @@ const ThemeManagement = () => {
             <CardContent className="space-y-4">
               <div>
                 <Label htmlFor="theme-name">Theme Name</Label>
-                <Input
-                  id="theme-name"
-                  value={themeName}
-                  onChange={(e) => setThemeName(e.target.value)}
-                  placeholder="My Cool Theme"
-                  maxLength={50}
-                />
+                <Input id="theme-name" value={themeName} onChange={(e) => setThemeName(e.target.value)} placeholder="My Cool Theme" maxLength={50} />
               </div>
               <div>
                 <Label htmlFor="theme-desc">Description (optional)</Label>
-                <Input
-                  id="theme-desc"
-                  value={themeDesc}
-                  onChange={(e) => setThemeDesc(e.target.value)}
-                  placeholder="Dark blue with warm accents"
-                  maxLength={200}
-                />
+                <Input id="theme-desc" value={themeDesc} onChange={(e) => setThemeDesc(e.target.value)} placeholder="Dark blue with warm accents" maxLength={200} />
               </div>
               <div>
-                <Label htmlFor="css-file">CSS File</Label>
-                <Input
-                  id="css-file"
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".css"
-                  onChange={handleFileUpload}
-                  className="cursor-pointer"
-                />
+                <Label htmlFor="css-file">CSS File (colors & styles)</Label>
+                <Input id="css-file" ref={fileInputRef} type="file" accept=".css" onChange={handleFileUpload} className="cursor-pointer" />
               </div>
               {cssContent && (
                 <div>
                   <Label>CSS Preview</Label>
-                  <Textarea
-                    value={cssContent}
-                    onChange={(e) => setCssContent(e.target.value)}
-                    className="font-mono text-xs h-40"
-                    placeholder="Paste CSS here or upload a file..."
-                  />
+                  <Textarea value={cssContent} onChange={(e) => setCssContent(e.target.value)} className="font-mono text-xs h-32" />
                   <p className="text-xs text-muted-foreground mt-1">
                     {cssContent.length.toLocaleString()} chars • {(new Blob([cssContent]).size / 1024).toFixed(1)}KB
                   </p>
                 </div>
               )}
               {!cssContent && (
-                <Textarea
-                  value={cssContent}
-                  onChange={(e) => setCssContent(e.target.value)}
-                  className="font-mono text-xs h-24"
-                  placeholder="Or paste CSS directly here..."
-                />
+                <Textarea value={cssContent} onChange={(e) => setCssContent(e.target.value)} className="font-mono text-xs h-20" placeholder="Or paste CSS directly here..." />
               )}
-              <Button
-                onClick={handleUploadTheme}
-                disabled={isUploading || !themeName.trim() || !cssContent.trim()}
-                className="w-full"
-              >
-                {isUploading ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <Upload className="h-4 w-4 mr-2" />
+
+              {/* JS Animation Upload */}
+              <div className="border-t pt-4">
+                <div className="flex items-center justify-between mb-2">
+                  <Label htmlFor="js-file" className="flex items-center gap-1.5">
+                    <Code className="h-3.5 w-3.5" />
+                    Animation JS (optional)
+                  </Label>
+                  <Button variant="link" size="sm" className="px-1 h-auto text-xs" onClick={loadSampleJs}>
+                    Load sample JS
+                  </Button>
+                </div>
+                <Input id="js-file" ref={jsFileInputRef} type="file" accept=".js" onChange={handleJsFileUpload} className="cursor-pointer" />
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Runs in a sandboxed iframe — no access to your data. Max 50KB. Gets <code>canvas</code> and <code>ctx</code> globals.
+                </p>
+                {jsContent && (
+                  <div className="mt-2">
+                    <Textarea value={jsContent} onChange={(e) => setJsContent(e.target.value)} className="font-mono text-xs h-28" />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {(new Blob([jsContent]).size / 1024).toFixed(1)}KB
+                    </p>
+                  </div>
                 )}
+              </div>
+
+              <Button onClick={handleUploadTheme} disabled={isUploading || !themeName.trim() || !cssContent.trim()} className="w-full">
+                {isUploading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
                 Upload Theme
               </Button>
             </CardContent>
@@ -336,12 +401,10 @@ const ThemeManagement = () => {
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Theme Gallery</CardTitle>
-              <CardDescription>
-                {themes.length} theme{themes.length !== 1 ? 's' : ''} available
-              </CardDescription>
+              <CardDescription>{themes.length} theme{themes.length !== 1 ? 's' : ''} available</CardDescription>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-[400px]">
+              <ScrollArea className="h-[500px]">
                 {isLoading ? (
                   <div className="flex items-center justify-center py-8">
                     <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -368,10 +431,11 @@ const ThemeManagement = () => {
                         >
                           <div className="flex items-start justify-between gap-2">
                             <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2 flex-wrap">
                                 <span className="font-medium text-sm truncate">{theme.name}</span>
                                 {isActive && <Badge variant="default" className="text-[10px] px-1.5 py-0">Active</Badge>}
                                 {isOwn && <Badge variant="outline" className="text-[10px] px-1.5 py-0">Yours</Badge>}
+                                {theme.js_url && <Badge variant="secondary" className="text-[10px] px-1.5 py-0">🎬 Animated</Badge>}
                               </div>
                               {theme.description && (
                                 <p className="text-xs text-muted-foreground mt-0.5 truncate">{theme.description}</p>
@@ -381,41 +445,20 @@ const ThemeManagement = () => {
                               </p>
                             </div>
                           </div>
-                          <div className="flex gap-1.5 mt-2">
-                            <Button
-                              variant={isPreviewing ? "secondary" : "outline"}
-                              size="sm"
-                              className="text-xs h-7"
-                              onClick={() => handlePreview(theme.css_url)}
-                            >
+                          <div className="flex gap-1.5 mt-2 flex-wrap">
+                            <Button variant={isPreviewing ? "secondary" : "outline"} size="sm" className="text-xs h-7" onClick={() => handlePreview(theme.css_url, theme.js_url)}>
                               <Eye className="h-3 w-3 mr-1" />
                               {isPreviewing ? "Stop" : "Preview"}
                             </Button>
-                            <Button
-                              variant={isActive ? "secondary" : "default"}
-                              size="sm"
-                              className="text-xs h-7"
-                              onClick={() => handleApply(theme.css_url)}
-                              disabled={isActive}
-                            >
+                            <Button variant={isActive ? "secondary" : "default"} size="sm" className="text-xs h-7" onClick={() => handleApply(theme.css_url, theme.js_url)} disabled={isActive}>
                               <Check className="h-3 w-3 mr-1" />
                               {isActive ? "Applied" : "Apply"}
                             </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="text-xs h-7"
-                              onClick={() => window.open(theme.css_url, '_blank')}
-                            >
+                            <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => window.open(theme.css_url, '_blank')}>
                               <Download className="h-3 w-3" />
                             </Button>
                             {isOwn && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="text-xs h-7 text-destructive hover:text-destructive"
-                                onClick={() => handleDeleteTheme(theme)}
-                              >
+                              <Button variant="ghost" size="sm" className="text-xs h-7 text-destructive hover:text-destructive" onClick={() => handleDeleteTheme(theme)}>
                                 <Trash2 className="h-3 w-3" />
                               </Button>
                             )}
