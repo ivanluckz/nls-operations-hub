@@ -1,21 +1,19 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-// Issue #21: Use specific allowed origins instead of wildcard
 const getAllowedOrigin = (req: Request): string => {
   const origin = req.headers.get("Origin") || "";
-  const allowedOrigins = [
-    "https://id-preview--f393e585-fc10-4a2e-a662-735d93b755e9.lovable.app",
-    "https://nls-co-curricular.lovable.app",
-    "http://localhost:5173",
-    "http://localhost:3000"
+  const allowedPatterns = [
+    /^https:\/\/.*\.lovable\.app$/,
+    /^https:\/\/.*\.lovableproject\.com$/,
+    /^http:\/\/localhost:\d+$/,
   ];
-  return allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
+  return allowedPatterns.some(p => p.test(origin)) ? origin : "https://nls-co-curricular.lovable.app";
 };
 
 const getCorsHeaders = (req: Request) => ({
   "Access-Control-Allow-Origin": getAllowedOrigin(req),
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 });
 
@@ -31,7 +29,6 @@ serve(async (req) => {
   }
 
   try {
-    // Authentication check
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(
@@ -43,7 +40,6 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     
-    // Create client with user's auth token to verify authentication
     const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } }
     });
@@ -58,7 +54,6 @@ serve(async (req) => {
 
     const { messages } = await req.json();
 
-    // Validate messages input
     if (!Array.isArray(messages)) {
       return new Response(
         JSON.stringify({ error: "Invalid request - messages must be an array" }),
@@ -66,10 +61,8 @@ serve(async (req) => {
       );
     }
 
-    // Limit number of messages to prevent abuse
     const limitedMessages = messages.slice(-MAX_MESSAGES);
 
-    // Validate each message
     for (const msg of limitedMessages) {
       if (typeof msg.content !== 'string') {
         return new Response(
@@ -86,43 +79,129 @@ serve(async (req) => {
     }
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    // Use service role key for fetching activities (internal operation)
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Fetch user role
+    const { data: roleData } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .single();
+
+    const userRole = roleData?.role || 'student';
+
+    // Fetch user profile
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('full_name, email')
+      .eq('id', user.id)
+      .single();
+
+    // Fetch all active activities
     const { data: activities } = await supabase
       .from('activities')
-      .select('title, description, category, schedule, days_of_week, capacity, current_enrollment, teacher_in_charge')
-      .eq('is_active', true);
+      .select('id, title, description, category, schedule, days_of_week, capacity, current_enrollment, teacher_in_charge')
+      .eq('is_active', true)
+      .limit(100);
 
     const activitiesContext = activities?.map(a => 
-      `- ${a.title} (${a.category}): ${a.description}. Schedule: ${a.schedule} on ${a.days_of_week?.join(', ')}. Teacher: ${a.teacher_in_charge}. Capacity: ${a.current_enrollment}/${a.capacity}`
+      `- **${a.title}** (${a.category}): ${a.description}. Schedule: ${a.schedule} on ${a.days_of_week?.join(', ')}. Teacher: ${a.teacher_in_charge}. Spots: ${a.current_enrollment}/${a.capacity}`
     ).join('\n') || 'No activities available';
 
-    const systemPrompt = `You are a helpful assistant for Ntare-Louisenlund School's co-curricular activities system. You help students and parents with questions about:
-- Available activities and their schedules
-- How to select preferences
-- Attendance policies
-- General questions about the co-curricular program
+    // Build role-specific context
+    let personalContext = '';
 
-Here are the current available activities:
+    if (userRole === 'student') {
+      // Fetch student allocations
+      const { data: allocations } = await supabase
+        .from('allocations')
+        .select('activity_id, day_of_week, slot_number, status, preference_rank')
+        .eq('student_id', user.id)
+        .limit(50);
+
+      if (allocations && allocations.length > 0 && activities) {
+        const activityMap = new Map(activities.map(a => [a.id, a.title]));
+        const allocInfo = allocations.map(al => 
+          `  - ${activityMap.get(al.activity_id) || 'Unknown'} on ${al.day_of_week} (Slot ${al.slot_number}, Pref #${al.preference_rank}, Status: ${al.status})`
+        ).join('\n');
+        personalContext += `\n\n**Your Current Allocations:**\n${allocInfo}`;
+      } else {
+        personalContext += `\n\nYou don't have any activity allocations yet.`;
+      }
+
+      // Fetch recent attendance
+      const { data: recentAttendance } = await supabase
+        .from('attendance_records')
+        .select('status, marked_at, session_id')
+        .eq('student_id', user.id)
+        .order('marked_at', { ascending: false })
+        .limit(10);
+
+      if (recentAttendance && recentAttendance.length > 0) {
+        const attendanceSummary = recentAttendance.reduce((acc: Record<string, number>, r) => {
+          acc[r.status] = (acc[r.status] || 0) + 1;
+          return acc;
+        }, {});
+        const summaryStr = Object.entries(attendanceSummary).map(([s, c]) => `${s}: ${c}`).join(', ');
+        personalContext += `\n\n**Your Recent Attendance (last 10 sessions):** ${summaryStr}`;
+      }
+    } else if (userRole === 'teacher') {
+      // Fetch teacher's activities
+      const teacherActivities = activities?.filter(a => a.teacher_in_charge === profileData?.full_name) || [];
+      if (teacherActivities.length > 0) {
+        const taInfo = teacherActivities.map(a => `  - ${a.title} (${a.current_enrollment}/${a.capacity} enrolled)`).join('\n');
+        personalContext += `\n\n**Your Activities:**\n${taInfo}`;
+      }
+    } else if (userRole === 'admin' || userRole === 'moderator') {
+      // Provide system overview stats
+      const { count: totalStudents } = await supabase
+        .from('user_roles')
+        .select('*', { count: 'exact', head: true })
+        .eq('role', 'student');
+
+      const { count: totalAllocations } = await supabase
+        .from('allocations')
+        .select('*', { count: 'exact', head: true });
+
+      personalContext += `\n\n**System Overview:** ${totalStudents || 0} students, ${activities?.length || 0} active activities, ${totalAllocations || 0} total allocations.`;
+    }
+
+    // Role-specific system prompts
+    const roleInstructions: Record<string, string> = {
+      student: `You are speaking with a student named ${profileData?.full_name || 'Student'}. Help them understand their schedule, activities, attendance, and how to submit preferences. Be encouraging and supportive.`,
+      teacher: `You are speaking with a teacher named ${profileData?.full_name || 'Teacher'}. Help them with managing their activities, taking attendance, understanding student rosters, and sending messages to activity groups.`,
+      moderator: `You are speaking with a moderator named ${profileData?.full_name || 'Moderator'}. Help them with overseeing activities, managing allocations, reviewing attendance reports, and handling student issues. You can provide system-level insights.`,
+      admin: `You are speaking with an administrator named ${profileData?.full_name || 'Admin'}. Help them with full system management including user roles, activity creation, bulk imports, allocation runs, and system configuration. Provide detailed technical guidance when needed.`,
+    };
+
+    const systemPrompt = `You are the NLS Co-Curricular Activity Assistant — a smart, friendly helper for Ntare-Louisenlund School's co-curricular program.
+
+${roleInstructions[userRole] || roleInstructions.student}
+
+## Available Activities
 ${activitiesContext}
+${personalContext}
 
-Key policies:
-- Students submit 5 ranked preferences for each day slot
+## Key Policies
+- Students submit **5 ranked preferences** for each day slot (Monday, Tuesday, Thursday, Friday, and 2 Wednesday slots)
 - Activities are allocated based on preference ranking and availability
-- Attendance is tracked via QR code scanning or manual marking
-- Students can be marked as present, late, absent, or excused
-- Only admins and moderators can excuse students
+- Attendance is tracked via **QR code scanning** or manual marking by teachers
+- Students can be marked as: ✅ Present, ⏰ Late, ❌ Absent, or 🔵 Excused
+- Only admins and moderators can pre-excuse students
 
-Be friendly, concise, and helpful. If you don't know something specific, suggest they contact the school administration.`;
+## Response Guidelines
+- Use **markdown formatting** for clarity (bold, lists, headers)
+- Be concise but thorough
+- If you don't know something specific, suggest contacting the school administration
+- For schedule questions, reference the actual activity data above
+- Be warm and professional`;
 
-    console.log(`Authenticated user ${user.id} calling Lovable AI Gateway...`);
+    console.log(`User ${user.id} (${userRole}) calling Lovable AI Gateway...`);
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -141,20 +220,15 @@ Be friendly, concise, and helpful. If you don't know something specific, suggest
     });
 
     if (!response.ok) {
-      // Issue #12: Add Retry-After header and descriptive message for rate limits
       if (response.status === 429) {
         return new Response(
           JSON.stringify({ 
-            error: `Rate limit exceeded. You've sent too many requests. Please wait ${RATE_LIMIT_RETRY_SECONDS} seconds before trying again.`,
+            error: `Rate limit exceeded. Please wait ${RATE_LIMIT_RETRY_SECONDS} seconds before trying again.`,
             retry_after: RATE_LIMIT_RETRY_SECONDS
           }), 
           {
             status: 429,
-            headers: { 
-              ...corsHeaders, 
-              "Content-Type": "application/json",
-              "Retry-After": String(RATE_LIMIT_RETRY_SECONDS)
-            },
+            headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": String(RATE_LIMIT_RETRY_SECONDS) },
           }
         );
       }
