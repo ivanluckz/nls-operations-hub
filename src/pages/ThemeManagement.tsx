@@ -28,29 +28,37 @@ interface ThemeRecord {
 const MAX_CSS_SIZE = 100 * 1024; // 100KB max
 
 const SAMPLE_CSS = `/* NLS Custom Theme Example */
-/* Override CSS custom properties to change colors */
+/* IMPORTANT: Use html:root and !important to override app styles */
 
-:root {
-  --primary: 220 70% 50%;         /* Main brand color */
-  --primary-foreground: 0 0% 100%;
-  --background: 220 20% 97%;       /* Page background */
-  --foreground: 220 20% 10%;       /* Text color */
-  --card: 0 0% 100%;               /* Card background */
-  --muted: 220 15% 92%;            /* Muted backgrounds */
-  --accent: 340 65% 55%;           /* Accent color */
-  --accent-foreground: 0 0% 100%;
-  --border: 220 15% 85%;           /* Border color */
-  --ring: 220 70% 50%;             /* Focus ring */
-  --radius: 0.75rem;               /* Border radius */
-}
-
-/* Dark mode overrides */
-.dark {
-  --background: 220 20% 8%;
-  --foreground: 220 10% 90%;
-  --card: 220 20% 12%;
-  --muted: 220 15% 18%;
-  --border: 220 15% 22%;
+html:root {
+  --primary: 220 70% 50% !important;         /* Main brand color */
+  --primary-foreground: 0 0% 100% !important;
+  --background: 220 20% 97% !important;       /* Page background */
+  --foreground: 220 20% 10% !important;       /* Text color */
+  --card: 0 0% 100% !important;               /* Card background */
+  --card-foreground: 220 20% 10% !important;
+  --popover: 0 0% 100% !important;
+  --popover-foreground: 220 20% 10% !important;
+  --secondary: 220 15% 92% !important;
+  --secondary-foreground: 220 20% 15% !important;
+  --muted: 220 15% 92% !important;            /* Muted backgrounds */
+  --muted-foreground: 220 10% 40% !important;
+  --accent: 340 65% 55% !important;           /* Accent color */
+  --accent-foreground: 0 0% 100% !important;
+  --destructive: 0 70% 50% !important;
+  --destructive-foreground: 0 0% 98% !important;
+  --border: 220 15% 85% !important;           /* Border color */
+  --input: 220 15% 85% !important;
+  --ring: 220 70% 50% !important;             /* Focus ring */
+  --radius: 0.75rem !important;               /* Border radius */
+  --sidebar-background: 220 20% 97% !important;
+  --sidebar-foreground: 220 20% 10% !important;
+  --sidebar-primary: 220 70% 50% !important;
+  --sidebar-primary-foreground: 0 0% 100% !important;
+  --sidebar-accent: 220 15% 92% !important;
+  --sidebar-accent-foreground: 220 20% 15% !important;
+  --sidebar-border: 220 15% 85% !important;
+  --sidebar-ring: 220 70% 50% !important;
 }`;
 
 const ThemeManagement = () => {
