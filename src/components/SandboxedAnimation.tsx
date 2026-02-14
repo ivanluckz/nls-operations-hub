@@ -1,21 +1,14 @@
 import { useMemo } from "react";
 
 interface SandboxedAnimationProps {
-  jsUrl: string;
+  jsContent: string;
 }
 
 /**
- * Renders user-uploaded JS animation inside a heavily sandboxed iframe.
- * The iframe has NO access to:
- * - Parent window / DOM
- * - Cookies / localStorage / sessionStorage
- * - Navigation / popups / forms
- * - Any app data whatsoever
- * 
- * It ONLY has: allow-scripts (to run the animation code)
- * The JS gets a full-screen <canvas> element to draw on.
+ * Renders user JS animation inside a heavily sandboxed iframe.
+ * sandbox="allow-scripts" — NO access to parent, cookies, storage, etc.
  */
-const SandboxedAnimation = ({ jsUrl }: SandboxedAnimationProps) => {
+const SandboxedAnimation = ({ jsContent }: SandboxedAnimationProps) => {
   const srcdoc = useMemo(() => `
 <!DOCTYPE html>
 <html>
@@ -29,18 +22,14 @@ const SandboxedAnimation = ({ jsUrl }: SandboxedAnimationProps) => {
 <body>
 <canvas id="canvas"></canvas>
 <script>
-  // Provide a clean canvas API to the user script
   const canvas = document.getElementById('canvas');
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
   const ctx = canvas.getContext('2d');
-  
   window.addEventListener('resize', () => {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
   });
-
-  // Block dangerous APIs inside the sandbox
   delete window.fetch;
   delete window.XMLHttpRequest;
   delete window.WebSocket;
@@ -48,10 +37,10 @@ const SandboxedAnimation = ({ jsUrl }: SandboxedAnimationProps) => {
   window.open = () => null;
   navigator.sendBeacon = () => false;
 </script>
-<script src="${jsUrl}"><\/script>
+<script>${jsContent.replace(/<\/script>/gi, '<\\/script>')}<\/script>
 </body>
 </html>
-  `.trim(), [jsUrl]);
+  `.trim(), [jsContent]);
 
   return (
     <iframe

@@ -1,61 +1,77 @@
 import { useState, useEffect, useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { getTheme, type LocalTheme } from "@/lib/local-theme-store";
 
-const THEME_STORAGE_KEY = "nls-active-theme-url";
-const JS_STORAGE_KEY = "nls-active-theme-js-url";
+const ACTIVE_THEME_KEY = "nls-active-theme-id";
 
 export const useTheme = () => {
-  const [activeThemeUrl, setActiveThemeUrl] = useState<string | null>(
-    () => localStorage.getItem(THEME_STORAGE_KEY)
+  const [activeThemeId, setActiveThemeId] = useState<string | null>(
+    () => localStorage.getItem(ACTIVE_THEME_KEY)
   );
-  const [activeJsUrl, setActiveJsUrl] = useState<string | null>(
-    () => localStorage.getItem(JS_STORAGE_KEY)
-  );
+  const [activeTheme, setActiveTheme] = useState<LocalTheme | null>(null);
   const { toast } = useToast();
 
-  // Apply theme CSS to head
+  // Load active theme data from IndexedDB
   useEffect(() => {
+    if (activeThemeId) {
+      getTheme(activeThemeId).then((theme) => {
+        if (theme) {
+          setActiveTheme(theme);
+        } else {
+          // Theme was deleted from IndexedDB
+          setActiveThemeId(null);
+          setActiveTheme(null);
+          localStorage.removeItem(ACTIVE_THEME_KEY);
+        }
+      });
+    } else {
+      setActiveTheme(null);
+    }
+  }, [activeThemeId]);
+
+  // Apply CSS content as inline <style> tag
+  useEffect(() => {
+    const existingStyle = document.getElementById("user-custom-theme-style");
     const existingLink = document.getElementById("user-custom-theme") as HTMLLinkElement | null;
 
-    if (activeThemeUrl) {
-      if (existingLink) {
-        existingLink.href = activeThemeUrl;
-        document.head.appendChild(existingLink);
+    // Remove old link-based theme (legacy)
+    if (existingLink) existingLink.remove();
+
+    if (activeTheme?.cssContent) {
+      if (existingStyle) {
+        existingStyle.textContent = activeTheme.cssContent;
+        // Re-append to ensure it overrides
+        document.head.appendChild(existingStyle);
       } else {
-        const link = document.createElement("link");
-        link.id = "user-custom-theme";
-        link.rel = "stylesheet";
-        link.href = activeThemeUrl;
-        document.head.appendChild(link);
+        const style = document.createElement("style");
+        style.id = "user-custom-theme-style";
+        style.textContent = activeTheme.cssContent;
+        document.head.appendChild(style);
       }
-      localStorage.setItem(THEME_STORAGE_KEY, activeThemeUrl);
+      localStorage.setItem(ACTIVE_THEME_KEY, activeTheme.id);
     } else {
-      if (existingLink) {
-        existingLink.remove();
-      }
-      localStorage.removeItem(THEME_STORAGE_KEY);
+      if (existingStyle) existingStyle.remove();
+      localStorage.removeItem(ACTIVE_THEME_KEY);
     }
-  }, [activeThemeUrl]);
+  }, [activeTheme]);
 
-  // Persist JS URL
-  useEffect(() => {
-    if (activeJsUrl) {
-      localStorage.setItem(JS_STORAGE_KEY, activeJsUrl);
-    } else {
-      localStorage.removeItem(JS_STORAGE_KEY);
-    }
-  }, [activeJsUrl]);
-
-  const applyTheme = useCallback((cssUrl: string | null, jsUrl?: string | null) => {
-    setActiveThemeUrl(cssUrl);
-    setActiveJsUrl(jsUrl ?? null);
+  const applyTheme = useCallback((themeId: string | null) => {
+    setActiveThemeId(themeId);
   }, []);
 
   const clearTheme = useCallback(() => {
-    setActiveThemeUrl(null);
-    setActiveJsUrl(null);
+    setActiveThemeId(null);
+    setActiveTheme(null);
+    localStorage.removeItem(ACTIVE_THEME_KEY);
     toast({ title: "Theme cleared", description: "Default theme restored" });
   }, [toast]);
 
-  return { activeThemeUrl, activeJsUrl, applyTheme, clearTheme };
+  return {
+    activeThemeId,
+    activeTheme,
+    activeThemeUrl: null as string | null, // legacy compat
+    activeJsUrl: activeTheme?.jsContent ? "local" : null,
+    applyTheme,
+    clearTheme,
+  };
 };
