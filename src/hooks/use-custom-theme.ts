@@ -17,6 +17,8 @@ export const useTheme = () => {
     if (activeThemeUrl) {
       if (existingLink) {
         existingLink.href = activeThemeUrl;
+        // Re-append to end of head to ensure it overrides app styles
+        document.head.appendChild(existingLink);
       } else {
         const link = document.createElement("link");
         link.id = "user-custom-theme";
