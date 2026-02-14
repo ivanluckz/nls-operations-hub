@@ -131,7 +131,7 @@ const AttendanceReports = () => {
               teacher_id
             )
           ),
-          profiles:student_id (
+          profiles!attendance_notifications_student_id_fkey (
             full_name,
             email
           )
