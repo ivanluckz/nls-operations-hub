@@ -15,32 +15,83 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const authHeader = req.headers.get("Authorization");
-  if (!authHeader?.startsWith("Bearer ")) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
-      status: 401,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
-
-  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    global: { headers: { Authorization: authHeader } },
-  });
-
-  const token = authHeader.replace("Bearer ", "");
-  const { data: claimsData, error: claimsError } = await supabase.auth.getUser(token);
-  if (claimsError || !claimsData?.user) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
-      status: 401,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
-
-  const userId = claimsData.user.id;
   const url = new URL(req.url);
   const action = url.searchParams.get("action");
 
   try {
+    // Handle OAuth callback BEFORE auth check (Google redirect has no Authorization header)
+    if (action === "callback") {
+      const code = url.searchParams.get("code");
+      const stateParam = url.searchParams.get("state");
+
+      if (!code || !stateParam) {
+        return new Response("Missing code or state", { status: 400, headers: corsHeaders });
+      }
+
+      const { userId: stateUserId, redirectUri } = JSON.parse(atob(stateParam));
+
+      const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          code,
+          client_id: GOOGLE_CLIENT_ID,
+          client_secret: GOOGLE_CLIENT_SECRET,
+          redirect_uri: `${SUPABASE_URL}/functions/v1/google-calendar-sync?action=callback`,
+          grant_type: "authorization_code",
+        }),
+      });
+
+      const tokenData = await tokenRes.json();
+      if (!tokenRes.ok) {
+        console.error("Token exchange failed:", tokenData);
+        return Response.redirect(`${redirectUri}?calendar=error`, 302);
+      }
+
+      const serviceClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+      const expiry = new Date(Date.now() + tokenData.expires_in * 1000).toISOString();
+
+      const { error: upsertError } = await serviceClient
+        .from("google_calendar_tokens")
+        .upsert({
+          user_id: stateUserId,
+          access_token: tokenData.access_token,
+          refresh_token: tokenData.refresh_token,
+          token_expiry: expiry,
+        }, { onConflict: "user_id" });
+
+      if (upsertError) {
+        console.error("Token storage failed:", upsertError);
+        return Response.redirect(`${redirectUri}?calendar=error`, 302);
+      }
+
+      return Response.redirect(`${redirectUri}?calendar=connected`, 302);
+    }
+
+    // All other actions require Authorization header
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await supabase.auth.getUser(token);
+    if (claimsError || !claimsData?.user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const userId = claimsData.user.id;
+
     // Step 1: Generate OAuth URL for calendar consent
     if (action === "auth-url") {
       const redirectUri = url.searchParams.get("redirect_uri") || "";
@@ -61,60 +112,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Step 2: Handle OAuth callback
-    if (action === "callback") {
-      const code = url.searchParams.get("code");
-      const stateParam = url.searchParams.get("state");
-
-      if (!code || !stateParam) {
-        return new Response("Missing code or state", { status: 400, headers: corsHeaders });
-      }
-
-      const { redirectUri } = JSON.parse(atob(stateParam));
-
-      // Exchange code for tokens
-      const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
-          code,
-          client_id: GOOGLE_CLIENT_ID,
-          client_secret: GOOGLE_CLIENT_SECRET,
-          redirect_uri: `${SUPABASE_URL}/functions/v1/google-calendar-sync?action=callback`,
-          grant_type: "authorization_code",
-        }),
-      });
-
-      const tokenData = await tokenRes.json();
-      if (!tokenRes.ok) {
-        console.error("Token exchange failed:", tokenData);
-        return Response.redirect(`${redirectUri}?calendar=error`, 302);
-      }
-
-      // Store tokens using service role to bypass RLS (callback has no user session)
-      const serviceClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-      const { userId: stateUserId } = JSON.parse(atob(stateParam));
-
-      const expiry = new Date(Date.now() + tokenData.expires_in * 1000).toISOString();
-
-      const { error: upsertError } = await serviceClient
-        .from("google_calendar_tokens")
-        .upsert({
-          user_id: stateUserId,
-          access_token: tokenData.access_token,
-          refresh_token: tokenData.refresh_token,
-          token_expiry: expiry,
-        }, { onConflict: "user_id" });
-
-      if (upsertError) {
-        console.error("Token storage failed:", upsertError);
-        return Response.redirect(`${redirectUri}?calendar=error`, 302);
-      }
-
-      return Response.redirect(`${redirectUri}?calendar=connected`, 302);
-    }
-
-    // Step 3: Sync allocations to Google Calendar
+    // Step 2: Sync allocations to Google Calendar
     if (action === "sync") {
       // Get stored tokens
       const { data: tokenRow, error: tokenError } = await supabase
