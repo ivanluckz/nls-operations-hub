@@ -1,7 +1,8 @@
  import { useNavigate } from "react-router-dom";
  import { AdminLayout } from "@/components/admin/AdminLayout";
  import { Card, CardDescription, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
- import { Users, Shield, UserCog, ClipboardCheck, AlertTriangle, UserCheck, Sparkles, BookOpen, TrendingUp, Calendar, Activity } from "lucide-react";
+  import { Users, Shield, UserCog, ClipboardCheck, AlertTriangle, UserCheck, Sparkles, BookOpen, TrendingUp, Calendar, Activity } from "lucide-react";
+import FloatingChatButton from "@/components/student/FloatingChatButton";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -162,8 +163,10 @@ const AdminDashboard = () => {
              ))}
            </div>
          </div>
-       </div>
-     </AdminLayout>
+        </div>
+
+        <FloatingChatButton />
+      </AdminLayout>
   );
 };
 

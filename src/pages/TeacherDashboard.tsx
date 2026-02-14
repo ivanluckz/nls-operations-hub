@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { LogOut, GraduationCap, ClipboardCheck, AlertTriangle } from "lucide-react";
 import ActivityMessaging from "@/components/teacher/ActivityMessaging";
+import FloatingChatButton from "@/components/student/FloatingChatButton";
 
 interface Activity {
   id: string;
@@ -209,6 +210,8 @@ const TeacherDashboard = () => {
 
         <ActivityMessaging />
       </main>
+
+      <FloatingChatButton />
     </div>
   );
 };
