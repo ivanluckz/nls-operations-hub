@@ -11,7 +11,8 @@ import { CHATBOT_LIMITS } from "@/lib/constants";
 
 type Message = { role: "user" | "assistant"; content: string };
 
-const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/activity-chatbot`;
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co`;
+const CHAT_URL = `${SUPABASE_URL}/functions/v1/activity-chatbot`;
 
 async function streamChat({
   messages,
