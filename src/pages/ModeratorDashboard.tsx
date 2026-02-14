@@ -15,6 +15,7 @@ import {
   AlertTriangle,
   ListChecks,
 } from "lucide-react";
+import FloatingChatButton from "@/components/student/FloatingChatButton";
 
 interface Stats {
   totalActivities: number;
@@ -352,6 +353,8 @@ const ModeratorDashboard = () => {
           </CardContent>
         </Card>
       </main>
+
+      <FloatingChatButton />
     </div>
   );
 };
