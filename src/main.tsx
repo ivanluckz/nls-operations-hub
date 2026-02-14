@@ -2,15 +2,27 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 
-// Restore custom theme on app load (deferred to ensure it loads after app CSS)
-const savedThemeUrl = localStorage.getItem("nls-active-theme-url");
-if (savedThemeUrl) {
+// Restore custom theme CSS from IndexedDB on load
+const activeThemeId = localStorage.getItem("nls-active-theme-id");
+if (activeThemeId) {
+  // Defer to after app CSS loads, then apply from IndexedDB
   requestAnimationFrame(() => {
-    const link = document.createElement("link");
-    link.id = "user-custom-theme";
-    link.rel = "stylesheet";
-    link.href = savedThemeUrl;
-    document.head.appendChild(link);
+    const request = indexedDB.open("nls-themes", 1);
+    request.onsuccess = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains("themes")) return;
+      const tx = db.transaction("themes", "readonly");
+      const get = tx.objectStore("themes").get(activeThemeId);
+      get.onsuccess = () => {
+        const theme = get.result;
+        if (theme?.cssContent) {
+          const style = document.createElement("style");
+          style.id = "user-custom-theme-style";
+          style.textContent = theme.cssContent;
+          document.head.appendChild(style);
+        }
+      };
+    };
   });
 }
 
