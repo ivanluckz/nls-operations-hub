@@ -147,16 +147,19 @@ const PreExcuseStudents = () => {
           student_id,
           activity_id,
           day_of_week,
-          activities (title),
-          profiles:student_id (full_name)
+          activities (title)
         `)
         .eq("student_id", studentId);
+
+      // Get student name from our already-loaded students list
+      const student = students.find(s => s.id === studentId);
+      const studentName = student?.full_name || "Unknown";
 
       const formattedAllocations: Allocation[] = (data || []).map((item: Record<string, unknown>) => ({
         student_id: item.student_id as string,
         activity_id: item.activity_id as string,
         day_of_week: item.day_of_week as string,
-        student_name: (item.profiles as { full_name?: string })?.full_name || "Unknown",
+        student_name: studentName,
         activity_title: (item.activities as { title?: string })?.title || "Unknown",
       }));
 

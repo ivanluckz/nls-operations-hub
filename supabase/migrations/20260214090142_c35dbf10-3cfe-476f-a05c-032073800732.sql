@@ -1,0 +1,2 @@
+ALTER TABLE public.attendance_records DROP CONSTRAINT attendance_records_status_check;
+ALTER TABLE public.attendance_records ADD CONSTRAINT attendance_records_status_check CHECK (status = ANY (ARRAY['present'::text, 'late'::text, 'absent'::text, 'excused'::text]));
