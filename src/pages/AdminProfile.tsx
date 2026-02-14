@@ -7,8 +7,9 @@
  import { Label } from "@/components/ui/label";
  import { useToast } from "@/hooks/use-toast";
  import { AvatarUpload } from "@/components/AvatarUpload";
- import { Loader2, Save, User, Mail, Shield } from "lucide-react";
- import { Badge } from "@/components/ui/badge";
+import { Loader2, Save, User, Mail, Shield, Palette } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { useNavigate } from "react-router-dom";
  
  interface Profile {
    id: string;
@@ -19,7 +20,8 @@
  }
  
  const AdminProfile = () => {
-   const { toast } = useToast();
+    const navigate = useNavigate();
+    const { toast } = useToast();
    const [profile, setProfile] = useState<Profile | null>(null);
    const [loading, setLoading] = useState(true);
    const [saving, setSaving] = useState(false);
@@ -208,20 +210,38 @@
            </CardContent>
          </Card>
  
-         <Card>
-           <CardHeader>
-             <CardTitle>Account Details</CardTitle>
-           </CardHeader>
-           <CardContent>
-             <p className="text-sm text-muted-foreground">
-               Member since {new Date(profile.created_at).toLocaleDateString("en-US", {
-                 year: "numeric",
-                 month: "long",
-                 day: "numeric",
-               })}
-             </p>
-           </CardContent>
-         </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Palette className="h-5 w-5" />
+                Custom Themes
+              </CardTitle>
+              <CardDescription>
+                Upload and apply custom CSS themes to personalize your experience
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button variant="outline" onClick={() => navigate("/themes")}>
+                <Palette className="mr-2 h-4 w-4" />
+                Manage Themes
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Account Details</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                Member since {new Date(profile.created_at).toLocaleDateString("en-US", {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                })}
+              </p>
+            </CardContent>
+          </Card>
        </div>
      </AdminLayout>
    );
