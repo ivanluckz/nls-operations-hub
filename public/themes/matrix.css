@@ -1,52 +1,41 @@
 /* Matrix Theme — Dark green terminal aesthetic */
+/* Using higher specificity to override app defaults */
 
-:root {
-  --background: 120 10% 4%;
-  --foreground: 120 100% 75%;
-  --card: 120 10% 7%;
-  --card-foreground: 120 80% 70%;
-  --popover: 120 10% 6%;
-  --popover-foreground: 120 80% 70%;
-  --primary: 120 100% 40%;
-  --primary-foreground: 120 10% 4%;
-  --secondary: 120 15% 12%;
-  --secondary-foreground: 120 80% 65%;
-  --muted: 120 10% 14%;
-  --muted-foreground: 120 30% 45%;
-  --accent: 120 100% 35%;
-  --accent-foreground: 120 10% 4%;
-  --destructive: 0 70% 45%;
-  --destructive-foreground: 0 0% 98%;
-  --border: 120 20% 15%;
-  --input: 120 15% 12%;
-  --ring: 120 100% 40%;
-  --radius: 0.5rem;
-  --sidebar-background: 120 10% 5%;
-  --sidebar-foreground: 120 80% 65%;
-  --sidebar-primary: 120 100% 40%;
-  --sidebar-primary-foreground: 120 10% 4%;
-  --sidebar-accent: 120 15% 12%;
-  --sidebar-accent-foreground: 120 80% 65%;
-  --sidebar-border: 120 20% 12%;
-  --sidebar-ring: 120 100% 40%;
-}
-
-.dark {
-  --background: 120 10% 4%;
-  --foreground: 120 100% 75%;
-  --card: 120 10% 7%;
-  --card-foreground: 120 80% 70%;
-  --primary: 120 100% 40%;
-  --primary-foreground: 120 10% 4%;
-  --muted: 120 10% 14%;
-  --muted-foreground: 120 30% 45%;
-  --border: 120 20% 15%;
+html:root {
+  --background: 120 10% 4% !important;
+  --foreground: 120 100% 75% !important;
+  --card: 120 10% 7% !important;
+  --card-foreground: 120 80% 70% !important;
+  --popover: 120 10% 6% !important;
+  --popover-foreground: 120 80% 70% !important;
+  --primary: 120 100% 40% !important;
+  --primary-foreground: 120 10% 4% !important;
+  --secondary: 120 15% 12% !important;
+  --secondary-foreground: 120 80% 65% !important;
+  --muted: 120 10% 14% !important;
+  --muted-foreground: 120 30% 45% !important;
+  --accent: 120 100% 35% !important;
+  --accent-foreground: 120 10% 4% !important;
+  --destructive: 0 70% 45% !important;
+  --destructive-foreground: 0 0% 98% !important;
+  --border: 120 20% 15% !important;
+  --input: 120 15% 12% !important;
+  --ring: 120 100% 40% !important;
+  --radius: 0.5rem !important;
+  --sidebar-background: 120 10% 5% !important;
+  --sidebar-foreground: 120 80% 65% !important;
+  --sidebar-primary: 120 100% 40% !important;
+  --sidebar-primary-foreground: 120 10% 4% !important;
+  --sidebar-accent: 120 15% 12% !important;
+  --sidebar-accent-foreground: 120 80% 65% !important;
+  --sidebar-border: 120 20% 12% !important;
+  --sidebar-ring: 120 100% 40% !important;
 }
 
 /* Glow effect on primary buttons */
 [data-slot="button"].bg-primary,
 button.bg-primary {
-  box-shadow: 0 0 12px hsl(120 100% 40% / 0.4), 0 0 30px hsl(120 100% 40% / 0.15);
+  box-shadow: 0 0 12px hsl(120 100% 40% / 0.4), 0 0 30px hsl(120 100% 40% / 0.15) !important;
   text-shadow: 0 0 6px hsl(120 100% 60% / 0.5);
 }
 
