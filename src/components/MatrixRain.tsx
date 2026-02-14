@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 
-const CHARS = "アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン0123456789ABCDEFZ";
+const CHARS = "01";
 const FONT_SIZE = 14;
 const DROP_SPEED = 0.05;
 

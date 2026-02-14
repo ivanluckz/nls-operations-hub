@@ -37,7 +37,7 @@ const queryClient = new QueryClient();
 
 const AppContent = () => {
   const { activeThemeUrl } = useTheme();
-  const isMatrixTheme = activeThemeUrl?.includes("matrix");
+  const isMatrixTheme = activeThemeUrl?.includes("matrix") || activeThemeUrl?.includes("binary");
 
   return (
     <>

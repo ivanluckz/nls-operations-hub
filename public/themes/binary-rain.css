@@ -1,0 +1,84 @@
+/* Binary Rain Theme — Falling 0s and 1s hacker aesthetic */
+
+html:root {
+  --background: 160 15% 3% !important;
+  --foreground: 160 100% 70% !important;
+  --card: 160 12% 6% !important;
+  --card-foreground: 160 80% 65% !important;
+  --popover: 160 12% 5% !important;
+  --popover-foreground: 160 80% 65% !important;
+  --primary: 160 100% 45% !important;
+  --primary-foreground: 160 15% 3% !important;
+  --secondary: 160 15% 10% !important;
+  --secondary-foreground: 160 80% 60% !important;
+  --muted: 160 10% 12% !important;
+  --muted-foreground: 160 25% 40% !important;
+  --accent: 160 100% 38% !important;
+  --accent-foreground: 160 15% 3% !important;
+  --destructive: 0 70% 45% !important;
+  --destructive-foreground: 0 0% 98% !important;
+  --border: 160 20% 14% !important;
+  --input: 160 15% 10% !important;
+  --ring: 160 100% 45% !important;
+  --radius: 0.375rem !important;
+  --sidebar-background: 160 15% 4% !important;
+  --sidebar-foreground: 160 80% 60% !important;
+  --sidebar-primary: 160 100% 45% !important;
+  --sidebar-primary-foreground: 160 15% 3% !important;
+  --sidebar-accent: 160 15% 10% !important;
+  --sidebar-accent-foreground: 160 80% 60% !important;
+  --sidebar-border: 160 20% 10% !important;
+  --sidebar-ring: 160 100% 45% !important;
+}
+
+/* Glow effect on primary buttons */
+[data-slot="button"].bg-primary,
+button.bg-primary {
+  box-shadow: 0 0 14px hsl(160 100% 45% / 0.5), 0 0 40px hsl(160 100% 45% / 0.15) !important;
+  text-shadow: 0 0 6px hsl(160 100% 60% / 0.6);
+}
+
+/* Terminal monospace headings */
+h1, h2, h3 {
+  font-family: 'Courier New', 'Consolas', monospace !important;
+  text-shadow: 0 0 10px hsl(160 100% 50% / 0.4);
+}
+
+/* Card glow borders */
+[data-slot="card"],
+.rounded-lg.border {
+  border-color: hsl(160 30% 16%) !important;
+  box-shadow: 0 0 8px hsl(160 100% 45% / 0.1);
+}
+
+/* Scanline overlay */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 3px,
+    hsl(160 100% 50% / 0.012) 3px,
+    hsl(160 100% 50% / 0.012) 6px
+  );
+}
+
+/* Input glow on focus */
+input:focus, textarea:focus {
+  box-shadow: 0 0 10px hsl(160 100% 45% / 0.35) !important;
+}
+
+/* Badge glow */
+[data-slot="badge"] {
+  text-shadow: 0 0 5px hsl(160 100% 50% / 0.4);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: hsl(160 15% 5%); }
+::-webkit-scrollbar-thumb { background: hsl(160 40% 18%); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: hsl(160 60% 28%); }
