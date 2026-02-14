@@ -6,6 +6,7 @@ import WelcomeHeader from "@/components/student/WelcomeHeader";
 import StatusCard from "@/components/student/StatusCard";
 import TimetableCard from "@/components/student/TimetableCard";
 import QRCodeCard from "@/components/student/QRCodeCard";
+import CalendarSyncCard from "@/components/student/CalendarSyncCard";
 import FloatingChatButton from "@/components/student/FloatingChatButton";
 
 interface Profile {
@@ -128,6 +129,9 @@ const StudentDashboard = () => {
             />
             <QRCodeCard />
           </div>
+
+          {/* Calendar Sync */}
+          {allocations.length > 0 && <CalendarSyncCard />}
 
           {/* Weekly Timetable */}
           {allocations.length > 0 && (
