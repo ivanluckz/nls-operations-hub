@@ -118,23 +118,30 @@ const TeacherAttendance = () => {
 
   const fetchStudents = async () => {
     try {
-      const { data } = await supabase
+      // Two-step fetch: get student IDs from allocations, then profiles
+      const { data: allocations } = await supabase
         .from("allocations")
-        .select(`
-          student_id,
-          profiles!allocations_student_id_fkey (
-            full_name,
-            email
-          )
-        `)
+        .select("student_id")
         .eq("activity_id", selectedActivity)
         .eq("day_of_week", selectedDay);
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const studentList: Student[] = (data || []).map((item: any) => ({
-        student_id: item.student_id,
-        student_name: item.profiles?.full_name || 'Unknown',
-        student_email: item.profiles?.email || '',
+      const studentIds = [...new Set((allocations || []).map(a => a.student_id))];
+
+      if (studentIds.length === 0) {
+        setStudents([]);
+        setAttendance(new Map());
+        return;
+      }
+
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, full_name, email")
+        .in("id", studentIds);
+
+      const studentList: Student[] = (profiles || []).map(p => ({
+        student_id: p.id,
+        student_name: p.full_name || 'Unknown',
+        student_email: p.email || '',
       }));
 
       setStudents(studentList);
