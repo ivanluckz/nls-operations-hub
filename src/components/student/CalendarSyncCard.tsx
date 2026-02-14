@@ -5,6 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Calendar, RefreshCw, Unlink, CheckCircle2 } from "lucide-react";
 
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://nbjoqsaeulvwxlnbevog.supabase.co";
+
 const CalendarSyncCard = () => {
   const { toast } = useToast();
   const [isConnected, setIsConnected] = useState(false);
@@ -33,7 +35,7 @@ const CalendarSyncCard = () => {
       if (!session) return;
 
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/google-calendar-sync?action=status`,
+        `${SUPABASE_URL}/functions/v1/google-calendar-sync?action=status`,
         {
           headers: {
             Authorization: `Bearer ${session.access_token}`,
@@ -56,7 +58,7 @@ const CalendarSyncCard = () => {
       if (!session) return;
 
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/google-calendar-sync?action=auth-url&redirect_uri=${encodeURIComponent(window.location.origin + "/student")}`,
+        `${SUPABASE_URL}/functions/v1/google-calendar-sync?action=auth-url&redirect_uri=${encodeURIComponent(window.location.origin + "/student")}`,
         {
           headers: {
             Authorization: `Bearer ${session.access_token}`,
@@ -82,7 +84,7 @@ const CalendarSyncCard = () => {
       if (!session) return;
 
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/google-calendar-sync?action=sync`,
+        `${SUPABASE_URL}/functions/v1/google-calendar-sync?action=sync`,
         {
           headers: {
             Authorization: `Bearer ${session.access_token}`,
@@ -117,7 +119,7 @@ const CalendarSyncCard = () => {
       if (!session) return;
 
       await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/google-calendar-sync?action=disconnect`,
+        `${SUPABASE_URL}/functions/v1/google-calendar-sync?action=disconnect`,
         {
           headers: {
             Authorization: `Bearer ${session.access_token}`,
