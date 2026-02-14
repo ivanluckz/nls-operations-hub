@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -5,6 +6,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import ProtectedRoute from "./components/ProtectedRoute";
 import ErrorBoundary from "./components/ErrorBoundary";
+import { useTheme } from "@/hooks/use-custom-theme";
+
+const MatrixRain = lazy(() => import("./components/MatrixRain"));
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import StudentDashboard from "./pages/StudentDashboard";
@@ -31,10 +35,17 @@ import ThemeManagement from "./pages/ThemeManagement";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <ErrorBoundary>
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
+const AppContent = () => {
+  const { activeThemeUrl } = useTheme();
+  const isMatrixTheme = activeThemeUrl?.includes("matrix");
+
+  return (
+    <>
+      {isMatrixTheme && (
+        <Suspense fallback={null}>
+          <MatrixRain />
+        </Suspense>
+      )}
       <Toaster />
       <Sonner />
       <BrowserRouter>
@@ -42,54 +53,12 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/bg-removal" element={<BackgroundRemoval />} />
-          <Route
-            path="/student"
-            element={
-              <ProtectedRoute requiredRole="student">
-                <StudentDashboard />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/student/preferences"
-            element={
-              <ProtectedRoute requiredRole="student">
-                <StudentPreferences />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/student/messages"
-            element={
-              <ProtectedRoute requiredRole="student">
-                <StudentMessages />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/moderator"
-            element={
-              <ProtectedRoute requiredRole="moderator">
-                <ModeratorDashboard />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/moderator/activities"
-            element={
-              <ProtectedRoute requiredRole="moderator">
-                <ModeratorActivities />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/moderator/allocations"
-            element={
-              <ProtectedRoute requiredRole="moderator">
-                <ModeratorAllocations />
-              </ProtectedRoute>
-            }
-          />
+          <Route path="/student" element={<ProtectedRoute requiredRole="student"><StudentDashboard /></ProtectedRoute>} />
+          <Route path="/student/preferences" element={<ProtectedRoute requiredRole="student"><StudentPreferences /></ProtectedRoute>} />
+          <Route path="/student/messages" element={<ProtectedRoute requiredRole="student"><StudentMessages /></ProtectedRoute>} />
+          <Route path="/moderator" element={<ProtectedRoute requiredRole="moderator"><ModeratorDashboard /></ProtectedRoute>} />
+          <Route path="/moderator/activities" element={<ProtectedRoute requiredRole="moderator"><ModeratorActivities /></ProtectedRoute>} />
+          <Route path="/moderator/allocations" element={<ProtectedRoute requiredRole="moderator"><ModeratorAllocations /></ProtectedRoute>} />
           <Route path="/admin" element={<ProtectedRoute requiredRole="admin"><AdminDashboard /></ProtectedRoute>} />
           <Route path="/admin/user-management" element={<ProtectedRoute requiredRole="admin"><UserManagement /></ProtectedRoute>} />
           <Route path="/admin/activities" element={<ProtectedRoute requiredRole="admin"><ModeratorActivities /></ProtectedRoute>} />
@@ -111,15 +80,23 @@ const App = () => (
           <Route path="/moderator/weekly-summary" element={<ProtectedRoute requiredRole="moderator"><WeeklySummary /></ProtectedRoute>} />
           <Route path="/admin/activity-roster" element={<ProtectedRoute requiredRole="admin"><ActivityRoster /></ProtectedRoute>} />
           <Route path="/moderator/activity-roster" element={<ProtectedRoute requiredRole="moderator"><ActivityRoster /></ProtectedRoute>} />
-           <Route path="/admin/profile" element={<ProtectedRoute requiredRole="admin"><AdminProfile /></ProtectedRoute>} />
-           <Route path="/chatbot" element={<ActivityChatbot />} />
-           <Route path="/themes" element={<ThemeManagement />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          <Route path="/admin/profile" element={<ProtectedRoute requiredRole="admin"><AdminProfile /></ProtectedRoute>} />
+          <Route path="/chatbot" element={<ActivityChatbot />} />
+          <Route path="/themes" element={<ThemeManagement />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+    </>
+  );
+};
+
+const App = () => (
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <AppContent />
+      </TooltipProvider>
+    </QueryClientProvider>
   </ErrorBoundary>
 );
 
