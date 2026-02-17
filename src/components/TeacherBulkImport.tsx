@@ -83,6 +83,18 @@
   { full_name: "Eric Ndatimana", email: "eric.ndatimana@ntare-louisenlund.org" },
   { full_name: "Simon Cyuzuzo", email: "simon.cyuzuzo@ntare-louisenlund.org" },
   { full_name: "Joyce Ndatimana", email: "joyce.ndatimana@ntare-louisenlund.org" },
+  { full_name: "Aurore Divine Irareba", email: "aurore.irareba@ntare-louisenlund.org" },
+  { full_name: "Christine Kayitesi", email: "christine.kayitesi@ntare-louisenlund.org" },
+  { full_name: "Clovis Mutabazi", email: "clovis.mutabazi@ntare-louisenlund.org" },
+  { full_name: "Dalia Pfukamusabe", email: "dalia.pfukamusabe@ntare-louisenlund.org" },
+  { full_name: "Esther Muganwa", email: "esther.muganwa@ntare-louisenlund.org" },
+  { full_name: "Hortence Utamuliza", email: "hortence.utamuliza@ntare-louisenlund.org" },
+  { full_name: "Laura Tesire Nsengimana", email: "laura.nsengimana@ntare-louisenlund.org" },
+  { full_name: "Lydivine Umuhoza Nisengwe", email: "lydivine.umuhoza@ntare-louisenlund.org" },
+  { full_name: "Napokea Uwimana", email: "napokea.uwimana@ntare-louisenlund.org" },
+  { full_name: "Peter Otema", email: "peter.otema@ntare-louisenlund.org" },
+  { full_name: "Reverien Kiruzi", email: "reverien.kiruzi@ntare-louisenlund.org" },
+  { full_name: "Romeon Mugisha", email: "romeon.mugisha@ntare-louisenlund.org" },
 ];
  
  interface TeacherBulkImportProps {
