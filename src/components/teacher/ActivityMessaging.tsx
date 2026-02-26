@@ -205,18 +205,22 @@ const ActivityMessaging = () => {
               No messages yet. Send the first one!
             </p>
           ) : (
-            messages.map((msg) => (
+            messages.map((msg) => {
+              const isTeacher = msg.sender_id === userId;
+              return (
               <div
                 key={msg.id}
-                className={`rounded-lg p-3 ${
-                  msg.message_type === "announcement"
+                className={`rounded-lg p-3 transition-all ${
+                  isTeacher
+                    ? "bg-gradient-to-br from-primary/15 to-primary/5 border-2 border-primary/30 shadow-md shadow-primary/10 ring-1 ring-primary/10"
+                    : msg.message_type === "announcement"
                     ? "bg-primary/10 border border-primary/20"
                     : "bg-card border"
                 }`}
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-medium text-sm">{msg.sender_name}</span>
+                    <span className={`font-medium text-sm ${isTeacher ? "text-primary font-semibold" : ""}`}>{msg.sender_name}</span>
                     <Badge
                       variant={msg.message_type === "announcement" ? "default" : "secondary"}
                       className="text-xs"
@@ -242,7 +246,9 @@ const ActivityMessaging = () => {
                 </div>
                 <p className="text-sm mt-1 whitespace-pre-wrap">{msg.content}</p>
               </div>
-            ))
+              );
+            })
+
           )}
           <div ref={messagesEndRef} />
         </div>
