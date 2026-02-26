@@ -3,11 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, MessageCircle, Megaphone, Send } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ArrowLeft, MessageCircle, Megaphone, Send, Trash2, ShieldCheck } from "lucide-react";
 
 interface Message {
   id: string;
@@ -17,11 +17,13 @@ interface Message {
   content: string;
   created_at: string;
   sender_name?: string;
+  is_teacher?: boolean;
 }
 
 interface ActivityInfo {
   id: string;
   title: string;
+  teacher_id: string | null;
 }
 
 const StudentMessages = () => {
@@ -35,6 +37,8 @@ const StudentMessages = () => {
   const [userId, setUserId] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  const currentTeacherId = activities.find((a) => a.id === selectedActivity)?.teacher_id;
+
   useEffect(() => {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -43,7 +47,7 @@ const StudentMessages = () => {
 
       const { data: allocations } = await supabase
         .from("allocations")
-        .select("activity_id, activities(id, title)")
+        .select("activity_id, activities(id, title, teacher_id)")
         .eq("student_id", user.id);
 
       if (allocations) {
@@ -51,7 +55,7 @@ const StudentMessages = () => {
         allocations.forEach((a) => {
           const act = a.activities as any;
           if (act && !uniqueActivities.has(act.id)) {
-            uniqueActivities.set(act.id, { id: act.id, title: act.title });
+            uniqueActivities.set(act.id, { id: act.id, title: act.title, teacher_id: act.teacher_id });
           }
         });
         const acts = Array.from(uniqueActivities.values());
@@ -84,13 +88,26 @@ const StudentMessages = () => {
             .eq("id", msg.sender_id)
             .single();
           msg.sender_name = profile?.full_name || "Unknown";
+          msg.is_teacher = msg.sender_id === currentTeacherId;
           setMessages((prev) => [...prev, msg]);
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "DELETE",
+          schema: "public",
+          table: "activity_messages",
+          filter: `activity_id=eq.${selectedActivity}`,
+        },
+        (payload) => {
+          setMessages((prev) => prev.filter((m) => m.id !== (payload.old as Message).id));
         }
       )
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [selectedActivity]);
+  }, [selectedActivity, currentTeacherId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -112,11 +129,14 @@ const StudentMessages = () => {
         .in("id", senderIds);
 
       const profileMap = new Map(profiles?.map((p) => [p.id, p.full_name]) || []);
+      const teacherId = activities.find((a) => a.id === selectedActivity)?.teacher_id;
+
       setMessages(
         data.map((m) => ({
           ...m,
           message_type: m.message_type as "announcement" | "discussion",
           sender_name: profileMap.get(m.sender_id) || "Unknown",
+          is_teacher: m.sender_id === teacherId,
         }))
       );
     }
@@ -142,11 +162,37 @@ const StudentMessages = () => {
     }
   };
 
+  const handleDelete = async (messageId: string) => {
+    const { error } = await supabase
+      .from("activity_messages")
+      .delete()
+      .eq("id", messageId);
+
+    if (error) {
+      toast({ variant: "destructive", title: "Failed to delete message" });
+    }
+  };
+
   const formatTime = (dateStr: string) => {
     const d = new Date(dateStr);
     return d.toLocaleString(undefined, {
       month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
     });
+  };
+
+  const getMessageStyle = (msg: Message) => {
+    const isOwn = msg.sender_id === userId;
+
+    if (msg.is_teacher) {
+      return "bg-gradient-to-br from-primary/15 to-primary/5 border-2 border-primary/30 shadow-md shadow-primary/10 ring-1 ring-primary/10";
+    }
+    if (isOwn) {
+      return "bg-primary/10 ml-8 border border-primary/15";
+    }
+    if (msg.message_type === "announcement") {
+      return "bg-primary/5 border border-primary/20";
+    }
+    return "bg-card border";
   };
 
   return (
@@ -192,24 +238,36 @@ const StudentMessages = () => {
                   messages.map((msg) => (
                     <div
                       key={msg.id}
-                      className={`rounded-lg p-3 ${
-                        msg.sender_id === userId
-                          ? "bg-primary/10 ml-8"
-                          : msg.message_type === "announcement"
-                          ? "bg-primary/5 border border-primary/20"
-                          : "bg-card border"
-                      }`}
+                      className={`rounded-lg p-3 transition-all ${getMessageStyle(msg)}`}
                     >
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-medium text-sm">
-                          {msg.sender_id === userId ? "You" : msg.sender_name}
-                        </span>
-                        {msg.message_type === "announcement" && (
-                          <Badge variant="default" className="text-xs">
-                            <Megaphone className="h-3 w-3 mr-1" />Announcement
-                          </Badge>
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={`font-medium text-sm ${msg.is_teacher ? "text-primary font-semibold" : ""}`}>
+                            {msg.sender_id === userId ? "You" : msg.sender_name}
+                          </span>
+                          {msg.is_teacher && (
+                            <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/30">
+                              <ShieldCheck className="h-3 w-3 mr-1" />
+                              Supervisor
+                            </Badge>
+                          )}
+                          {msg.message_type === "announcement" && (
+                            <Badge variant="default" className="text-xs">
+                              <Megaphone className="h-3 w-3 mr-1" />Announcement
+                            </Badge>
+                          )}
+                          <span className="text-xs text-muted-foreground">{formatTime(msg.created_at)}</span>
+                        </div>
+                        {msg.sender_id === userId && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 text-muted-foreground hover:text-destructive shrink-0"
+                            onClick={() => handleDelete(msg.id)}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
                         )}
-                        <span className="text-xs text-muted-foreground">{formatTime(msg.created_at)}</span>
                       </div>
                       <p className="text-sm mt-1 whitespace-pre-wrap">{msg.content}</p>
                     </div>
