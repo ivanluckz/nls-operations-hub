@@ -237,6 +237,36 @@ const ModeratorActivities = () => {
     }
   };
 
+  const getActivityTeachers = (activity: Activity): Teacher[] => {
+    const names = activity.teacher_in_charge.split(",").map(n => n.trim().toLowerCase());
+    const matched = teachers.filter(t =>
+      names.some(n => t.full_name.toLowerCase().includes(n) || n.includes(t.full_name.toLowerCase()))
+    );
+    if (activity.teacher_id && !matched.find(t => t.id === activity.teacher_id)) {
+      const primary = teachers.find(t => t.id === activity.teacher_id);
+      if (primary) matched.unshift(primary);
+    }
+    return matched;
+  };
+
+  const handleRemoveTeacher = async (activity: Activity, teacherId: string) => {
+    const remaining = getActivityTeachers(activity).filter(t => t.id !== teacherId);
+    const newInCharge = remaining.length > 0 ? remaining.map(t => t.full_name).join(", ") : "TBD";
+    const newPrimary = remaining.length > 0 ? remaining[0].id : null;
+
+    try {
+      const { error } = await supabase
+        .from("activities")
+        .update({ teacher_id: newPrimary, teacher_in_charge: newInCharge })
+        .eq("id", activity.id);
+      if (error) throw error;
+      toast({ title: "Teacher removed" });
+      fetchData();
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Error", description: error.message || "Failed to remove teacher" });
+    }
+  };
+
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this activity?")) return;
 
@@ -513,8 +543,24 @@ const ModeratorActivities = () => {
                 </p>
                 <div className="space-y-2 text-sm">
                   <div>
-                    <span className="text-muted-foreground">Teacher(s):</span>{" "}
-                    <span className="font-medium">{activity.teacher_in_charge}</span>
+                    <span className="text-muted-foreground">Teacher(s):</span>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {getActivityTeachers(activity).length > 0
+                        ? getActivityTeachers(activity).map(t => (
+                            <span key={t.id} className="inline-flex items-center gap-1 rounded-full border bg-muted/50 px-2 py-0.5 text-xs font-medium">
+                              {t.full_name}
+                              <button
+                                onClick={() => handleRemoveTeacher(activity, t.id)}
+                                className="ml-0.5 text-muted-foreground hover:text-destructive transition-colors"
+                                title={`Remove ${t.full_name}`}
+                              >
+                                <X className="h-2.5 w-2.5" />
+                              </button>
+                            </span>
+                          ))
+                        : <span className="text-muted-foreground">TBD</span>
+                      }
+                    </div>
                   </div>
                   <div>
                     <span className="text-muted-foreground">Schedule:</span>{" "}

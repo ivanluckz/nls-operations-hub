@@ -18,6 +18,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, Hash, Menu, Send, Trash2, ShieldCheck, Megaphone, Award, Crown } from "lucide-react";
+import { UserProfileCard } from "@/components/chat/UserProfileCard";
 
 interface Message {
   id: string;
@@ -45,12 +46,12 @@ const AVATAR_COLORS = [
 ];
 
 const BADGE_OPTIONS = [
-  { name: "Growing", emoji: "🌱", desc: "Active and improving" },
-  { name: "Star Student", emoji: "⭐", desc: "Outstanding performance" },
-  { name: "Leader", emoji: "👑", desc: "Shows leadership" },
-  { name: "On Fire", emoji: "🔥", desc: "Consistent effort" },
-  { name: "Creative", emoji: "💡", desc: "Brings fresh ideas" },
-  { name: "Team Player", emoji: "🤝", desc: "Great collaboration" },
+  { name: "Growing",      emoji: "🌱", desc: "Active and improving",    animClass: "badge-anim-grow"  },
+  { name: "Star Student", emoji: "⭐", desc: "Outstanding performance", animClass: "badge-anim-star"  },
+  { name: "Leader",       emoji: "👑", desc: "Shows leadership",        animClass: "badge-anim-crown" },
+  { name: "On Fire",      emoji: "🔥", desc: "Consistent effort",       animClass: "badge-anim-fire"  },
+  { name: "Creative",     emoji: "💡", desc: "Brings fresh ideas",      animClass: "badge-anim-bulb"  },
+  { name: "Team Player",  emoji: "🤝", desc: "Great collaboration",     animClass: "badge-anim-team"  },
 ];
 
 function getLastSeen(): Record<string, string> {
@@ -109,6 +110,9 @@ const StudentMessages = () => {
   const [adminEmail, setAdminEmail] = useState<string>("");
   const [submittingBadge, setSubmittingBadge] = useState(false);
   const [userBadges, setUserBadges] = useState<Record<string, string[]>>({});
+  const [profileCard, setProfileCard] = useState<{
+    senderId: string; senderName: string; isAdmin: boolean; isTeacher: boolean;
+  } | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const teacherIdsRef = useRef<Record<string, string | null>>({});
@@ -406,9 +410,12 @@ const StudentMessages = () => {
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 flex-wrap mb-1">
                                   <span className={`text-xs font-bold uppercase tracking-wider ${msg.is_admin ? "text-amber-500" : "text-primary"}`}>Announcement</span>
-                                  <span className={`text-sm font-semibold ${msg.is_admin ? "text-amber-500" : msg.is_teacher ? "text-primary" : ""}`}>
+                                  <button
+                                    className={`text-sm font-semibold ${msg.is_admin ? "text-amber-500" : msg.is_teacher ? "text-primary" : ""} ${!isOwn ? "hover:underline cursor-pointer" : ""}`}
+                                    onClick={() => !isOwn && setProfileCard({ senderId: msg.sender_id, senderName: msg.sender_name || "", isAdmin: !!msg.is_admin, isTeacher: !!msg.is_teacher })}
+                                  >
                                     {isOwn ? "You" : msg.sender_name}
-                                  </span>
+                                  </button>
                                   {msg.is_admin && (
                                     <Badge variant="outline" className="text-xs bg-amber-500/10 text-amber-600 border-amber-500/30 h-4 px-1.5 py-0">
                                       <Crown className="h-2.5 w-2.5 mr-1" />Admin
@@ -421,7 +428,7 @@ const StudentMessages = () => {
                                   )}
                                   {senderBadges.map(b => {
                                     const opt = BADGE_OPTIONS.find(o => o.name === b);
-                                    return opt ? <span key={b} title={b} className="text-sm">{opt.emoji}</span> : null;
+                                    return opt ? <span key={b} title={`${b} — ${opt.desc}`} className={`text-sm leading-none ${opt.animClass}`}>{opt.emoji}</span> : null;
                                   })}
                                   <span className="text-xs text-muted-foreground">{formatTime(msg.created_at)}</span>
                                 </div>
@@ -439,11 +446,16 @@ const StudentMessages = () => {
                             <div className={`group flex gap-3 px-2 py-0.5 rounded-md hover:bg-muted/40 ${startGroup ? "mt-4" : "mt-0.5"} ${msg.is_admin ? "border-l-2 border-amber-400/40" : ""}`}>
                               <div className="w-10 flex-shrink-0 flex justify-center">
                                 {startGroup ? (
-                                  <Avatar className="h-9 w-9 mt-0.5">
-                                    <AvatarFallback className={`text-white text-xs font-bold ${getAvatarColor(msg.sender_id)}`}>
-                                      {getInitials(msg.sender_name || "?")}
-                                    </AvatarFallback>
-                                  </Avatar>
+                                  <button
+                                    className={`rounded-full ${!isOwn ? "cursor-pointer hover:opacity-80 transition-opacity" : "cursor-default"}`}
+                                    onClick={() => !isOwn && setProfileCard({ senderId: msg.sender_id, senderName: msg.sender_name || "", isAdmin: !!msg.is_admin, isTeacher: !!msg.is_teacher })}
+                                  >
+                                    <Avatar className="h-9 w-9 mt-0.5">
+                                      <AvatarFallback className={`text-white text-xs font-bold ${getAvatarColor(msg.sender_id)}`}>
+                                        {getInitials(msg.sender_name || "?")}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                  </button>
                                 ) : (
                                   <span className="text-[10px] text-transparent group-hover:text-muted-foreground/60 pt-1 select-none leading-none mt-1">
                                     {formatTime(msg.created_at)}
@@ -453,9 +465,12 @@ const StudentMessages = () => {
                               <div className="flex-1 min-w-0">
                                 {startGroup && (
                                   <div className="flex items-center gap-2 flex-wrap mb-0.5">
-                                    <span className={`text-sm font-semibold ${msg.is_admin ? "text-amber-500" : msg.is_teacher ? "text-primary" : ""}`}>
+                                    <button
+                                      className={`text-sm font-semibold ${msg.is_admin ? "text-amber-500" : msg.is_teacher ? "text-primary" : ""} ${!isOwn ? "hover:underline cursor-pointer" : "cursor-default"}`}
+                                      onClick={() => !isOwn && setProfileCard({ senderId: msg.sender_id, senderName: msg.sender_name || "", isAdmin: !!msg.is_admin, isTeacher: !!msg.is_teacher })}
+                                    >
                                       {isOwn ? "You" : msg.sender_name}
-                                    </span>
+                                    </button>
                                     {msg.is_admin && (
                                       <Badge variant="outline" className="text-xs bg-amber-500/10 text-amber-600 border-amber-500/30 h-4 px-1.5 py-0">
                                         <Crown className="h-2.5 w-2.5 mr-1" />Admin
@@ -468,7 +483,7 @@ const StudentMessages = () => {
                                     )}
                                     {senderBadges.map(b => {
                                       const opt = BADGE_OPTIONS.find(o => o.name === b);
-                                      return opt ? <span key={b} title={b} className="text-base leading-none">{opt.emoji}</span> : null;
+                                      return opt ? <span key={b} title={`${b} — ${opt.desc}`} className={`text-base leading-none ${opt.animClass}`}>{opt.emoji}</span> : null;
                                     })}
                                     <span className="text-xs text-muted-foreground">{formatTime(msg.created_at)}</span>
                                   </div>
@@ -588,6 +603,20 @@ const StudentMessages = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Discord-style profile card */}
+      {profileCard && (
+        <UserProfileCard
+          open={!!profileCard}
+          onClose={() => setProfileCard(null)}
+          senderId={profileCard.senderId}
+          senderName={profileCard.senderName}
+          isAdmin={profileCard.isAdmin}
+          isTeacher={profileCard.isTeacher}
+          badges={userBadges[profileCard.senderId] || []}
+          currentActivityTitle={activities.find(a => a.id === selectedActivity)?.title}
+        />
+      )}
     </div>
   );
 };

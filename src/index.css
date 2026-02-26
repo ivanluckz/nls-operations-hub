@@ -222,3 +222,37 @@
 .nls-blue {
   color: hsl(215 75% 45%);
 }
+
+/* ── Badge animations ─────────────────────────────────────────────── */
+@keyframes badge-fire {
+  0%, 100% { filter: drop-shadow(0 0 3px #f97316); transform: scale(1); }
+  50%       { filter: drop-shadow(0 0 9px #ef4444); transform: scale(1.2); }
+}
+@keyframes badge-star {
+  0%, 100% { filter: drop-shadow(0 0 2px #fbbf24); transform: rotate(-8deg) scale(1); }
+  50%       { filter: drop-shadow(0 0 7px #f59e0b); transform: rotate(8deg) scale(1.18); }
+}
+@keyframes badge-crown {
+  0%, 100% { filter: drop-shadow(0 0 3px #d97706); transform: translateY(0); }
+  50%       { filter: drop-shadow(0 0 10px #fbbf24); transform: translateY(-2px); }
+}
+@keyframes badge-grow {
+  0%, 100% { transform: scale(1) translateY(0); }
+  50%       { transform: scale(1.22) translateY(-3px); }
+}
+@keyframes badge-bulb {
+  0%, 60%, 100% { filter: drop-shadow(0 0 2px #fde68a); opacity: 1; }
+  30%            { filter: drop-shadow(0 0 9px #fbbf24); opacity: 0.85; }
+}
+@keyframes badge-team {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 2px #60a5fa); }
+  50%       { transform: scale(1.18); filter: drop-shadow(0 0 7px #3b82f6); }
+}
+
+.badge-anim-fire  { display: inline-block; animation: badge-fire  1.4s ease-in-out infinite; }
+.badge-anim-star  { display: inline-block; animation: badge-star  2s   ease-in-out infinite; }
+.badge-anim-crown { display: inline-block; animation: badge-crown 2.2s ease-in-out infinite; }
+.badge-anim-grow  { display: inline-block; animation: badge-grow  2.5s ease-in-out infinite; }
+.badge-anim-bulb  { display: inline-block; animation: badge-bulb  1.8s ease-in-out infinite; }
+.badge-anim-team  { display: inline-block; animation: badge-team  2s   ease-in-out infinite; }
+/* ───────────────────────────────────────────────────────────────────── */
