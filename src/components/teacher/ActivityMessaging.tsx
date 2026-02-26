@@ -7,6 +7,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel,
+  AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
+  AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Hash, Megaphone, MessageCircle, Send, Trash2, ShieldCheck } from "lucide-react";
 
 interface Activity {
@@ -75,6 +80,7 @@ const ActivityMessaging = () => {
   const [messageType, setMessageType] = useState<"announcement" | "discussion">("announcement");
   const [sending, setSending] = useState(false);
   const [userId, setUserId] = useState<string>("");
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -182,9 +188,11 @@ const ActivityMessaging = () => {
     }
   };
 
-  const handleDelete = async (messageId: string) => {
-    const { error } = await supabase.from("activity_messages").delete().eq("id", messageId);
+  const confirmDelete = async () => {
+    if (!deleteTargetId) return;
+    const { error } = await supabase.from("activity_messages").delete().eq("id", deleteTargetId);
     if (error) toast({ variant: "destructive", title: "Failed to delete message" });
+    setDeleteTargetId(null);
   };
 
   if (activities.length === 0) {
@@ -200,6 +208,7 @@ const ActivityMessaging = () => {
   const selectedTitle = activities.find(a => a.id === selectedActivity)?.title;
 
   return (
+    <>
     <Card className="shadow-card">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between flex-wrap gap-3">
@@ -274,7 +283,7 @@ const ActivityMessaging = () => {
                             variant="ghost"
                             size="icon"
                             className="h-7 w-7 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 flex-shrink-0 self-start"
-                            onClick={() => handleDelete(msg.id)}
+                            onClick={() => setDeleteTargetId(msg.id)}
                           >
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
@@ -319,7 +328,7 @@ const ActivityMessaging = () => {
                               variant="ghost"
                               size="icon"
                               className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                              onClick={() => handleDelete(msg.id)}
+                              onClick={() => setDeleteTargetId(msg.id)}
                             >
                               <Trash2 className="h-3.5 w-3.5" />
                             </Button>
@@ -380,6 +389,24 @@ const ActivityMessaging = () => {
         </div>
       </CardContent>
     </Card>
+
+    <AlertDialog open={!!deleteTargetId} onOpenChange={(o) => { if (!o) setDeleteTargetId(null); }}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete this message?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This will permanently remove the message for everyone in the channel. This action cannot be undone.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            Delete
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  </>
   );
 };
 

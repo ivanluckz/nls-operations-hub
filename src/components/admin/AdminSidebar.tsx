@@ -36,6 +36,8 @@
    ChevronUp,
    Settings,
    LayoutDashboard,
+   MessageSquare,
+   Award,
  } from "lucide-react";
  import nlsLogo from "@/assets/nls-logo.png";
  
@@ -106,6 +108,18 @@
      icon: Sparkles,
      description: "AI reports",
      highlight: true,
+   },
+   {
+     title: "All Chats",
+     url: "/admin/messages",
+     icon: MessageSquare,
+     description: "View all activity chats",
+   },
+   {
+     title: "Badge Requests",
+     url: "/admin/badge-requests",
+     icon: Award,
+     description: "Approve student badges",
    },
  ];
  

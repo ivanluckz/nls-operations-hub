@@ -30,6 +30,8 @@
    "/admin/pre-excuse": { title: "Pre-Excuse Students", description: "Excuse students for past, present, or future dates" },
    "/admin/weekly-summary": { title: "AI Weekly Summary", description: "AI-powered attendance trend reports" },
    "/admin/profile": { title: "Profile Settings", description: "Manage your account settings" },
+   "/admin/messages": { title: "All Chats", description: "View and moderate all activity channel messages" },
+   "/admin/badge-requests": { title: "Badge Requests", description: "Review and approve student badge requests" },
  };
  
  export function AdminLayout({ children, title, description }: AdminLayoutProps) {

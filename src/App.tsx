@@ -30,6 +30,8 @@ import WeeklySummary from "./pages/WeeklySummary";
 import ActivityChatbot from "./pages/ActivityChatbot";
 import ActivityRoster from "./pages/ActivityRoster";
 import AdminProfile from "./pages/AdminProfile";
+import AdminMessages from "./pages/AdminMessages";
+import AdminBadgeRequests from "./pages/AdminBadgeRequests";
 import StudentMessages from "./pages/StudentMessages";
 import ThemeManagement from "./pages/ThemeManagement";
 
@@ -80,6 +82,8 @@ const AppContent = () => {
           <Route path="/admin/activity-roster" element={<ProtectedRoute requiredRole="admin"><ActivityRoster /></ProtectedRoute>} />
           <Route path="/moderator/activity-roster" element={<ProtectedRoute requiredRole="moderator"><ActivityRoster /></ProtectedRoute>} />
           <Route path="/admin/profile" element={<ProtectedRoute requiredRole="admin"><AdminProfile /></ProtectedRoute>} />
+          <Route path="/admin/messages" element={<ProtectedRoute requiredRole="admin"><AdminMessages /></ProtectedRoute>} />
+          <Route path="/admin/badge-requests" element={<ProtectedRoute requiredRole="admin"><AdminBadgeRequests /></ProtectedRoute>} />
           <Route path="/chatbot" element={<ActivityChatbot />} />
           <Route path="/themes" element={<ThemeManagement />} />
           <Route path="*" element={<NotFound />} />

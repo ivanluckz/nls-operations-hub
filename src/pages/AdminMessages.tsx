@@ -1,0 +1,300 @@
+import { useState, useEffect, useRef } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { AdminLayout } from "@/components/admin/AdminLayout";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel,
+  AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
+  AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Hash, ShieldCheck, Megaphone, Trash2 } from "lucide-react";
+
+interface Message {
+  id: string;
+  activity_id: string;
+  sender_id: string;
+  message_type: "announcement" | "discussion";
+  content: string;
+  created_at: string;
+  sender_name?: string;
+  is_teacher?: boolean;
+}
+
+interface Activity {
+  id: string;
+  title: string;
+  teacher_id: string | null;
+}
+
+const AVATAR_COLORS = [
+  "bg-red-500", "bg-orange-500", "bg-amber-500", "bg-emerald-500",
+  "bg-teal-500", "bg-blue-500", "bg-violet-500", "bg-pink-500",
+];
+
+function getAvatarColor(id: string): string {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) & 0xffffffff;
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+}
+function getInitials(name: string): string {
+  return name.split(" ").map(n => n[0]).filter(Boolean).slice(0, 2).join("").toUpperCase() || "?";
+}
+function isNewGroup(msg: Message, prev: Message | undefined): boolean {
+  if (!prev) return true;
+  if (msg.sender_id !== prev.sender_id) return true;
+  if (msg.message_type === "announcement" || prev.message_type === "announcement") return true;
+  return new Date(msg.created_at).getTime() - new Date(prev.created_at).getTime() > 5 * 60 * 1000;
+}
+function isSameDay(a: string, b: string): boolean {
+  const da = new Date(a), db = new Date(b);
+  return da.getFullYear() === db.getFullYear() && da.getMonth() === db.getMonth() && da.getDate() === db.getDate();
+}
+function formatDateSeparator(dateStr: string): string {
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  if (isSameDay(dateStr, today.toISOString())) return "Today";
+  if (isSameDay(dateStr, yesterday.toISOString())) return "Yesterday";
+  return new Date(dateStr).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
+}
+function formatTime(dateStr: string): string {
+  return new Date(dateStr).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+const AdminMessages = () => {
+  const { toast } = useToast();
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [selectedActivity, setSelectedActivity] = useState<string>("");
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const teacherIdsRef = useRef<Record<string, string | null>>({});
+  const selectedActivityRef = useRef<string>("");
+
+  useEffect(() => { selectedActivityRef.current = selectedActivity; }, [selectedActivity]);
+
+  useEffect(() => {
+    const init = async () => {
+      const { data } = await supabase
+        .from("activities")
+        .select("id, title, teacher_id")
+        .eq("is_active", true)
+        .order("title");
+
+      if (data) {
+        setActivities(data);
+        data.forEach(a => { teacherIdsRef.current[a.id] = a.teacher_id; });
+        if (data.length > 0) setSelectedActivity(data[0].id);
+      }
+    };
+    init();
+  }, []);
+
+  useEffect(() => {
+    if (!selectedActivity) return;
+
+    const fetchMessages = async () => {
+      const { data } = await supabase
+        .from("activity_messages").select("*")
+        .eq("activity_id", selectedActivity)
+        .order("created_at", { ascending: true }).limit(200);
+      if (!data) return;
+
+      const senderIds = [...new Set(data.map(m => m.sender_id))];
+      const { data: profiles } = await supabase.from("profiles").select("id, full_name").in("id", senderIds);
+      const profileMap = new Map(profiles?.map(p => [p.id, p.full_name]) || []);
+      const teacherId = teacherIdsRef.current[selectedActivity];
+
+      setMessages(data.map(m => ({
+        ...m,
+        message_type: m.message_type as "announcement" | "discussion",
+        sender_name: profileMap.get(m.sender_id) || "Unknown",
+        is_teacher: m.sender_id === teacherId,
+      })));
+    };
+    fetchMessages();
+
+    const channel = supabase.channel(`admin-msgs-${selectedActivity}`)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "activity_messages", filter: `activity_id=eq.${selectedActivity}` },
+        async (payload) => {
+          const msg = payload.new as Message;
+          const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", msg.sender_id).single();
+          setMessages(prev => [...prev, {
+            ...msg,
+            message_type: msg.message_type as "announcement" | "discussion",
+            sender_name: profile?.full_name || "Unknown",
+            is_teacher: msg.sender_id === teacherIdsRef.current[msg.activity_id],
+          }]);
+        }
+      )
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "activity_messages", filter: `activity_id=eq.${selectedActivity}` },
+        (payload) => { setMessages(prev => prev.filter(m => m.id !== (payload.old as Message).id)); }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [selectedActivity]);
+
+  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
+
+  const confirmDelete = async () => {
+    if (!deleteTargetId) return;
+    const { error } = await supabase.from("activity_messages").delete().eq("id", deleteTargetId);
+    if (error) toast({ variant: "destructive", title: "Failed to delete message" });
+    setDeleteTargetId(null);
+  };
+
+  const selectedTitle = activities.find(a => a.id === selectedActivity)?.title;
+
+  return (
+    <AdminLayout>
+      <div className="flex h-[calc(100vh-8rem)] rounded-xl border overflow-hidden">
+        {/* Sidebar */}
+        <aside className="w-56 border-r bg-muted/20 flex flex-col flex-shrink-0">
+          <div className="px-3 py-4 border-b">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">All Channels</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{activities.length} activities</p>
+          </div>
+          <div className="flex-1 overflow-y-auto py-2 space-y-0.5 px-2">
+            {activities.map((a) => (
+              <button key={a.id} onClick={() => setSelectedActivity(a.id)}
+                className={`w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors text-left ${
+                  selectedActivity === a.id ? "bg-primary/15 text-foreground font-medium" : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                }`}
+              >
+                <Hash className="h-4 w-4 flex-shrink-0 opacity-70" />
+                <span className="flex-1 truncate">{a.title}</span>
+              </button>
+            ))}
+          </div>
+        </aside>
+
+        {/* Chat area */}
+        <div className="flex flex-col flex-1 min-w-0 bg-background">
+          <div className="px-4 py-3 border-b flex items-center gap-2 flex-shrink-0">
+            <Hash className="h-5 w-5 text-muted-foreground" />
+            <h2 className="font-semibold text-sm">{selectedTitle || "Select a channel"}</h2>
+            <Badge variant="outline" className="ml-auto text-xs">Admin View</Badge>
+          </div>
+
+          <div className="flex-1 overflow-y-auto px-4 py-2">
+            {messages.length === 0 ? (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center">
+                  <Hash className="h-10 w-10 text-muted-foreground/30 mx-auto mb-2" />
+                  <p className="font-semibold">No messages in this channel</p>
+                </div>
+              </div>
+            ) : (
+              <div className="pb-2">
+                {messages.map((msg, idx) => {
+                  const prev = idx > 0 ? messages[idx - 1] : undefined;
+                  const showDateSep = !prev || !isSameDay(msg.created_at, prev.created_at);
+                  const startGroup = isNewGroup(msg, prev);
+
+                  return (
+                    <div key={msg.id}>
+                      {showDateSep && (
+                        <div className="flex items-center gap-3 my-5">
+                          <div className="flex-1 h-px bg-border" />
+                          <span className="text-xs text-muted-foreground font-medium whitespace-nowrap px-2">
+                            {formatDateSeparator(msg.created_at)}
+                          </span>
+                          <div className="flex-1 h-px bg-border" />
+                        </div>
+                      )}
+
+                      {msg.message_type === "announcement" ? (
+                        <div className="my-3 rounded-lg border-l-4 border-primary bg-primary/5 p-3 flex gap-3 group">
+                          <Megaphone className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap mb-1">
+                              <span className="text-xs font-bold uppercase tracking-wider text-primary">Announcement</span>
+                              <span className={`text-sm font-semibold ${msg.is_teacher ? "text-primary" : ""}`}>{msg.sender_name}</span>
+                              {msg.is_teacher && (
+                                <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/30 h-4 px-1.5 py-0">
+                                  <ShieldCheck className="h-2.5 w-2.5 mr-1" />Supervisor
+                                </Badge>
+                              )}
+                              <span className="text-xs text-muted-foreground">{formatTime(msg.created_at)}</span>
+                            </div>
+                            <p className="text-sm whitespace-pre-wrap break-words">{msg.content}</p>
+                          </div>
+                          <Button variant="ghost" size="icon"
+                            className="h-7 w-7 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 flex-shrink-0 self-start"
+                            onClick={() => setDeleteTargetId(msg.id)}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className={`group flex gap-3 px-2 py-0.5 rounded-md hover:bg-muted/40 ${startGroup ? "mt-4" : "mt-0.5"}`}>
+                          <div className="w-10 flex-shrink-0 flex justify-center">
+                            {startGroup ? (
+                              <Avatar className="h-9 w-9 mt-0.5">
+                                <AvatarFallback className={`text-white text-xs font-bold ${getAvatarColor(msg.sender_id)}`}>
+                                  {getInitials(msg.sender_name || "?")}
+                                </AvatarFallback>
+                              </Avatar>
+                            ) : (
+                              <span className="text-[10px] text-transparent group-hover:text-muted-foreground/60 pt-1 select-none leading-none mt-1">
+                                {formatTime(msg.created_at)}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            {startGroup && (
+                              <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                                <span className={`text-sm font-semibold ${msg.is_teacher ? "text-primary" : ""}`}>{msg.sender_name}</span>
+                                {msg.is_teacher && (
+                                  <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/30 h-4 px-1.5 py-0">
+                                    <ShieldCheck className="h-2.5 w-2.5 mr-1" />Supervisor
+                                  </Badge>
+                                )}
+                                <span className="text-xs text-muted-foreground">{formatTime(msg.created_at)}</span>
+                              </div>
+                            )}
+                            <p className="text-sm whitespace-pre-wrap break-words leading-relaxed">{msg.content}</p>
+                          </div>
+                          <div className="opacity-0 group-hover:opacity-100 flex-shrink-0 self-start pt-0.5">
+                            <Button variant="ghost" size="icon"
+                              className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                              onClick={() => setDeleteTargetId(msg.id)}>
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+                <div ref={messagesEndRef} />
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <AlertDialog open={!!deleteTargetId} onOpenChange={(o) => { if (!o) setDeleteTargetId(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this message?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove the message for everyone. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </AdminLayout>
+  );
+};
+
+export default AdminMessages;
