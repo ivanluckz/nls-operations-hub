@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Hash, Menu, Send, Trash2, ShieldCheck, Megaphone, Award } from "lucide-react";
+import { ArrowLeft, Hash, Menu, Send, Trash2, ShieldCheck, Megaphone, Award, Crown } from "lucide-react";
 
 interface Message {
   id: string;
@@ -28,6 +28,7 @@ interface Message {
   created_at: string;
   sender_name?: string;
   is_teacher?: boolean;
+  is_admin?: boolean;
 }
 
 interface ActivityInfo {
@@ -113,6 +114,7 @@ const StudentMessages = () => {
   const teacherIdsRef = useRef<Record<string, string | null>>({});
   const selectedActivityRef = useRef<string>("");
   const activityIdsRef = useRef<string[]>([]);
+  const adminIdsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => { selectedActivityRef.current = selectedActivity; }, [selectedActivity]);
 
@@ -142,6 +144,9 @@ const StudentMessages = () => {
       activityIdsRef.current = acts.map(a => a.id);
 
       if (acts.length > 0) { setSelectedActivity(acts[0].id); markSeen(acts[0].id); }
+
+      const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
+      adminRoles?.forEach(r => adminIdsRef.current.add(r.user_id));
 
       const lastSeen = getLastSeen();
       const counts: Record<string, number> = {};
@@ -186,6 +191,7 @@ const StudentMessages = () => {
         message_type: m.message_type as "announcement" | "discussion",
         sender_name: profileMap.get(m.sender_id) || "Unknown",
         is_teacher: m.sender_id === teacherId,
+        is_admin: adminIdsRef.current.has(m.sender_id),
       })));
     };
     fetchMessages();
@@ -203,6 +209,7 @@ const StudentMessages = () => {
           message_type: msg.message_type as "announcement" | "discussion",
           sender_name: profile?.full_name || "Unknown",
           is_teacher: msg.sender_id === teacherIdsRef.current[msg.activity_id],
+          is_admin: adminIdsRef.current.has(msg.sender_id),
         };
         if (msg.activity_id === selectedActivityRef.current) {
           setMessages(prev => [...prev, enriched]);
@@ -394,15 +401,20 @@ const StudentMessages = () => {
                           )}
 
                           {msg.message_type === "announcement" ? (
-                            <div className="my-3 rounded-lg border-l-4 border-primary bg-primary/5 p-3 flex gap-3 group">
-                              <Megaphone className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                            <div className={`my-3 rounded-lg border-l-4 ${msg.is_admin ? "border-amber-500 bg-amber-500/5" : "border-primary bg-primary/5"} p-3 flex gap-3 group`}>
+                              <Megaphone className={`h-5 w-5 flex-shrink-0 mt-0.5 ${msg.is_admin ? "text-amber-500" : "text-primary"}`} />
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 flex-wrap mb-1">
-                                  <span className="text-xs font-bold uppercase tracking-wider text-primary">Announcement</span>
-                                  <span className={`text-sm font-semibold ${msg.is_teacher ? "text-primary" : ""}`}>
+                                  <span className={`text-xs font-bold uppercase tracking-wider ${msg.is_admin ? "text-amber-500" : "text-primary"}`}>Announcement</span>
+                                  <span className={`text-sm font-semibold ${msg.is_admin ? "text-amber-500" : msg.is_teacher ? "text-primary" : ""}`}>
                                     {isOwn ? "You" : msg.sender_name}
                                   </span>
-                                  {msg.is_teacher && (
+                                  {msg.is_admin && (
+                                    <Badge variant="outline" className="text-xs bg-amber-500/10 text-amber-600 border-amber-500/30 h-4 px-1.5 py-0">
+                                      <Crown className="h-2.5 w-2.5 mr-1" />Admin
+                                    </Badge>
+                                  )}
+                                  {!msg.is_admin && msg.is_teacher && (
                                     <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/30 h-4 px-1.5 py-0">
                                       <ShieldCheck className="h-2.5 w-2.5 mr-1" />Supervisor
                                     </Badge>
@@ -424,7 +436,7 @@ const StudentMessages = () => {
                               )}
                             </div>
                           ) : (
-                            <div className={`group flex gap-3 px-2 py-0.5 rounded-md hover:bg-muted/40 ${startGroup ? "mt-4" : "mt-0.5"}`}>
+                            <div className={`group flex gap-3 px-2 py-0.5 rounded-md hover:bg-muted/40 ${startGroup ? "mt-4" : "mt-0.5"} ${msg.is_admin ? "border-l-2 border-amber-400/40" : ""}`}>
                               <div className="w-10 flex-shrink-0 flex justify-center">
                                 {startGroup ? (
                                   <Avatar className="h-9 w-9 mt-0.5">
@@ -441,10 +453,15 @@ const StudentMessages = () => {
                               <div className="flex-1 min-w-0">
                                 {startGroup && (
                                   <div className="flex items-center gap-2 flex-wrap mb-0.5">
-                                    <span className={`text-sm font-semibold ${msg.is_teacher ? "text-primary" : ""}`}>
+                                    <span className={`text-sm font-semibold ${msg.is_admin ? "text-amber-500" : msg.is_teacher ? "text-primary" : ""}`}>
                                       {isOwn ? "You" : msg.sender_name}
                                     </span>
-                                    {msg.is_teacher && (
+                                    {msg.is_admin && (
+                                      <Badge variant="outline" className="text-xs bg-amber-500/10 text-amber-600 border-amber-500/30 h-4 px-1.5 py-0">
+                                        <Crown className="h-2.5 w-2.5 mr-1" />Admin
+                                      </Badge>
+                                    )}
+                                    {!msg.is_admin && msg.is_teacher && (
                                       <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/30 h-4 px-1.5 py-0">
                                         <ShieldCheck className="h-2.5 w-2.5 mr-1" />Supervisor
                                       </Badge>

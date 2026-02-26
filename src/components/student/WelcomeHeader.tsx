@@ -1,4 +1,6 @@
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { ThemePicker } from "./ThemePicker";
 import { LogOut, Sparkles } from "lucide-react";
 
 interface WelcomeHeaderProps {
@@ -40,14 +42,18 @@ const WelcomeHeader = ({ name, onLogout }: WelcomeHeaderProps) => {
             </div>
           </div>
           
-          <Button 
-            variant="outline" 
-            onClick={onLogout}
-            className="gap-2 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/50 transition-colors"
-          >
-            <LogOut className="w-4 h-4" />
-            <span className="hidden sm:inline">Sign Out</span>
-          </Button>
+          <div className="flex items-center gap-1">
+            <ThemePicker />
+            <ThemeToggle />
+            <Button
+              variant="outline"
+              onClick={onLogout}
+              className="gap-2 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/50 transition-colors"
+            >
+              <LogOut className="w-4 h-4" />
+              <span className="hidden sm:inline">Sign Out</span>
+            </Button>
+          </div>
         </div>
       </div>
     </header>

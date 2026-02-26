@@ -23,6 +23,16 @@
 </head>
 
   <body>
+    <script>
+      (function() {
+        var dark = localStorage.getItem('nls-dark-mode');
+        if (dark === 'true' || (dark === null && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+          document.documentElement.classList.add('dark');
+        }
+        var pt = localStorage.getItem('nls-preset-theme');
+        if (pt && pt !== 'default') document.documentElement.setAttribute('data-theme', pt);
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

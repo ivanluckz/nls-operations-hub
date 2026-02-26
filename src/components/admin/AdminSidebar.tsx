@@ -1,6 +1,7 @@
- import { useLocation, useNavigate } from "react-router-dom";
- import { supabase } from "@/integrations/supabase/client";
- import { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useEffect, useState } from "react";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
  import {
    Sidebar,
    SidebarContent,
@@ -253,14 +254,19 @@
            </DropdownMenuTrigger>
            <DropdownMenuContent align="end" className="w-56">
              <DropdownMenuItem onClick={() => navigate("/admin/profile")}>
-               <Settings className="mr-2 h-4 w-4" />
-               Profile Settings
-             </DropdownMenuItem>
-             <DropdownMenuSeparator />
-             <DropdownMenuItem onClick={handleLogout} disabled={loggingOut}>
-               <LogOut className="mr-2 h-4 w-4" />
-               {loggingOut ? "Logging out..." : "Logout"}
-             </DropdownMenuItem>
+              <Settings className="mr-2 h-4 w-4" />
+              Profile Settings
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <div className="flex items-center justify-between px-2 py-1.5">
+              <span className="text-sm text-muted-foreground">Dark mode</span>
+              <ThemeToggle className="h-7 w-7" />
+            </div>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={handleLogout} disabled={loggingOut}>
+              <LogOut className="mr-2 h-4 w-4" />
+              {loggingOut ? "Logging out..." : "Logout"}
+            </DropdownMenuItem>
            </DropdownMenuContent>
          </DropdownMenu>
        </SidebarFooter>

@@ -88,6 +88,48 @@
     --spacing: 0.25rem;
   }
 
+  /* ── Preset themes (data-theme attribute on <html>) ── */
+  [data-theme="ocean"] {
+    --primary: 185 65% 38% !important;
+    --primary-foreground: 0 0% 100% !important;
+    --primary-hover: 185 65% 30% !important;
+    --ring: 185 65% 38% !important;
+    --sidebar-primary: 185 65% 38% !important;
+    --sidebar-ring: 185 65% 38% !important;
+  }
+  [data-theme="sunset"] {
+    --primary: 22 90% 52% !important;
+    --primary-foreground: 0 0% 100% !important;
+    --primary-hover: 22 90% 44% !important;
+    --ring: 22 90% 52% !important;
+    --sidebar-primary: 22 90% 52% !important;
+    --sidebar-ring: 22 90% 52% !important;
+  }
+  [data-theme="forest"] {
+    --primary: 140 55% 35% !important;
+    --primary-foreground: 0 0% 100% !important;
+    --primary-hover: 140 55% 28% !important;
+    --ring: 140 55% 35% !important;
+    --sidebar-primary: 140 55% 35% !important;
+    --sidebar-ring: 140 55% 35% !important;
+  }
+  [data-theme="purple"] {
+    --primary: 270 65% 52% !important;
+    --primary-foreground: 0 0% 100% !important;
+    --primary-hover: 270 65% 44% !important;
+    --ring: 270 65% 52% !important;
+    --sidebar-primary: 270 65% 52% !important;
+    --sidebar-ring: 270 65% 52% !important;
+  }
+  [data-theme="rose"] {
+    --primary: 340 75% 50% !important;
+    --primary-foreground: 0 0% 100% !important;
+    --primary-hover: 340 75% 42% !important;
+    --ring: 340 75% 50% !important;
+    --sidebar-primary: 340 75% 50% !important;
+    --sidebar-ring: 340 75% 50% !important;
+  }
+
   .dark {
     --background: 215 25% 10%;
     --foreground: 0 0% 98%;
