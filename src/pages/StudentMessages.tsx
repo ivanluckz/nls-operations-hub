@@ -16,7 +16,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { ArrowLeft, Hash, Menu, Send, Trash2, ShieldCheck, Megaphone, Award } from "lucide-react";
 
 interface Message {
@@ -105,10 +105,9 @@ const StudentMessages = () => {
   const [badgeOpen, setBadgeOpen] = useState(false);
   const [selectedBadge, setSelectedBadge] = useState<string>("");
   const [badgeReason, setBadgeReason] = useState("");
-  const [targetAdminId, setTargetAdminId] = useState<string>("");
+  const [adminEmail, setAdminEmail] = useState<string>("");
   const [submittingBadge, setSubmittingBadge] = useState(false);
   const [userBadges, setUserBadges] = useState<Record<string, string[]>>({});
-  const [admins, setAdmins] = useState<{ id: string; full_name: string }[]>([]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const teacherIdsRef = useRef<Record<string, string | null>>({});
@@ -143,16 +142,6 @@ const StudentMessages = () => {
       activityIdsRef.current = acts.map(a => a.id);
 
       if (acts.length > 0) { setSelectedActivity(acts[0].id); markSeen(acts[0].id); }
-
-      // Fetch available admins for badge requests
-      const { data: adminRoles } = await supabase
-        .from("user_roles").select("user_id").eq("role", "admin");
-      if (adminRoles && adminRoles.length > 0) {
-        const adminIds = adminRoles.map(r => r.user_id);
-        const { data: adminProfiles } = await supabase
-          .from("profiles").select("id, full_name").in("id", adminIds);
-        if (adminProfiles) setAdmins(adminProfiles);
-      }
 
       const lastSeen = getLastSeen();
       const counts: Record<string, number> = {};
@@ -262,18 +251,32 @@ const StudentMessages = () => {
   };
 
   const handleBadgeRequest = async () => {
-    if (!selectedBadge || !badgeReason.trim()) return;
+    if (!selectedBadge || !badgeReason.trim() || !adminEmail.trim()) return;
     setSubmittingBadge(true);
     try {
+      // Look up admin by email
+      const { data: adminProfile } = await supabase
+        .from("profiles").select("id").eq("email", adminEmail.trim().toLowerCase()).single();
+      if (!adminProfile) {
+        toast({ variant: "destructive", title: "Admin not found", description: "No user found with that email." });
+        return;
+      }
+      // Verify they're an admin
+      const { data: adminRole } = await supabase
+        .from("user_roles").select("user_id").eq("user_id", adminProfile.id).eq("role", "admin").single();
+      if (!adminRole) {
+        toast({ variant: "destructive", title: "Not an admin", description: "That email doesn't belong to an admin." });
+        return;
+      }
       const { error } = await supabase.from("badge_requests").insert({
         student_id: userId,
         badge_name: selectedBadge,
         reason: badgeReason.trim(),
-        target_admin_id: targetAdminId || null,
+        target_admin_id: adminProfile.id,
       });
       if (error) throw error;
       toast({ title: "Badge request sent!", description: "The admin will review your request." });
-      setBadgeOpen(false); setSelectedBadge(""); setBadgeReason(""); setTargetAdminId("");
+      setBadgeOpen(false); setSelectedBadge(""); setBadgeReason(""); setAdminEmail("");
     } catch { toast({ variant: "destructive", title: "Failed to submit request" }); }
     finally { setSubmittingBadge(false); }
   };
@@ -543,17 +546,14 @@ const StudentMessages = () => {
               ))}
             </div>
             <div className="space-y-1.5">
-              <Label>Send request to</Label>
-              <Select value={targetAdminId} onValueChange={setTargetAdminId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Choose an admin..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {admins.map(a => (
-                    <SelectItem key={a.id} value={a.id}>{a.full_name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label htmlFor="admin-email">Send request to (admin email)</Label>
+              <Input
+                id="admin-email"
+                type="email"
+                value={adminEmail}
+                onChange={(e) => setAdminEmail(e.target.value)}
+                placeholder="admin@school.org"
+              />
             </div>
 
             <div className="space-y-1.5">
@@ -565,7 +565,7 @@ const StudentMessages = () => {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setBadgeOpen(false)}>Cancel</Button>
-            <Button onClick={handleBadgeRequest} disabled={submittingBadge || !selectedBadge || !badgeReason.trim() || !targetAdminId}>
+            <Button onClick={handleBadgeRequest} disabled={submittingBadge || !selectedBadge || !badgeReason.trim() || !adminEmail.trim()}>
               {submittingBadge ? "Sending..." : "Submit Request"}
             </Button>
           </DialogFooter>
