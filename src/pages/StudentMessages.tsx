@@ -16,6 +16,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, Hash, Menu, Send, Trash2, ShieldCheck, Megaphone, Award } from "lucide-react";
 
 interface Message {
@@ -104,8 +105,10 @@ const StudentMessages = () => {
   const [badgeOpen, setBadgeOpen] = useState(false);
   const [selectedBadge, setSelectedBadge] = useState<string>("");
   const [badgeReason, setBadgeReason] = useState("");
+  const [targetAdminId, setTargetAdminId] = useState<string>("");
   const [submittingBadge, setSubmittingBadge] = useState(false);
   const [userBadges, setUserBadges] = useState<Record<string, string[]>>({});
+  const [admins, setAdmins] = useState<{ id: string; full_name: string }[]>([]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const teacherIdsRef = useRef<Record<string, string | null>>({});
@@ -140,6 +143,16 @@ const StudentMessages = () => {
       activityIdsRef.current = acts.map(a => a.id);
 
       if (acts.length > 0) { setSelectedActivity(acts[0].id); markSeen(acts[0].id); }
+
+      // Fetch available admins for badge requests
+      const { data: adminRoles } = await supabase
+        .from("user_roles").select("user_id").eq("role", "admin");
+      if (adminRoles && adminRoles.length > 0) {
+        const adminIds = adminRoles.map(r => r.user_id);
+        const { data: adminProfiles } = await supabase
+          .from("profiles").select("id, full_name").in("id", adminIds);
+        if (adminProfiles) setAdmins(adminProfiles);
+      }
 
       const lastSeen = getLastSeen();
       const counts: Record<string, number> = {};
@@ -253,11 +266,14 @@ const StudentMessages = () => {
     setSubmittingBadge(true);
     try {
       const { error } = await supabase.from("badge_requests").insert({
-        student_id: userId, badge_name: selectedBadge, reason: badgeReason.trim(),
+        student_id: userId,
+        badge_name: selectedBadge,
+        reason: badgeReason.trim(),
+        target_admin_id: targetAdminId || null,
       });
       if (error) throw error;
-      toast({ title: "Badge request sent!", description: "An admin will review your request." });
-      setBadgeOpen(false); setSelectedBadge(""); setBadgeReason("");
+      toast({ title: "Badge request sent!", description: "The admin will review your request." });
+      setBadgeOpen(false); setSelectedBadge(""); setBadgeReason(""); setTargetAdminId("");
     } catch { toast({ variant: "destructive", title: "Failed to submit request" }); }
     finally { setSubmittingBadge(false); }
   };
@@ -527,6 +543,20 @@ const StudentMessages = () => {
               ))}
             </div>
             <div className="space-y-1.5">
+              <Label>Send request to</Label>
+              <Select value={targetAdminId} onValueChange={setTargetAdminId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose an admin..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {admins.map(a => (
+                    <SelectItem key={a.id} value={a.id}>{a.full_name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
               <Label htmlFor="badge-reason">Why do you deserve this badge?</Label>
               <Textarea id="badge-reason" value={badgeReason} onChange={(e) => setBadgeReason(e.target.value)}
                 placeholder="Explain your reason..." className="resize-none" rows={3} maxLength={500} />
@@ -535,7 +565,7 @@ const StudentMessages = () => {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setBadgeOpen(false)}>Cancel</Button>
-            <Button onClick={handleBadgeRequest} disabled={submittingBadge || !selectedBadge || !badgeReason.trim()}>
+            <Button onClick={handleBadgeRequest} disabled={submittingBadge || !selectedBadge || !badgeReason.trim() || !targetAdminId}>
               {submittingBadge ? "Sending..." : "Submit Request"}
             </Button>
           </DialogFooter>

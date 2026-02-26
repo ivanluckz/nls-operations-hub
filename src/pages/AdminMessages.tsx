@@ -10,7 +10,9 @@ import {
   AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
   AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Hash, ShieldCheck, Megaphone, Trash2 } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Hash, ShieldCheck, Megaphone, Send, Trash2 } from "lucide-react";
 
 interface Message {
   id: string;
@@ -70,11 +72,19 @@ const AdminMessages = () => {
   const [selectedActivity, setSelectedActivity] = useState<string>("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const [content, setContent] = useState("");
+  const [messageType, setMessageType] = useState<"announcement" | "discussion">("announcement");
+  const [sending, setSending] = useState(false);
+  const [userId, setUserId] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const teacherIdsRef = useRef<Record<string, string | null>>({});
   const selectedActivityRef = useRef<string>("");
 
   useEffect(() => { selectedActivityRef.current = selectedActivity; }, [selectedActivity]);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => { if (user) setUserId(user.id); });
+  }, []);
 
   useEffect(() => {
     const init = async () => {
@@ -140,6 +150,25 @@ const AdminMessages = () => {
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
 
+  const handleSend = async () => {
+    if (!content.trim() || !selectedActivity) return;
+    setSending(true);
+    try {
+      const { error } = await supabase.from("activity_messages").insert({
+        activity_id: selectedActivity,
+        sender_id: userId,
+        message_type: messageType,
+        content: content.trim(),
+      });
+      if (error) throw error;
+      setContent("");
+    } catch {
+      toast({ variant: "destructive", title: "Failed to send message" });
+    } finally {
+      setSending(false);
+    }
+  };
+
   const confirmDelete = async () => {
     if (!deleteTargetId) return;
     const { error } = await supabase.from("activity_messages").delete().eq("id", deleteTargetId);
@@ -177,7 +206,7 @@ const AdminMessages = () => {
           <div className="px-4 py-3 border-b flex items-center gap-2 flex-shrink-0">
             <Hash className="h-5 w-5 text-muted-foreground" />
             <h2 className="font-semibold text-sm">{selectedTitle || "Select a channel"}</h2>
-            <Badge variant="outline" className="ml-auto text-xs">Admin View</Badge>
+            <Badge variant="outline" className="ml-auto text-xs">Admin</Badge>
           </div>
 
           <div className="flex-1 overflow-y-auto px-4 py-2">
@@ -274,6 +303,40 @@ const AdminMessages = () => {
               </div>
             )}
           </div>
+
+          {/* Compose bar */}
+          {selectedActivity && (
+            <div className="flex-shrink-0 px-4 py-3 border-t bg-background space-y-2">
+              <div className="flex items-center gap-2">
+                <Select value={messageType} onValueChange={(v) => setMessageType(v as "announcement" | "discussion")}>
+                  <SelectTrigger className="w-[160px] h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="announcement">
+                      <span className="flex items-center gap-1.5"><Megaphone className="h-3.5 w-3.5" />Announcement</span>
+                    </SelectItem>
+                    <SelectItem value="discussion">
+                      <span className="flex items-center gap-1.5"><Hash className="h-3.5 w-3.5" />Discussion</span>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-end gap-2 bg-muted/50 rounded-xl px-3 py-2 border border-border focus-within:border-primary/40 transition-colors">
+                <Textarea
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  placeholder={`Message #${selectedTitle || "..."} as admin...`}
+                  className="flex-1 min-h-[24px] max-h-[100px] resize-none bg-transparent border-0 shadow-none focus-visible:ring-0 p-0 text-sm"
+                  maxLength={1000}
+                  onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
+                />
+                <Button onClick={handleSend} disabled={sending || !content.trim()} size="icon" className="h-8 w-8 rounded-lg flex-shrink-0">
+                  <Send className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

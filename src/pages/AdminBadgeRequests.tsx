@@ -39,9 +39,13 @@ const AdminBadgeRequests = () => {
   const fetchRequests = async () => {
     setLoading(true);
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
       const { data } = await supabase
         .from("badge_requests")
         .select("*")
+        .eq("target_admin_id", user.id)
         .order("created_at", { ascending: false });
 
       if (data) {
