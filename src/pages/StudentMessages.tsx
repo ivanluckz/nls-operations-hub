@@ -145,7 +145,7 @@ const StudentMessages = () => {
 
       if (acts.length > 0) { setSelectedActivity(acts[0].id); markSeen(acts[0].id); }
 
-      const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
+      const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin").limit(100);
       adminRoles?.forEach(r => adminIdsRef.current.add(r.user_id));
 
       const lastSeen = getLastSeen();

@@ -46,7 +46,8 @@ const AdminBadgeRequests = () => {
         .from("badge_requests")
         .select("*")
         .eq("target_admin_id", user.id)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .limit(500);
 
       if (data) {
         const studentIds = [...new Set(data.map(r => r.student_id))];

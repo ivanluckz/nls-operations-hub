@@ -128,8 +128,8 @@ const ManualAllocations = () => {
           ? supabase.from("profiles").select("id, full_name, email").in("id", studentUserIds).order("full_name")
           : Promise.resolve({ data: [] }),
         supabase.from("activities").select("id, title, capacity, days_of_week, current_enrollment").eq("is_active", true),
-        supabase.from("preferences").select("*"),
-        supabase.from("allocations").select("*")
+        supabase.from("preferences").select("*").limit(2000),
+        supabase.from("allocations").select("*").limit(10000)
       ]);
 
       setStudents(studentsRes.data || []);

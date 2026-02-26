@@ -14,11 +14,11 @@ const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check current session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchUserRole(session.user.id);
+    // Verify token with auth server (not just local cache)
+    supabase.auth.getUser().then(({ data: { user: authUser } }) => {
+      setUser(authUser ?? null);
+      if (authUser) {
+        fetchUserRole(authUser.id);
       } else {
         setLoading(false);
       }
@@ -28,9 +28,10 @@ const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchUserRole(session.user.id);
+      const sessionUser = session?.user ?? null;
+      setUser(sessionUser);
+      if (sessionUser) {
+        fetchUserRole(sessionUser.id);
       } else {
         setUserRole(null);
         setLoading(false);

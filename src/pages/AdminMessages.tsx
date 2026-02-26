@@ -101,7 +101,7 @@ const AdminMessages = () => {
         data.forEach(a => { teacherIdsRef.current[a.id] = a.teacher_id; });
         if (data.length > 0) setSelectedActivity(data[0].id);
       }
-      const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
+      const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin").limit(100);
       adminRoles?.forEach(r => adminIdsRef.current.add(r.user_id));
     };
     init();
