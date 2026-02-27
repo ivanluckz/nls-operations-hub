@@ -122,6 +122,12 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
      icon: Award,
      description: "Approve student badges",
    },
+   {
+     title: "Direct Messages",
+     url: "/admin/dms",
+     icon: MessageSquare,
+     description: "Message anyone directly",
+   },
  ];
  
  interface UserProfile {
@@ -213,35 +219,6 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
                          className="w-full flex items-center gap-3"
                        >
                          <item.icon className={`h-4 w-4 ${item.highlight ? "text-primary" : ""}`} />
-                         <span>{item.title}</span>
-                       </button>
-                     </SidebarMenuButton>
-                   </SidebarMenuItem>
-                 );
-               })}
-             </SidebarMenu>
-           </SidebarGroupContent>
-         </SidebarGroup>
-
-         <SidebarGroup>
-           <SidebarGroupLabel>Academic</SidebarGroupLabel>
-           <SidebarGroupContent>
-             <SidebarMenu>
-               {[
-                 { title: "Subjects", url: "/admin/academic/subjects", icon: BookOpen },
-                 { title: "Class Groups", url: "/admin/academic/classes", icon: GraduationCap },
-                 { title: "Timetable", url: "/admin/academic/timetable", icon: Calendar },
-                 { title: "Ac. Reports", url: "/admin/academic/attendance", icon: ClipboardCheck },
-               ].map((item) => {
-                 const isActive = location.pathname === item.url;
-                 return (
-                   <SidebarMenuItem key={item.title}>
-                     <SidebarMenuButton asChild isActive={isActive} tooltip={item.title}>
-                       <button
-                         onClick={() => navigate(item.url)}
-                         className="w-full flex items-center gap-3"
-                       >
-                         <item.icon className="h-4 w-4" />
                          <span>{item.title}</span>
                        </button>
                      </SidebarMenuButton>

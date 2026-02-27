@@ -1,12 +1,14 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { ArrowLeft, Send, MessageSquare, Menu, Trash2 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ArrowLeft, Send, MessageSquare, Menu, Trash2, Plus, Search } from "lucide-react";
 
 const AVATAR_COLORS = [
   "bg-red-500", "bg-orange-500", "bg-amber-500", "bg-emerald-500",
@@ -55,8 +57,15 @@ interface DM {
   senderName?: string;
 }
 
+interface UserResult {
+  id: string;
+  full_name: string;
+  email: string;
+}
+
 const DirectMessages = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [params] = useSearchParams();
   const { toast } = useToast();
   const [userId, setUserId] = useState("");
@@ -70,10 +79,19 @@ const DirectMessages = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const selectedConvRef = useRef<Conversation | null>(null);
 
+  // New DM dialog
+  const [newDmOpen, setNewDmOpen] = useState(false);
+  const [userSearch, setUserSearch] = useState("");
+  const [userResults, setUserResults] = useState<UserResult[]>([]);
+  const [searchingUsers, setSearchingUsers] = useState(false);
+
+  // Determine back path from current route
+  const isAdmin = location.pathname.startsWith("/admin");
+  const backPath = isAdmin ? "/admin/messages" : "/student/messages";
+
   useEffect(() => { selectedConvRef.current = selectedConv; }, [selectedConv]);
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
 
-  // Load conversations
   useEffect(() => {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -81,7 +99,6 @@ const DirectMessages = () => {
       setUserId(user.id);
       await loadConversations(user.id);
 
-      // Handle ?user=&name= deep link from profile card
       const targetUserId = params.get("user");
       const targetName = params.get("name") || "Unknown";
       if (targetUserId && targetUserId !== user.id) {
@@ -92,7 +109,7 @@ const DirectMessages = () => {
     init();
   }, []);
 
-  // Realtime for new DMs
+  // Realtime
   useEffect(() => {
     if (!userId) return;
     const channel = supabase.channel("dm-realtime")
@@ -103,7 +120,6 @@ const DirectMessages = () => {
           const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", msg.sender_id).single();
           setMessages(prev => [...prev, { ...msg, senderName: profile?.full_name || "Unknown" }]);
         }
-        // Refresh conversation list for unread counts
         await loadConversations(userId);
       })
       .subscribe();
@@ -117,13 +133,13 @@ const DirectMessages = () => {
       .or(`user1_id.eq.${uid},user2_id.eq.${uid}`)
       .limit(50);
 
-    if (!channels || channels.length === 0) return;
+    if (!channels || channels.length === 0) { setConversations([]); return; }
 
-    const otherIds = channels.map(c => c.user1_id === uid ? c.user2_id : c.user1_id);
+    const otherIds = channels.map((c: any) => c.user1_id === uid ? c.user2_id : c.user1_id);
     const { data: profiles } = await supabase.from("profiles").select("id, full_name").in("id", otherIds);
     const profileMap = new Map((profiles || []).map(p => [p.id, p.full_name]));
 
-    const convs: Conversation[] = await Promise.all(channels.map(async c => {
+    const convs: Conversation[] = await Promise.all(channels.map(async (c: any) => {
       const otherId = c.user1_id === uid ? c.user2_id : c.user1_id;
       const { data: lastMsgs } = await (supabase as any)
         .from("direct_messages")
@@ -147,7 +163,6 @@ const DirectMessages = () => {
   };
 
   const openOrCreateDM = async (uid: string, otherId: string, otherName: string) => {
-    // Try to find existing channel
     const { data: existing } = await (supabase as any)
       .from("dm_channels")
       .select("id")
@@ -189,7 +204,6 @@ const DirectMessages = () => {
     const profileMap = new Map((profiles || []).map(p => [p.id, p.full_name]));
     setMessages((data as any[]).map((m: any) => ({ ...m, senderName: profileMap.get(m.sender_id) || "Unknown" })));
 
-    // Mark messages as read
     await (supabase as any)
       .from("direct_messages")
       .update({ read_at: new Date().toISOString() })
@@ -217,17 +231,55 @@ const DirectMessages = () => {
     setMessages(prev => prev.filter(m => m.id !== msgId));
   };
 
+  // User search for New DM dialog
+  const searchUsers = async (query: string) => {
+    if (query.length < 2) { setUserResults([]); return; }
+    setSearchingUsers(true);
+    try {
+      const { data } = await supabase
+        .from("profiles")
+        .select("id, full_name, email")
+        .neq("id", userId)
+        .or(`full_name.ilike.%${query}%,email.ilike.%${query}%`)
+        .limit(10);
+      setUserResults((data || []).filter((u: UserResult) => u.id !== userId));
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSearchingUsers(false);
+    }
+  };
+
+  const startDM = async (user: UserResult) => {
+    setNewDmOpen(false);
+    setUserSearch("");
+    setUserResults([]);
+    await openOrCreateDM(userId, user.id, user.full_name);
+  };
+
   const ConvList = () => (
     <div className="flex flex-col h-full">
       <div className="px-3 py-4 border-b flex items-center gap-2">
-        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => navigate("/student/messages")}>
+        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => navigate(backPath)}>
           <ArrowLeft className="h-3.5 w-3.5" />
         </Button>
-        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Direct Messages</p>
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex-1">Direct Messages</p>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7"
+          onClick={() => { setNewDmOpen(true); setUserSearch(""); setUserResults([]); }}
+          title="New DM"
+        >
+          <Plus className="h-3.5 w-3.5" />
+        </Button>
       </div>
       <div className="flex-1 overflow-y-auto py-2 space-y-0.5 px-2">
         {conversations.length === 0 && (
-          <p className="text-xs text-muted-foreground text-center py-8">No conversations yet.<br/>Click a profile in chat to message someone.</p>
+          <p className="text-xs text-muted-foreground text-center py-8">
+            No conversations yet.<br />
+            Click <strong>+</strong> to start a new DM.
+          </p>
         )}
         {conversations.map(conv => (
           <button key={conv.channelId} onClick={() => selectConversation(conv)}
@@ -288,7 +340,7 @@ const DirectMessages = () => {
             </>
           )}
 
-          <Button variant="ghost" size="icon" className="ml-auto h-8 w-8" onClick={() => navigate("/student/messages")}>
+          <Button variant="ghost" size="icon" className="ml-auto h-8 w-8" onClick={() => navigate(backPath)}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
         </div>
@@ -298,7 +350,7 @@ const DirectMessages = () => {
           {!selectedConv ? (
             <div className="flex flex-col items-center justify-center h-full gap-3 text-muted-foreground">
               <MessageSquare className="h-12 w-12 opacity-20" />
-              <p className="text-sm">Select a conversation or open a profile card to start a DM</p>
+              <p className="text-sm">Select a conversation or click <strong>+</strong> to start a new DM</p>
             </div>
           ) : messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full gap-2 text-muted-foreground">
@@ -384,6 +436,52 @@ const DirectMessages = () => {
           </div>
         )}
       </div>
+
+      {/* New DM Dialog */}
+      <Dialog open={newDmOpen} onOpenChange={setNewDmOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>New Direct Message</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 pt-1">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                autoFocus
+                placeholder="Search by name or email…"
+                value={userSearch}
+                onChange={e => { setUserSearch(e.target.value); searchUsers(e.target.value); }}
+                className="pl-9"
+              />
+            </div>
+            {searchingUsers && <p className="text-sm text-muted-foreground text-center py-2">Searching…</p>}
+            {userResults.length > 0 && (
+              <div className="border rounded-lg divide-y max-h-64 overflow-y-auto">
+                {userResults.map(u => (
+                  <button
+                    key={u.id}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-accent transition-colors text-left"
+                    onClick={() => startDM(u)}
+                  >
+                    <Avatar className={`h-8 w-8 shrink-0 ${getAvatarColor(u.id)}`}>
+                      <AvatarFallback className={`text-white text-xs font-bold ${getAvatarColor(u.id)}`}>
+                        {getInitials(u.full_name)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0">
+                      <p className="font-medium text-sm truncate">{u.full_name}</p>
+                      <p className="text-xs text-muted-foreground truncate">{u.email}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+            {userSearch.length >= 2 && !searchingUsers && userResults.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-2">No users found</p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

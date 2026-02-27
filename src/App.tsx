@@ -88,6 +88,7 @@ const AppContent = () => {
           <Route path="/admin/profile" element={<ProtectedRoute requiredRole="admin"><AdminProfile /></ProtectedRoute>} />
           <Route path="/admin/messages" element={<ProtectedRoute requiredRole="admin"><AdminMessages /></ProtectedRoute>} />
           <Route path="/admin/badge-requests" element={<ProtectedRoute requiredRole="admin"><AdminBadgeRequests /></ProtectedRoute>} />
+          <Route path="/admin/dms" element={<ProtectedRoute requiredRole="admin"><DirectMessages /></ProtectedRoute>} />
           <Route path="/chatbot" element={<ActivityChatbot />} />
           <Route path="/themes" element={<ThemeManagement />} />
           <Route path="*" element={<NotFound />} />
