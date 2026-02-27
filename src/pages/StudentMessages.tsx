@@ -178,7 +178,7 @@ const StudentMessages = () => {
       const senderIds = [...new Set(data.map(m => m.sender_id))];
       const [profilesRes, badgesRes] = await Promise.all([
         supabase.from("profiles").select("id, full_name").in("id", senderIds),
-        supabase.from("user_badges").select("user_id, badge_name").in("user_id", senderIds),
+        (supabase as any).from("user_badges").select("user_id, badge_name").in("user_id", senderIds),
       ]);
 
       const profileMap = new Map(profilesRes.data?.map(p => [p.id, p.full_name]) || []);
@@ -279,7 +279,7 @@ const StudentMessages = () => {
         toast({ variant: "destructive", title: "Not an admin", description: "That email doesn't belong to an admin." });
         return;
       }
-      const { error } = await supabase.from("badge_requests").insert({
+      const { error } = await (supabase as any).from("badge_requests").insert({
         student_id: userId,
         badge_name: selectedBadge,
         reason: badgeReason.trim(),
