@@ -150,7 +150,20 @@ const StudentDashboard = () => {
             </button>
           )}
 
-          {/* Weekly Timetable */}
+          {/* Academic Timetable */}
+          <button onClick={() => navigate("/student/academic")}
+            className="w-full flex items-center justify-between rounded-2xl border bg-card px-5 py-4 shadow-sm hover:border-primary/40 hover:bg-primary/5 transition-colors text-left group">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">📚</span>
+              <div>
+                <p className="font-semibold text-sm">Academic Timetable</p>
+                <p className="text-xs text-muted-foreground">View your lesson schedule &amp; attendance</p>
+              </div>
+            </div>
+            <span className="text-muted-foreground group-hover:text-primary transition-colors text-sm">View →</span>
+          </button>
+
+          {/* Weekly Co-Curricular Timetable */}
           {allocations.length > 0 && (
             <TimetableCard allocations={allocations} />
           )}

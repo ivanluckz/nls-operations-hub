@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { LogOut, GraduationCap, ClipboardCheck, AlertTriangle } from "lucide-react";
+import { LogOut, GraduationCap, ClipboardCheck, AlertTriangle, BookOpen } from "lucide-react";
 import ActivityMessaging from "@/components/teacher/ActivityMessaging";
 import FloatingChatButton from "@/components/student/FloatingChatButton";
 
@@ -120,6 +120,10 @@ const TeacherDashboard = () => {
           <Button variant="outline" onClick={() => navigate("/teacher/attendance-reports")}>
             <AlertTriangle className="w-4 h-4 mr-2" />
             Attendance Reports
+          </Button>
+          <Button variant="outline" onClick={() => navigate("/teacher/academic")}>
+            <BookOpen className="w-4 h-4 mr-2" />
+            Academic Classes
           </Button>
           <Button onClick={() => navigate("/teacher/attendance")}>
             <ClipboardCheck className="w-4 h-4 mr-2" />
