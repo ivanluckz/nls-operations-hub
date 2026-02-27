@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { Crown, ShieldCheck, GraduationCap } from "lucide-react";
+import { Crown, ShieldCheck, GraduationCap, MessageSquare } from "lucide-react";
 
 const BADGE_OPTIONS = [
   { name: "Growing",     emoji: "🌱", animClass: "badge-anim-grow",  desc: "Active and improving" },
@@ -58,6 +60,7 @@ interface UserActivity {
 export function UserProfileCard({
   open, onClose, senderId, senderName, isAdmin, isTeacher, badges, currentActivityTitle,
 }: Props) {
+  const navigate = useNavigate();
   const [activities, setActivities] = useState<UserActivity[]>([]);
 
   useEffect(() => {
@@ -121,10 +124,16 @@ export function UserProfileCard({
             </Badge>
           </div>
 
-          {/* Name */}
-          <h2 className={`text-lg font-bold leading-tight ${isAdmin ? "text-amber-500" : ""}`}>
-            {senderName}
-          </h2>
+          {/* Name + DM button */}
+          <div className="flex items-start justify-between gap-2">
+            <h2 className={`text-lg font-bold leading-tight ${isAdmin ? "text-amber-500" : ""}`}>
+              {senderName}
+            </h2>
+            <Button variant="outline" size="sm" className="gap-1.5 text-xs h-7 shrink-0"
+              onClick={() => { onClose(); navigate(`/student/dms?user=${senderId}&name=${encodeURIComponent(senderName)}`); }}>
+              <MessageSquare className="h-3 w-3" /> Message
+            </Button>
+          </div>
 
           {/* Badges section */}
           {earnedBadges.length > 0 && (

@@ -17,8 +17,28 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Hash, Menu, Send, Trash2, ShieldCheck, Megaphone, Award, Crown } from "lucide-react";
+import { ArrowLeft, Hash, Menu, Send, Trash2, ShieldCheck, Megaphone, Award, Crown, MessageSquare, Trophy } from "lucide-react";
 import { UserProfileCard } from "@/components/chat/UserProfileCard";
+
+const REACT_EMOJIS = ['👍', '❤️', '😂', '🔥', '👀', '✅'];
+
+function renderContent(text: string, myFirstName: string): React.ReactNode {
+  const parts = text.split(/(@\S+)/g);
+  if (parts.length <= 1) return text;
+  return (
+    <>
+      {parts.map((part, i) =>
+        part.startsWith('@') ? (
+          <span key={i} className={`font-medium ${
+            myFirstName && part.slice(1).toLowerCase().startsWith(myFirstName.toLowerCase())
+              ? 'bg-primary/20 text-primary rounded px-0.5'
+              : 'text-primary/80'
+          }`}>{part}</span>
+        ) : <span key={i}>{part}</span>
+      )}
+    </>
+  );
+}
 
 interface Message {
   id: string;
@@ -113,6 +133,11 @@ const StudentMessages = () => {
   const [profileCard, setProfileCard] = useState<{
     senderId: string; senderName: string; isAdmin: boolean; isTeacher: boolean;
   } | null>(null);
+  const [reactions, setReactions] = useState<Record<string, { emoji: string; count: number; mine: boolean }[]>>({});
+  const [activeView, setActiveView] = useState<"channels" | "announcements">("channels");
+  const [allAnnouncements, setAllAnnouncements] = useState<Message[]>([]);
+  const [activityMembers, setActivityMembers] = useState<{ id: string; name: string }[]>([]);
+  const [myName, setMyName] = useState("");
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const teacherIdsRef = useRef<Record<string, string | null>>({});
@@ -127,6 +152,8 @@ const StudentMessages = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
       setUserId(user.id);
+      const { data: myProfile } = await supabase.from("profiles").select("full_name").eq("id", user.id).single();
+      if (myProfile?.full_name) setMyName(myProfile.full_name.split(" ")[0]);
 
       const { data: allocations } = await supabase
         .from("allocations")
@@ -190,13 +217,36 @@ const StudentMessages = () => {
       setUserBadges(prev => ({ ...prev, ...badgeMap }));
 
       const teacherId = teacherIdsRef.current[selectedActivity];
-      setMessages(data.map(m => ({
+      const enriched = data.map(m => ({
         ...m,
         message_type: m.message_type as "announcement" | "discussion",
         sender_name: profileMap.get(m.sender_id) || "Unknown",
         is_teacher: m.sender_id === teacherId,
         is_admin: adminIdsRef.current.has(m.sender_id),
-      })));
+      }));
+      setMessages(enriched);
+
+      // Load reactions for these messages
+      const { data: reactData } = await supabase
+        .from("message_reactions")
+        .select("message_id, user_id, emoji")
+        .in("message_id", data.map(m => m.id));
+      const { data: { user: me } } = await supabase.auth.getUser();
+      const reactionMap: Record<string, { emoji: string; count: number; mine: boolean }[]> = {};
+      (reactData || []).forEach(r => {
+        if (!reactionMap[r.message_id]) reactionMap[r.message_id] = [];
+        const g = reactionMap[r.message_id].find(x => x.emoji === r.emoji);
+        if (g) { g.count++; if (r.user_id === me?.id) g.mine = true; }
+        else reactionMap[r.message_id].push({ emoji: r.emoji, count: 1, mine: r.user_id === me?.id });
+      });
+      setReactions(reactionMap);
+
+      // Load activity members for @mentions
+      const { data: memberAllocs } = await supabase
+        .from("allocations").select("profiles(id, full_name)").eq("activity_id", selectedActivity).limit(100);
+      const members = (memberAllocs || []).map((a: any) => a.profiles).filter(Boolean)
+        .map((p: any) => ({ id: p.id, name: p.full_name }));
+      setActivityMembers(members);
     };
     fetchMessages();
   }, [selectedActivity]);
@@ -226,6 +276,25 @@ const StudentMessages = () => {
         if (old.activity_id === selectedActivityRef.current) {
           setMessages(prev => prev.filter(m => m.id !== old.id));
         }
+      })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "message_reactions" }, (payload) => {
+        const r = payload.new as { message_id: string; user_id: string; emoji: string };
+        setReactions(prev => {
+          const ex = [...(prev[r.message_id] || [])];
+          const idx = ex.findIndex(x => x.emoji === r.emoji);
+          if (idx >= 0) ex[idx] = { ...ex[idx], count: ex[idx].count + 1 };
+          else ex.push({ emoji: r.emoji, count: 1, mine: false });
+          return { ...prev, [r.message_id]: ex };
+        });
+      })
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "message_reactions" }, (payload) => {
+        const r = payload.old as { message_id: string; emoji: string };
+        setReactions(prev => {
+          const ex = [...(prev[r.message_id] || [])].map(x =>
+            x.emoji === r.emoji ? { ...x, count: Math.max(0, x.count - 1) } : x
+          ).filter(x => x.count > 0);
+          return { ...prev, [r.message_id]: ex };
+        });
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
@@ -292,6 +361,53 @@ const StudentMessages = () => {
     finally { setSubmittingBadge(false); }
   };
 
+  const toggleReaction = async (messageId: string, emoji: string) => {
+    const mine = reactions[messageId]?.find(r => r.emoji === emoji)?.mine;
+    if (mine) {
+      await supabase.from("message_reactions").delete().eq("message_id", messageId).eq("user_id", userId).eq("emoji", emoji);
+      setReactions(prev => {
+        const ex = [...(prev[messageId] || [])].map(x =>
+          x.emoji === emoji ? { ...x, count: Math.max(0, x.count - 1), mine: false } : x
+        ).filter(x => x.count > 0);
+        return { ...prev, [messageId]: ex };
+      });
+    } else {
+      await supabase.from("message_reactions").insert({ message_id: messageId, user_id: userId, emoji });
+      setReactions(prev => {
+        const ex = [...(prev[messageId] || [])];
+        const idx = ex.findIndex(x => x.emoji === emoji);
+        if (idx >= 0) ex[idx] = { ...ex[idx], count: ex[idx].count + 1, mine: true };
+        else ex.push({ emoji, count: 1, mine: true });
+        return { ...prev, [messageId]: ex };
+      });
+    }
+  };
+
+  const fetchAnnouncements = async () => {
+    if (activityIdsRef.current.length === 0) return;
+    const { data } = await supabase.from("activity_messages").select("*")
+      .in("activity_id", activityIdsRef.current).eq("message_type", "announcement")
+      .order("created_at", { ascending: false }).limit(100);
+    if (!data) return;
+    const sids = [...new Set(data.map(m => m.sender_id))];
+    const { data: profiles } = await supabase.from("profiles").select("id, full_name").in("id", sids);
+    const pm = new Map((profiles || []).map(p => [p.id, p.full_name]));
+    setAllAnnouncements(data.map(m => ({
+      ...m,
+      message_type: "announcement" as const,
+      sender_name: pm.get(m.sender_id) || "Unknown",
+      is_admin: adminIdsRef.current.has(m.sender_id),
+      is_teacher: m.sender_id === teacherIdsRef.current[m.activity_id],
+    })));
+  };
+
+  const mentionMatch = content.match(/@(\w+)$/);
+  const mentionQuery = mentionMatch ? mentionMatch[1].toLowerCase() : null;
+  const filteredMentions = mentionQuery !== null
+    ? activityMembers.filter(m => m.name.toLowerCase().startsWith(mentionQuery) && m.id !== userId).slice(0, 5)
+    : [];
+  const insertMention = (name: string) => setContent(c => c.replace(/@\w+$/, `@${name} `));
+
   const selectedActivityInfo = activities.find(a => a.id === selectedActivity);
   const totalUnread = Object.values(unreadCounts).reduce((a, b) => a + b, 0);
 
@@ -301,10 +417,18 @@ const StudentMessages = () => {
         <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Channels</p>
       </div>
       <div className="flex-1 overflow-y-auto py-2 space-y-0.5 px-2">
+        {/* All Announcements feed */}
+        <button onClick={() => { setActiveView("announcements"); fetchAnnouncements(); setSheetOpen(false); }}
+          className={`w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors text-left
+            ${activeView === "announcements" ? "bg-primary/15 text-foreground font-medium" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
+          <Megaphone className="h-4 w-4 flex-shrink-0 opacity-70" />
+          <span className="flex-1 truncate">All Announcements</span>
+        </button>
+        <div className="h-px bg-border mx-1 my-1" />
         {activities.map((a) => (
-          <button key={a.id} onClick={() => selectActivity(a.id)}
+          <button key={a.id} onClick={() => { selectActivity(a.id); setActiveView("channels"); }}
             className={`w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors text-left ${
-              selectedActivity === a.id ? "bg-primary/15 text-foreground font-medium" : "text-muted-foreground hover:bg-muted hover:text-foreground"
+              activeView === "channels" && selectedActivity === a.id ? "bg-primary/15 text-foreground font-medium" : "text-muted-foreground hover:bg-muted hover:text-foreground"
             }`}
           >
             <Hash className="h-4 w-4 flex-shrink-0 opacity-70" />
@@ -317,7 +441,15 @@ const StudentMessages = () => {
           </button>
         ))}
       </div>
-      <div className="px-3 py-3 border-t">
+      <div className="px-3 py-3 border-t space-y-2">
+        <Button variant="outline" size="sm" className="w-full text-xs gap-1.5"
+          onClick={() => navigate("/student/dms")}>
+          <MessageSquare className="h-3.5 w-3.5" /> Direct Messages
+        </Button>
+        <Button variant="outline" size="sm" className="w-full text-xs gap-1.5"
+          onClick={() => navigate("/student/leaderboard")}>
+          <Trophy className="h-3.5 w-3.5" /> Leaderboard
+        </Button>
         <Button variant="outline" size="sm" className="w-full text-xs gap-1.5"
           onClick={() => { setBadgeOpen(true); setSheetOpen(false); }}>
           <Award className="h-3.5 w-3.5" /> Request a Badge
@@ -347,8 +479,12 @@ const StudentMessages = () => {
             <SheetContent side="left" className="w-64 p-0"><ChannelList /></SheetContent>
           </Sheet>
           <div className="flex items-center gap-2 flex-1 min-w-0">
-            <Hash className="h-5 w-5 text-muted-foreground flex-shrink-0" />
-            <h1 className="text-base font-semibold truncate">{selectedActivityInfo?.title || "Activity Messages"}</h1>
+            {activeView === "announcements"
+              ? <Megaphone className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+              : <Hash className="h-5 w-5 text-muted-foreground flex-shrink-0" />}
+            <h1 className="text-base font-semibold truncate">
+              {activeView === "announcements" ? "All Announcements" : (selectedActivityInfo?.title || "Activity Messages")}
+            </h1>
           </div>
           <Button variant="outline" size="sm" className="hidden md:flex items-center gap-1.5 text-xs" onClick={() => setBadgeOpen(true)}>
             <Award className="h-3.5 w-3.5" /> Request Badge
@@ -369,6 +505,39 @@ const StudentMessages = () => {
                 <p className="font-semibold text-lg">No activities yet</p>
                 <p className="text-sm text-muted-foreground mt-1">Messages appear once you're allocated.</p>
               </div>
+            </div>
+          ) : activeView === "announcements" ? (
+            <div className="flex-1 overflow-y-auto px-4 py-4">
+              {allAnnouncements.length === 0 ? (
+                <div className="flex items-center justify-center h-full min-h-[200px] text-center">
+                  <div>
+                    <Megaphone className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
+                    <p className="text-muted-foreground text-sm">No announcements yet.</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3 pb-4">
+                  {allAnnouncements.map(msg => {
+                    const actTitle = activities.find(a => a.id === msg.activity_id)?.title;
+                    return (
+                      <div key={msg.id} className={`rounded-lg border-l-4 ${msg.is_admin ? "border-amber-500 bg-amber-500/5" : "border-primary bg-primary/5"} p-3`}>
+                        <div className="flex items-center gap-2 flex-wrap mb-1">
+                          <span className={`text-xs font-bold uppercase tracking-wider ${msg.is_admin ? "text-amber-500" : "text-primary"}`}>
+                            {actTitle || "Activity"}
+                          </span>
+                          <span className={`text-sm font-semibold ${msg.is_admin ? "text-amber-500" : msg.is_teacher ? "text-primary" : ""}`}>
+                            {msg.sender_name}
+                          </span>
+                          {msg.is_admin && <Badge variant="outline" className="text-xs bg-amber-500/10 text-amber-600 border-amber-500/30 h-4 px-1.5 py-0"><Crown className="h-2.5 w-2.5 mr-1" />Admin</Badge>}
+                          {!msg.is_admin && msg.is_teacher && <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/30 h-4 px-1.5 py-0"><ShieldCheck className="h-2.5 w-2.5 mr-1" />Supervisor</Badge>}
+                          <span className="text-xs text-muted-foreground ml-auto">{formatTime(msg.created_at)}</span>
+                        </div>
+                        <p className="text-sm whitespace-pre-wrap break-words">{msg.content}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           ) : (
             <>
@@ -432,7 +601,7 @@ const StudentMessages = () => {
                                   })}
                                   <span className="text-xs text-muted-foreground">{formatTime(msg.created_at)}</span>
                                 </div>
-                                <p className="text-sm whitespace-pre-wrap break-words">{msg.content}</p>
+                                <p className="text-sm whitespace-pre-wrap break-words">{renderContent(msg.content, myName)}</p>
                               </div>
                               {isOwn && (
                                 <Button variant="ghost" size="icon"
@@ -488,7 +657,30 @@ const StudentMessages = () => {
                                     <span className="text-xs text-muted-foreground">{formatTime(msg.created_at)}</span>
                                   </div>
                                 )}
-                                <p className="text-sm whitespace-pre-wrap break-words leading-relaxed">{msg.content}</p>
+                                <p className="text-sm whitespace-pre-wrap break-words leading-relaxed">{renderContent(msg.content, myName)}</p>
+                                {/* Reaction pills */}
+                                {(reactions[msg.id]?.length > 0 || true) && (
+                                  <div className="flex flex-wrap gap-1 mt-1.5 items-center">
+                                    {(reactions[msg.id] || []).map(r => (
+                                      <button key={r.emoji} onClick={() => toggleReaction(msg.id, r.emoji)}
+                                        className={`inline-flex items-center gap-1 rounded-full text-xs px-2 py-0.5 border transition-colors
+                                          ${r.mine ? "border-primary/50 bg-primary/10 text-primary" : "border-border bg-muted/50 hover:bg-muted"}`}>
+                                        <span>{r.emoji}</span><span className="font-medium">{r.count}</span>
+                                      </button>
+                                    ))}
+                                    <div className="relative group/picker">
+                                      <button className="inline-flex items-center justify-center h-6 w-6 rounded-full border border-dashed border-muted-foreground/30 text-muted-foreground hover:border-primary/40 hover:text-primary transition-colors opacity-0 group-hover:opacity-100 text-sm">+</button>
+                                      <div className="absolute bottom-7 left-0 hidden group-hover/picker:flex bg-popover border rounded-lg shadow-lg p-1 gap-0.5 z-10">
+                                        {REACT_EMOJIS.map(e => (
+                                          <button key={e} onClick={() => toggleReaction(msg.id, e)}
+                                            className="h-7 w-7 rounded hover:bg-muted flex items-center justify-center text-base transition-colors">
+                                            {e}
+                                          </button>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
                               </div>
                               {isOwn && (
                                 <div className="opacity-0 group-hover:opacity-100 flex-shrink-0 self-start pt-0.5">
@@ -510,19 +702,33 @@ const StudentMessages = () => {
               </div>
 
               <div className="flex-shrink-0 px-4 py-3 border-t bg-background">
+                {/* @ Mention autocomplete */}
+                {filteredMentions.length > 0 && (
+                  <div className="mb-2 bg-popover border rounded-lg shadow-lg overflow-hidden">
+                    {filteredMentions.map(m => (
+                      <button key={m.id} onClick={() => insertMention(m.name)}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted transition-colors text-left">
+                        <span className="font-medium">@{m.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <div className="flex items-end gap-2 bg-muted/50 rounded-xl px-3 py-2 border border-border focus-within:border-primary/40 transition-colors">
                   <Textarea value={content} onChange={(e) => setContent(e.target.value)}
-                    placeholder={`Message #${selectedActivityInfo?.title || "..."}`}
+                    placeholder={`Message #${selectedActivityInfo?.title || "..."} · Type @ to mention`}
                     className="flex-1 min-h-[24px] max-h-[120px] resize-none bg-transparent border-0 shadow-none focus-visible:ring-0 p-0 text-sm"
                     maxLength={1000}
-                    onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }
+                      if (e.key === "Escape") setContent(c => c.replace(/@\w+$/, ""));
+                    }}
                   />
                   <Button onClick={handleSend} disabled={sending || !content.trim()} size="icon" className="h-8 w-8 rounded-lg flex-shrink-0">
                     <Send className="h-4 w-4" />
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground mt-1.5 px-1">
-                  <kbd className="font-mono">Enter</kbd> to send · <kbd className="font-mono">Shift+Enter</kbd> for new line
+                  <kbd className="font-mono">Enter</kbd> to send · <kbd className="font-mono">Shift+Enter</kbd> for new line · <kbd className="font-mono">@</kbd> to mention
                 </p>
               </div>
             </>

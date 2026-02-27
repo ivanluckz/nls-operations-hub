@@ -135,6 +135,21 @@ const StudentDashboard = () => {
            {allocations.length > 0 && <CalendarSyncCard />}
            {allocations.length > 0 && <MessagesCard />}
 
+          {/* Leaderboard quick-link */}
+          {allocations.length > 0 && (
+            <button onClick={() => navigate("/student/leaderboard")}
+              className="w-full flex items-center justify-between rounded-2xl border bg-card px-5 py-4 shadow-sm hover:border-primary/40 hover:bg-primary/5 transition-colors text-left group">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">🏆</span>
+                <div>
+                  <p className="font-semibold text-sm">Leaderboard</p>
+                  <p className="text-xs text-muted-foreground">See where you rank among your peers</p>
+                </div>
+              </div>
+              <span className="text-muted-foreground group-hover:text-primary transition-colors text-sm">View →</span>
+            </button>
+          )}
+
           {/* Weekly Timetable */}
           {allocations.length > 0 && (
             <TimetableCard allocations={allocations} />
