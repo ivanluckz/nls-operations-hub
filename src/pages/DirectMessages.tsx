@@ -111,7 +111,7 @@ const DirectMessages = () => {
   }, [userId]);
 
   const loadConversations = async (uid: string) => {
-    const { data: channels } = await supabase
+    const { data: channels } = await (supabase as any)
       .from("dm_channels")
       .select("id, user1_id, user2_id, created_at")
       .or(`user1_id.eq.${uid},user2_id.eq.${uid}`)
@@ -125,7 +125,7 @@ const DirectMessages = () => {
 
     const convs: Conversation[] = await Promise.all(channels.map(async c => {
       const otherId = c.user1_id === uid ? c.user2_id : c.user1_id;
-      const { data: lastMsgs } = await supabase
+      const { data: lastMsgs } = await (supabase as any)
         .from("direct_messages")
         .select("content, created_at, sender_id")
         .eq("channel_id", c.id)
@@ -148,7 +148,7 @@ const DirectMessages = () => {
 
   const openOrCreateDM = async (uid: string, otherId: string, otherName: string) => {
     // Try to find existing channel
-    const { data: existing } = await supabase
+    const { data: existing } = await (supabase as any)
       .from("dm_channels")
       .select("id")
       .or(`and(user1_id.eq.${uid},user2_id.eq.${otherId}),and(user1_id.eq.${otherId},user2_id.eq.${uid})`)
@@ -156,7 +156,7 @@ const DirectMessages = () => {
 
     let channelId = existing?.id;
     if (!channelId) {
-      const { data: newChannel, error } = await supabase
+      const { data: newChannel, error } = await (supabase as any)
         .from("dm_channels")
         .insert({ user1_id: uid, user2_id: otherId })
         .select("id")
@@ -176,7 +176,7 @@ const DirectMessages = () => {
   const selectConversation = async (conv: Conversation) => {
     setSelectedConv(conv);
     setSheetOpen(false);
-    const { data } = await supabase
+    const { data } = await (supabase as any)
       .from("direct_messages")
       .select("*")
       .eq("channel_id", conv.channelId)
@@ -184,13 +184,13 @@ const DirectMessages = () => {
       .limit(200);
     if (!data) return;
 
-    const senderIds = [...new Set(data.map(m => m.sender_id))];
+    const senderIds = [...new Set((data as any[]).map((m: any) => m.sender_id))] as string[];
     const { data: profiles } = await supabase.from("profiles").select("id, full_name").in("id", senderIds);
     const profileMap = new Map((profiles || []).map(p => [p.id, p.full_name]));
-    setMessages(data.map(m => ({ ...m, senderName: profileMap.get(m.sender_id) || "Unknown" })));
+    setMessages((data as any[]).map((m: any) => ({ ...m, senderName: profileMap.get(m.sender_id) || "Unknown" })));
 
     // Mark messages as read
-    await supabase
+    await (supabase as any)
       .from("direct_messages")
       .update({ read_at: new Date().toISOString() })
       .eq("channel_id", conv.channelId)
@@ -203,7 +203,7 @@ const DirectMessages = () => {
     setSending(true);
     const text = content.trim();
     setContent("");
-    const { error } = await supabase.from("direct_messages").insert({
+    const { error } = await (supabase as any).from("direct_messages").insert({
       channel_id: selectedConv.channelId,
       sender_id: userId,
       content: text,
@@ -213,7 +213,7 @@ const DirectMessages = () => {
   };
 
   const deleteMessage = async (msgId: string) => {
-    await supabase.from("direct_messages").delete().eq("id", msgId);
+    await (supabase as any).from("direct_messages").delete().eq("id", msgId);
     setMessages(prev => prev.filter(m => m.id !== msgId));
   };
 
