@@ -36,12 +36,6 @@ import StudentMessages from "./pages/StudentMessages";
 import ThemeManagement from "./pages/ThemeManagement";
 import Leaderboard from "./pages/Leaderboard";
 import DirectMessages from "./pages/DirectMessages";
-import AcademicSubjects from "./pages/AcademicSubjects";
-import ClassGroups from "./pages/ClassGroups";
-import AcademicTimetableAdmin from "./pages/AcademicTimetableAdmin";
-import AcademicAttendanceReports from "./pages/AcademicAttendanceReports";
-import TeacherAcademic from "./pages/TeacherAcademic";
-import StudentAcademic from "./pages/StudentAcademic";
 
 const queryClient = new QueryClient();
 
@@ -94,20 +88,6 @@ const AppContent = () => {
           <Route path="/admin/profile" element={<ProtectedRoute requiredRole="admin"><AdminProfile /></ProtectedRoute>} />
           <Route path="/admin/messages" element={<ProtectedRoute requiredRole="admin"><AdminMessages /></ProtectedRoute>} />
           <Route path="/admin/badge-requests" element={<ProtectedRoute requiredRole="admin"><AdminBadgeRequests /></ProtectedRoute>} />
-          {/* Academic system — admin */}
-          <Route path="/admin/academic/subjects" element={<ProtectedRoute requiredRole="admin"><AcademicSubjects /></ProtectedRoute>} />
-          <Route path="/admin/academic/classes" element={<ProtectedRoute requiredRole="admin"><ClassGroups /></ProtectedRoute>} />
-          <Route path="/admin/academic/timetable" element={<ProtectedRoute requiredRole="admin"><AcademicTimetableAdmin /></ProtectedRoute>} />
-          <Route path="/admin/academic/attendance" element={<ProtectedRoute requiredRole="admin"><AcademicAttendanceReports /></ProtectedRoute>} />
-          {/* Academic system — moderator */}
-          <Route path="/moderator/academic/subjects" element={<ProtectedRoute requiredRole="moderator"><AcademicSubjects /></ProtectedRoute>} />
-          <Route path="/moderator/academic/classes" element={<ProtectedRoute requiredRole="moderator"><ClassGroups /></ProtectedRoute>} />
-          <Route path="/moderator/academic/timetable" element={<ProtectedRoute requiredRole="moderator"><AcademicTimetableAdmin /></ProtectedRoute>} />
-          <Route path="/moderator/academic/attendance" element={<ProtectedRoute requiredRole="moderator"><AcademicAttendanceReports /></ProtectedRoute>} />
-          {/* Academic system — teacher */}
-          <Route path="/teacher/academic" element={<ProtectedRoute requiredRole="teacher"><TeacherAcademic /></ProtectedRoute>} />
-          {/* Academic system — student */}
-          <Route path="/student/academic" element={<ProtectedRoute requiredRole="student"><StudentAcademic /></ProtectedRoute>} />
           <Route path="/chatbot" element={<ActivityChatbot />} />
           <Route path="/themes" element={<ThemeManagement />} />
           <Route path="*" element={<NotFound />} />

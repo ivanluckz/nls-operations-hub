@@ -39,8 +39,6 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
    LayoutDashboard,
    MessageSquare,
    Award,
-   Calendar,
-   GraduationCap,
  } from "lucide-react";
  import nlsLogo from "@/assets/nls-logo.png";
  
@@ -197,7 +195,7 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
  
        <SidebarContent>
          <SidebarGroup>
-           <SidebarGroupLabel>Co-Curricular</SidebarGroupLabel>
+           <SidebarGroupLabel>Navigation</SidebarGroupLabel>
            <SidebarGroupContent>
              <SidebarMenu>
                {menuItems.map((item) => {

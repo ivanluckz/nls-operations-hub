@@ -32,10 +32,6 @@
    "/admin/profile": { title: "Profile Settings", description: "Manage your account settings" },
    "/admin/messages": { title: "All Chats", description: "View and moderate all activity channel messages" },
    "/admin/badge-requests": { title: "Badge Requests", description: "Review and approve student badge requests" },
-  "/admin/academic/subjects":   { title: "Subjects",            description: "Manage academic subjects" },
-  "/admin/academic/classes":    { title: "Class Groups",        description: "Manage class groups and student membership" },
-  "/admin/academic/timetable":  { title: "Timetable",           description: "Build and manage the master timetable" },
-  "/admin/academic/attendance": { title: "Academic Attendance", description: "View academic attendance reports" },
  };
  
  export function AdminLayout({ children, title, description }: AdminLayoutProps) {
