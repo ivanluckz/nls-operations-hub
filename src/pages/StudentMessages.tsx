@@ -227,7 +227,7 @@ const StudentMessages = () => {
       setMessages(enriched);
 
       // Load reactions for these messages
-      const { data: reactData } = await supabase
+      const { data: reactData } = await (supabase as any)
         .from("message_reactions")
         .select("message_id, user_id, emoji")
         .in("message_id", data.map(m => m.id));
@@ -364,7 +364,7 @@ const StudentMessages = () => {
   const toggleReaction = async (messageId: string, emoji: string) => {
     const mine = reactions[messageId]?.find(r => r.emoji === emoji)?.mine;
     if (mine) {
-      await supabase.from("message_reactions").delete().eq("message_id", messageId).eq("user_id", userId).eq("emoji", emoji);
+      await (supabase as any).from("message_reactions").delete().eq("message_id", messageId).eq("user_id", userId).eq("emoji", emoji);
       setReactions(prev => {
         const ex = [...(prev[messageId] || [])].map(x =>
           x.emoji === emoji ? { ...x, count: Math.max(0, x.count - 1), mine: false } : x
@@ -372,7 +372,7 @@ const StudentMessages = () => {
         return { ...prev, [messageId]: ex };
       });
     } else {
-      await supabase.from("message_reactions").insert({ message_id: messageId, user_id: userId, emoji });
+      await (supabase as any).from("message_reactions").insert({ message_id: messageId, user_id: userId, emoji });
       setReactions(prev => {
         const ex = [...(prev[messageId] || [])];
         const idx = ex.findIndex(x => x.emoji === emoji);
