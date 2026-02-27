@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -62,6 +62,61 @@ interface UserResult {
   full_name: string;
   email: string;
 }
+
+// Extracted outside the parent component so React never sees a new type reference
+// on re-renders — prevents full unmount/remount of the conversation list.
+interface ConvListProps {
+  conversations: Conversation[];
+  selectedChannelId: string | null;
+  onSelect: (conv: Conversation) => void;
+  onBack: () => void;
+  onNewDm: () => void;
+}
+
+const ConvList = ({ conversations, selectedChannelId, onSelect, onBack, onNewDm }: ConvListProps) => (
+  <div className="flex flex-col h-full">
+    <div className="px-3 py-4 border-b flex items-center gap-2">
+      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onBack}>
+        <ArrowLeft className="h-3.5 w-3.5" />
+      </Button>
+      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex-1">Direct Messages</p>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-7 w-7"
+        onClick={onNewDm}
+        title="New DM"
+      >
+        <Plus className="h-3.5 w-3.5" />
+      </Button>
+    </div>
+    <div className="flex-1 overflow-y-auto py-2 space-y-0.5 px-2">
+      {conversations.length === 0 && (
+        <p className="text-xs text-muted-foreground text-center py-8">
+          No conversations yet.<br />
+          Click <strong>+</strong> to start a new DM.
+        </p>
+      )}
+      {conversations.map(conv => (
+        <button key={conv.channelId} onClick={() => onSelect(conv)}
+          className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition-colors text-left
+            ${selectedChannelId === conv.channelId ? "bg-primary/15 text-foreground font-medium" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
+          <Avatar className={`h-7 w-7 shrink-0 ${getAvatarColor(conv.otherId)}`}>
+            <AvatarFallback className={`text-white text-xs font-bold ${getAvatarColor(conv.otherId)}`}>
+              {getInitials(conv.otherName)}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex-1 min-w-0">
+            <p className="font-medium truncate text-xs">{conv.otherName}</p>
+            {conv.lastMessage && (
+              <p className="text-xs text-muted-foreground truncate">{conv.lastMessage}</p>
+            )}
+          </div>
+        </button>
+      ))}
+    </div>
+  </div>
+);
 
 const DirectMessages = () => {
   const navigate = useNavigate();
@@ -163,11 +218,13 @@ const DirectMessages = () => {
   };
 
   const openOrCreateDM = async (uid: string, otherId: string, otherName: string) => {
-    const { data: existing } = await (supabase as any)
-      .from("dm_channels")
-      .select("id")
-      .or(`and(user1_id.eq.${uid},user2_id.eq.${otherId}),and(user1_id.eq.${otherId},user2_id.eq.${uid})`)
-      .maybeSingle();
+    // Use two separate queries to avoid unreliable nested and() inside or() in Supabase JS SDK.
+    // The unique index on (LEAST, GREATEST) means only one of these two orderings can exist.
+    const { data: ch1 } = await (supabase as any)
+      .from("dm_channels").select("id").eq("user1_id", uid).eq("user2_id", otherId).maybeSingle();
+    const { data: ch2 } = ch1 ? { data: null } : await (supabase as any)
+      .from("dm_channels").select("id").eq("user1_id", otherId).eq("user2_id", uid).maybeSingle();
+    const existing = ch1 || ch2;
 
     let channelId = existing?.id;
     if (!channelId) {
@@ -231,7 +288,6 @@ const DirectMessages = () => {
     setMessages(prev => prev.filter(m => m.id !== msgId));
   };
 
-  // User search for New DM dialog
   const searchUsers = async (query: string) => {
     if (query.length < 2) { setUserResults([]); return; }
     setSearchingUsers(true);
@@ -257,56 +313,28 @@ const DirectMessages = () => {
     await openOrCreateDM(userId, user.id, user.full_name);
   };
 
-  const ConvList = () => (
-    <div className="flex flex-col h-full">
-      <div className="px-3 py-4 border-b flex items-center gap-2">
-        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => navigate(backPath)}>
-          <ArrowLeft className="h-3.5 w-3.5" />
-        </Button>
-        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex-1">Direct Messages</p>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7"
-          onClick={() => { setNewDmOpen(true); setUserSearch(""); setUserResults([]); }}
-          title="New DM"
-        >
-          <Plus className="h-3.5 w-3.5" />
-        </Button>
+  const handleBack = useCallback(() => navigate(backPath), [navigate, backPath]);
+  const handleNewDm = useCallback(() => { setNewDmOpen(true); setUserSearch(""); setUserResults([]); }, []);
+
+  if (loadingConvs) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background">
+        <div className="w-8 h-8 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
       </div>
-      <div className="flex-1 overflow-y-auto py-2 space-y-0.5 px-2">
-        {conversations.length === 0 && (
-          <p className="text-xs text-muted-foreground text-center py-8">
-            No conversations yet.<br />
-            Click <strong>+</strong> to start a new DM.
-          </p>
-        )}
-        {conversations.map(conv => (
-          <button key={conv.channelId} onClick={() => selectConversation(conv)}
-            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition-colors text-left
-              ${selectedConv?.channelId === conv.channelId ? "bg-primary/15 text-foreground font-medium" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
-            <Avatar className={`h-7 w-7 shrink-0 ${getAvatarColor(conv.otherId)}`}>
-              <AvatarFallback className={`text-white text-xs font-bold ${getAvatarColor(conv.otherId)}`}>
-                {getInitials(conv.otherName)}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex-1 min-w-0">
-              <p className="font-medium truncate text-xs">{conv.otherName}</p>
-              {conv.lastMessage && (
-                <p className="text-xs text-muted-foreground truncate">{conv.lastMessage}</p>
-              )}
-            </div>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
+    );
+  }
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
       {/* Desktop sidebar */}
       <aside className="hidden md:flex w-60 flex-col border-r bg-card/50">
-        <ConvList />
+        <ConvList
+          conversations={conversations}
+          selectedChannelId={selectedConv?.channelId ?? null}
+          onSelect={selectConversation}
+          onBack={handleBack}
+          onNewDm={handleNewDm}
+        />
       </aside>
 
       {/* Main area */}
@@ -320,7 +348,13 @@ const DirectMessages = () => {
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="w-60 p-0">
-              <ConvList />
+              <ConvList
+                conversations={conversations}
+                selectedChannelId={selectedConv?.channelId ?? null}
+                onSelect={selectConversation}
+                onBack={handleBack}
+                onNewDm={handleNewDm}
+              />
             </SheetContent>
           </Sheet>
 
@@ -340,7 +374,7 @@ const DirectMessages = () => {
             </>
           )}
 
-          <Button variant="ghost" size="icon" className="ml-auto h-8 w-8" onClick={() => navigate(backPath)}>
+          <Button variant="ghost" size="icon" className="ml-auto h-8 w-8" onClick={handleBack}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
         </div>
