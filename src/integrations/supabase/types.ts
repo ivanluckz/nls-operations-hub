@@ -318,6 +318,42 @@ export type Database = {
           },
         ]
       }
+      badge_requests: {
+        Row: {
+          badge_name: string
+          created_at: string | null
+          id: string
+          reason: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string | null
+          student_id: string
+          target_admin_id: string | null
+        }
+        Insert: {
+          badge_name: string
+          created_at?: string | null
+          id?: string
+          reason: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string | null
+          student_id: string
+          target_admin_id?: string | null
+        }
+        Update: {
+          badge_name?: string
+          created_at?: string | null
+          id?: string
+          reason?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string | null
+          student_id?: string
+          target_admin_id?: string | null
+        }
+        Relationships: []
+      }
       google_calendar_tokens: {
         Row: {
           access_token: string
@@ -571,6 +607,30 @@ export type Database = {
           full_name?: string
           id?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      user_badges: {
+        Row: {
+          awarded_at: string | null
+          awarded_by: string | null
+          badge_name: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          awarded_at?: string | null
+          awarded_by?: string | null
+          badge_name: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          awarded_at?: string | null
+          awarded_by?: string | null
+          badge_name?: string
+          id?: string
+          user_id?: string
         }
         Relationships: []
       }

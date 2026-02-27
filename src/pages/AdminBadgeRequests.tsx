@@ -42,7 +42,7 @@ const AdminBadgeRequests = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from("badge_requests")
         .select("*")
         .eq("target_admin_id", user.id)
@@ -50,7 +50,7 @@ const AdminBadgeRequests = () => {
         .limit(500);
 
       if (data) {
-        const studentIds = [...new Set(data.map(r => r.student_id))];
+        const studentIds = [...new Set((data as any[]).map((r: any) => r.student_id))] as string[];
         const { data: profiles } = await supabase
           .from("profiles").select("id, full_name").in("id", studentIds);
         const profileMap = new Map(profiles?.map(p => [p.id, p.full_name]) || []);
@@ -72,14 +72,14 @@ const AdminBadgeRequests = () => {
       const { data: { user } } = await supabase.auth.getUser();
 
       // Update request status
-      const { error: updateError } = await supabase
+      const { error: updateError } = await (supabase as any)
         .from("badge_requests")
         .update({ status: "approved", reviewed_by: user?.id, reviewed_at: new Date().toISOString() })
         .eq("id", req.id);
       if (updateError) throw updateError;
 
       // Award the badge (upsert to handle duplicates)
-      const { error: badgeError } = await supabase
+      const { error: badgeError } = await (supabase as any)
         .from("user_badges")
         .upsert({ user_id: req.student_id, badge_name: req.badge_name, awarded_by: user?.id }, { onConflict: "user_id,badge_name" });
       if (badgeError) throw badgeError;
@@ -97,7 +97,7 @@ const AdminBadgeRequests = () => {
     setActionLoading(req.id);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("badge_requests")
         .update({ status: "rejected", reviewed_by: user?.id, reviewed_at: new Date().toISOString() })
         .eq("id", req.id);
