@@ -6,14 +6,16 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { Crown, ShieldCheck, GraduationCap, MessageSquare } from "lucide-react";
+import devBadge from "@/assets/dev.png";
 
-const BADGE_OPTIONS = [
+const BADGE_OPTIONS: { name: string; emoji: string; animClass: string; desc: string; img?: string }[] = [
   { name: "Growing",     emoji: "🌱", animClass: "badge-anim-grow",  desc: "Active and improving" },
   { name: "Star Student",emoji: "⭐", animClass: "badge-anim-star",  desc: "Outstanding performance" },
   { name: "Leader",      emoji: "👑", animClass: "badge-anim-crown", desc: "Shows leadership" },
   { name: "On Fire",     emoji: "🔥", animClass: "badge-anim-fire",  desc: "Consistent effort" },
   { name: "Creative",    emoji: "💡", animClass: "badge-anim-bulb",  desc: "Brings fresh ideas" },
   { name: "Team Player", emoji: "🤝", animClass: "badge-anim-team",  desc: "Great collaboration" },
+  { name: "Dev",         emoji: "",   animClass: "",                  desc: "Exclusive developer badge", img: devBadge },
 ];
 
 const AVATAR_COLORS = [
