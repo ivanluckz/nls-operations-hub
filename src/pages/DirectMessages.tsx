@@ -847,6 +847,19 @@ const DirectMessages = () => {
           isAdmin={profileCard.isAdmin}
           isTeacher={profileCard.isTeacher}
           badges={userBadges[profileCard.senderId] || []}
+          isAdminViewing={isAdmin}
+          onBadgeGranted={(badgeName) => {
+            setUserBadges(prev => ({
+              ...prev,
+              [profileCard.senderId]: [...(prev[profileCard.senderId] || []), badgeName],
+            }));
+          }}
+          onBadgeRemoved={(badgeName) => {
+            setUserBadges(prev => ({
+              ...prev,
+              [profileCard.senderId]: (prev[profileCard.senderId] || []).filter(b => b !== badgeName),
+            }));
+          }}
         />
       )}
     </div>
