@@ -13,6 +13,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Hash, ShieldCheck, Megaphone, Send, Trash2, Crown } from "lucide-react";
+import { UserProfileCard } from "@/components/chat/UserProfileCard";
 
 interface Message {
   id: string;
@@ -30,6 +31,13 @@ interface Activity {
   id: string;
   title: string;
   teacher_id: string | null;
+}
+
+interface ProfileCard {
+  senderId: string;
+  senderName: string;
+  isAdmin: boolean;
+  isTeacher: boolean;
 }
 
 const AVATAR_COLORS = [
@@ -77,6 +85,9 @@ const AdminMessages = () => {
   const [messageType, setMessageType] = useState<"announcement" | "discussion">("announcement");
   const [sending, setSending] = useState(false);
   const [userId, setUserId] = useState("");
+  const [userBadges, setUserBadges] = useState<Record<string, string[]>>({});
+  const [profileCard, setProfileCard] = useState<ProfileCard | null>(null);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const teacherIdsRef = useRef<Record<string, string | null>>({});
   const selectedActivityRef = useRef<string>("");
@@ -118,9 +129,20 @@ const AdminMessages = () => {
       if (!data) return;
 
       const senderIds = [...new Set(data.map(m => m.sender_id))];
-      const { data: profiles } = await supabase.from("profiles").select("id, full_name").in("id", senderIds);
-      const profileMap = new Map(profiles?.map(p => [p.id, p.full_name]) || []);
+      const [profilesRes, badgesRes] = await Promise.all([
+        supabase.from("profiles").select("id, full_name").in("id", senderIds),
+        supabase.from("user_badges").select("user_id, badge_name").in("user_id", senderIds).limit(500),
+      ]);
+
+      const profileMap = new Map(profilesRes.data?.map(p => [p.id, p.full_name]) || []);
       const teacherId = teacherIdsRef.current[selectedActivity];
+
+      const badgeMap: Record<string, string[]> = {};
+      (badgesRes.data || []).forEach((b: any) => {
+        if (!badgeMap[b.user_id]) badgeMap[b.user_id] = [];
+        badgeMap[b.user_id].push(b.badge_name);
+      });
+      setUserBadges(badgeMap);
 
       setMessages(data.map(m => ({
         ...m,
@@ -182,6 +204,15 @@ const AdminMessages = () => {
     setDeleteTargetId(null);
   };
 
+  const openProfile = (msg: Message) => {
+    setProfileCard({
+      senderId: msg.sender_id,
+      senderName: msg.sender_name || "Unknown",
+      isAdmin: !!msg.is_admin,
+      isTeacher: !!msg.is_teacher,
+    });
+  };
+
   const selectedTitle = activities.find(a => a.id === selectedActivity)?.title;
 
   return (
@@ -198,8 +229,7 @@ const AdminMessages = () => {
               <button key={a.id} onClick={() => setSelectedActivity(a.id)}
                 className={`w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors text-left ${
                   selectedActivity === a.id ? "bg-primary/15 text-foreground font-medium" : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                }`}
-              >
+                }`}>
                 <Hash className="h-4 w-4 flex-shrink-0 opacity-70" />
                 <span className="flex-1 truncate">{a.title}</span>
               </button>
@@ -229,6 +259,8 @@ const AdminMessages = () => {
                   const prev = idx > 0 ? messages[idx - 1] : undefined;
                   const showDateSep = !prev || !isSameDay(msg.created_at, prev.created_at);
                   const startGroup = isNewGroup(msg, prev);
+                  const isOwn = msg.sender_id === userId;
+                  const canClick = !isOwn;
 
                   return (
                     <div key={msg.id}>
@@ -248,7 +280,12 @@ const AdminMessages = () => {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap mb-1">
                               <span className={`text-xs font-bold uppercase tracking-wider ${msg.is_admin ? "text-amber-500" : "text-primary"}`}>Announcement</span>
-                              <span className={`text-sm font-semibold ${msg.is_admin ? "text-amber-500" : msg.is_teacher ? "text-primary" : ""}`}>{msg.sender_name}</span>
+                              <button
+                                className={`text-sm font-semibold ${msg.is_admin ? "text-amber-500" : msg.is_teacher ? "text-primary" : ""} ${canClick ? "hover:underline cursor-pointer" : "cursor-default"}`}
+                                onClick={() => canClick && openProfile(msg)}
+                              >
+                                {isOwn ? "You" : msg.sender_name}
+                              </button>
                               {msg.is_admin && (
                                 <Badge variant="outline" className="text-xs bg-amber-500/10 text-amber-600 border-amber-500/30 h-4 px-1.5 py-0">
                                   <Crown className="h-2.5 w-2.5 mr-1" />Admin
@@ -273,11 +310,16 @@ const AdminMessages = () => {
                         <div className={`group flex gap-3 px-2 py-0.5 rounded-md hover:bg-muted/40 ${startGroup ? "mt-4" : "mt-0.5"} ${msg.is_admin ? "border-l-2 border-amber-400/40" : ""}`}>
                           <div className="w-10 flex-shrink-0 flex justify-center">
                             {startGroup ? (
-                              <Avatar className="h-9 w-9 mt-0.5">
-                                <AvatarFallback className={`text-white text-xs font-bold ${getAvatarColor(msg.sender_id)}`}>
-                                  {getInitials(msg.sender_name || "?")}
-                                </AvatarFallback>
-                              </Avatar>
+                              <button
+                                className={`rounded-full ${canClick ? "cursor-pointer hover:opacity-80 transition-opacity" : "cursor-default"}`}
+                                onClick={() => canClick && openProfile(msg)}
+                              >
+                                <Avatar className="h-9 w-9 mt-0.5">
+                                  <AvatarFallback className={`text-white text-xs font-bold ${getAvatarColor(msg.sender_id)}`}>
+                                    {getInitials(msg.sender_name || "?")}
+                                  </AvatarFallback>
+                                </Avatar>
+                              </button>
                             ) : (
                               <span className="text-[10px] text-transparent group-hover:text-muted-foreground/60 pt-1 select-none leading-none mt-1">
                                 {formatTime(msg.created_at)}
@@ -287,7 +329,12 @@ const AdminMessages = () => {
                           <div className="flex-1 min-w-0">
                             {startGroup && (
                               <div className="flex items-center gap-2 flex-wrap mb-0.5">
-                                <span className={`text-sm font-semibold ${msg.is_admin ? "text-amber-500" : msg.is_teacher ? "text-primary" : ""}`}>{msg.sender_name}</span>
+                                <button
+                                  className={`text-sm font-semibold ${msg.is_admin ? "text-amber-500" : msg.is_teacher ? "text-primary" : ""} ${canClick ? "hover:underline cursor-pointer" : "cursor-default"}`}
+                                  onClick={() => canClick && openProfile(msg)}
+                                >
+                                  {isOwn ? "You" : msg.sender_name}
+                                </button>
                                 {msg.is_admin && (
                                   <Badge variant="outline" className="text-xs bg-amber-500/10 text-amber-600 border-amber-500/30 h-4 px-1.5 py-0">
                                     <Crown className="h-2.5 w-2.5 mr-1" />Admin
@@ -356,6 +403,7 @@ const AdminMessages = () => {
         </div>
       </div>
 
+      {/* Confirm delete */}
       <AlertDialog open={!!deleteTargetId} onOpenChange={(o) => { if (!o) setDeleteTargetId(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -372,6 +420,26 @@ const AdminMessages = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Profile card with badge granting */}
+      {profileCard && (
+        <UserProfileCard
+          open={!!profileCard}
+          onClose={() => setProfileCard(null)}
+          senderId={profileCard.senderId}
+          senderName={profileCard.senderName}
+          isAdmin={profileCard.isAdmin}
+          isTeacher={profileCard.isTeacher}
+          badges={userBadges[profileCard.senderId] || []}
+          isAdminViewing
+          onBadgeGranted={(badgeName) => {
+            setUserBadges(prev => ({
+              ...prev,
+              [profileCard.senderId]: [...(prev[profileCard.senderId] || []), badgeName],
+            }));
+          }}
+        />
+      )}
     </AdminLayout>
   );
 };

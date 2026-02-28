@@ -5,7 +5,8 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { Crown, ShieldCheck, GraduationCap, MessageSquare } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { Crown, ShieldCheck, GraduationCap, MessageSquare, Check } from "lucide-react";
 import devBadge from "@/assets/dev.png";
 
 const BADGE_OPTIONS: { name: string; emoji: string; animClass: string; desc: string; img?: string }[] = [
@@ -53,6 +54,10 @@ interface Props {
   isTeacher: boolean;
   badges: string[];
   currentActivityTitle?: string;
+  /** When true, the admin badge-grant panel is shown */
+  isAdminViewing?: boolean;
+  /** Called after admin grants a badge so the parent can refresh badge data */
+  onBadgeGranted?: (badgeName: string) => void;
 }
 
 interface UserActivity {
@@ -60,10 +65,17 @@ interface UserActivity {
 }
 
 export function UserProfileCard({
-  open, onClose, senderId, senderName, isAdmin, isTeacher, badges, currentActivityTitle,
+  open, onClose, senderId, senderName, isAdmin, isTeacher, badges,
+  currentActivityTitle, isAdminViewing, onBadgeGranted,
 }: Props) {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [activities, setActivities] = useState<UserActivity[]>([]);
+  const [localBadges, setLocalBadges] = useState<string[]>(badges);
+  const [grantingBadge, setGrantingBadge] = useState<string | null>(null);
+
+  // Sync local badge state if the parent passes new data
+  useEffect(() => { setLocalBadges(badges); }, [badges]);
 
   useEffect(() => {
     if (!open || !senderId) return;
@@ -74,14 +86,34 @@ export function UserProfileCard({
       .limit(10)
       .then(({ data }) => {
         if (data) {
-          const acts = data
-            .map((r: any) => r.activities)
-            .filter(Boolean)
-            .map((a: any) => ({ title: a.title }));
-          setActivities(acts);
+          setActivities(
+            data.map((r: any) => r.activities).filter(Boolean).map((a: any) => ({ title: a.title }))
+          );
         }
       });
   }, [open, senderId]);
+
+  const grantBadge = async (badgeName: string) => {
+    if (localBadges.includes(badgeName)) return;
+    setGrantingBadge(badgeName);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { error } = await (supabase as any)
+        .from("user_badges")
+        .upsert(
+          { user_id: senderId, badge_name: badgeName, awarded_by: user?.id },
+          { onConflict: "user_id,badge_name" }
+        );
+      if (error) throw error;
+      setLocalBadges(prev => [...prev, badgeName]);
+      onBadgeGranted?.(badgeName);
+      toast({ title: `${badgeName} badge granted!`, description: `${senderName} now has the ${badgeName} badge.` });
+    } catch {
+      toast({ variant: "destructive", title: "Failed to grant badge" });
+    } finally {
+      setGrantingBadge(null);
+    }
+  };
 
   const idx = hashId(senderId) % AVATAR_COLORS.length;
   const avatarColor = AVATAR_COLORS[idx];
@@ -94,7 +126,11 @@ export function UserProfileCard({
     ? "bg-primary/15 text-primary border-primary/40"
     : "bg-muted text-muted-foreground border-border";
 
-  const earnedBadges = BADGE_OPTIONS.filter(b => badges.includes(b.name));
+  const earnedBadges = BADGE_OPTIONS.filter(b => localBadges.includes(b.name));
+
+  const dmPath = isAdminViewing
+    ? `/admin/dms?user=${senderId}&name=${encodeURIComponent(senderName)}`
+    : `/student/dms?user=${senderId}&name=${encodeURIComponent(senderName)}`;
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -111,7 +147,6 @@ export function UserProfileCard({
                   {getInitials(senderName)}
                 </AvatarFallback>
               </Avatar>
-              {/* Role icon badge */}
               <span className={`absolute -bottom-1 -right-1 rounded-full p-1 ring-2 ring-background
                 ${isAdmin ? "bg-amber-500" : isTeacher ? "bg-primary" : "bg-muted border"}`}>
                 {isAdmin
@@ -132,24 +167,20 @@ export function UserProfileCard({
               {senderName}
             </h2>
             <Button variant="outline" size="sm" className="gap-1.5 text-xs h-7 shrink-0"
-              onClick={() => { onClose(); navigate(`/student/dms?user=${senderId}&name=${encodeURIComponent(senderName)}`); }}>
+              onClick={() => { onClose(); navigate(dmPath); }}>
               <MessageSquare className="h-3 w-3" /> Message
             </Button>
           </div>
 
-          {/* Badges section */}
+          {/* Earned badges */}
           {earnedBadges.length > 0 && (
             <div className="mt-4">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-2">
-                Badges
-              </p>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-2">Badges</p>
               <div className="flex flex-wrap gap-2">
                 {earnedBadges.map(b => (
-                  <div
-                    key={b.name}
+                  <div key={b.name}
                     className="flex items-center gap-1.5 rounded-full border bg-muted/50 px-2.5 py-1 text-xs font-medium"
-                    title={b.desc}
-                  >
+                    title={b.desc}>
                     {b.img
                       ? <img src={b.img} alt={b.name} className="h-4 w-4 object-contain" />
                       : <span className={b.animClass}>{b.emoji}</span>}
@@ -160,12 +191,10 @@ export function UserProfileCard({
             </div>
           )}
 
-          {/* Activities section */}
+          {/* Activities */}
           {(activities.length > 0 || currentActivityTitle) && (
             <div className="mt-4">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-2">
-                Activities
-              </p>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-2">Activities</p>
               <div className="flex flex-wrap gap-1.5">
                 {activities.length > 0
                   ? activities.map((a, i) => (
@@ -182,8 +211,43 @@ export function UserProfileCard({
             </div>
           )}
 
-          {earnedBadges.length === 0 && activities.length === 0 && !currentActivityTitle && (
+          {earnedBadges.length === 0 && activities.length === 0 && !currentActivityTitle && !isAdminViewing && (
             <p className="mt-4 text-xs text-muted-foreground">No badges yet.</p>
+          )}
+
+          {/* Admin: grant badge panel */}
+          {isAdminViewing && (
+            <div className="mt-4 border-t pt-4">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-2">
+                Grant Badge
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {BADGE_OPTIONS.map(b => {
+                  const hasIt = localBadges.includes(b.name);
+                  const isGranting = grantingBadge === b.name;
+                  return (
+                    <button
+                      key={b.name}
+                      onClick={() => grantBadge(b.name)}
+                      disabled={hasIt || isGranting}
+                      title={hasIt ? `${senderName} already has this badge` : `Grant ${b.name}`}
+                      className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors
+                        ${hasIt
+                          ? "border-primary/40 bg-primary/10 text-primary cursor-default"
+                          : "border-border bg-muted/50 hover:border-primary/50 hover:bg-primary/5 hover:text-primary cursor-pointer"}`}>
+                      {b.img
+                        ? <img src={b.img} alt={b.name} className="h-4 w-4 object-contain" />
+                        : <span className={b.animClass}>{b.emoji}</span>}
+                      {b.name}
+                      {hasIt && <Check className="h-3 w-3 ml-0.5" />}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-2">
+                Highlighted = already granted. Click any badge to award it instantly.
+              </p>
+            </div>
           )}
         </div>
       </DialogContent>
