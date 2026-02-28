@@ -77,7 +77,7 @@ const StudentDashboard = () => {
         (supabase as any).from("user_badges").select("badge_name").eq("user_id", user.id).eq("badge_name", "Dev").maybeSingle(),
       ]);
 
-      setAllocations(allocationsData as Allocation[] || []);
+      setAllocations((allocationsData as Allocation[] || []).filter(a => a.activities != null));
       setHasDev(!!badgeData);
     } catch (error) {
       console.error("Error fetching data:", error);
