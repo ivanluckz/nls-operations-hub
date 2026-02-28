@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ArrowLeft, Send, MessageSquare, Menu, Trash2, Plus, Search, Pencil, Check, X } from "lucide-react";
+import { UserProfileCard } from "@/components/chat/UserProfileCard";
 
 const REACT_EMOJIS = ['👍', '❤️', '😂', '🔥', '👀', '✅'];
 
@@ -144,6 +145,11 @@ const DirectMessages = () => {
   // Editing
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState("");
+
+  // Profile card
+  const [profileCard, setProfileCard] = useState<{
+    senderId: string; senderName: string; isAdmin: boolean; isTeacher: boolean;
+  } | null>(null);
 
   // Typing indicator
   const [typingUser, setTypingUser] = useState<string | null>(null);
@@ -560,14 +566,20 @@ const DirectMessages = () => {
 
           {selectedConv ? (
             <>
-              <RoleAvatar
-                userId={selectedConv.otherId}
-                name={selectedConv.otherName}
-                isAdmin={userRoles[selectedConv.otherId] === "admin"}
-                isMod={userRoles[selectedConv.otherId] === "teacher" || userRoles[selectedConv.otherId] === "moderator"}
-                avatarSize="h-8 w-8"
-              />
-              <span className="font-semibold text-sm">{selectedConv.otherName}</span>
+              <button className="cursor-pointer hover:opacity-80 transition-opacity"
+                onClick={() => setProfileCard({ senderId: selectedConv.otherId, senderName: selectedConv.otherName, isAdmin: userRoles[selectedConv.otherId] === "admin", isTeacher: userRoles[selectedConv.otherId] === "teacher" || userRoles[selectedConv.otherId] === "moderator" })}>
+                <RoleAvatar
+                  userId={selectedConv.otherId}
+                  name={selectedConv.otherName}
+                  isAdmin={userRoles[selectedConv.otherId] === "admin"}
+                  isMod={userRoles[selectedConv.otherId] === "teacher" || userRoles[selectedConv.otherId] === "moderator"}
+                  avatarSize="h-8 w-8"
+                />
+              </button>
+              <button className="font-semibold text-sm hover:underline cursor-pointer"
+                onClick={() => setProfileCard({ senderId: selectedConv.otherId, senderName: selectedConv.otherName, isAdmin: userRoles[selectedConv.otherId] === "admin", isTeacher: userRoles[selectedConv.otherId] === "teacher" || userRoles[selectedConv.otherId] === "moderator" })}>
+                {selectedConv.otherName}
+              </button>
             </>
           ) : (
             <>
@@ -616,14 +628,17 @@ const DirectMessages = () => {
                       {/* Avatar / timestamp column */}
                       <div className="w-9 flex-shrink-0 flex justify-center">
                         {startGroup ? (
-                          <RoleAvatar
-                            userId={msg.sender_id}
-                            name={msg.senderName || "?"}
-                            isAdmin={userRoles[msg.sender_id] === "admin"}
-                            isMod={userRoles[msg.sender_id] === "teacher" || userRoles[msg.sender_id] === "moderator"}
-                            avatarSize="h-8 w-8"
-                            className="mt-0.5"
-                          />
+                          <button className="cursor-pointer hover:opacity-80 transition-opacity"
+                            onClick={() => setProfileCard({ senderId: msg.sender_id, senderName: msg.senderName || "?", isAdmin: userRoles[msg.sender_id] === "admin", isTeacher: userRoles[msg.sender_id] === "teacher" || userRoles[msg.sender_id] === "moderator" })}>
+                            <RoleAvatar
+                              userId={msg.sender_id}
+                              name={msg.senderName || "?"}
+                              isAdmin={userRoles[msg.sender_id] === "admin"}
+                              isMod={userRoles[msg.sender_id] === "teacher" || userRoles[msg.sender_id] === "moderator"}
+                              avatarSize="h-8 w-8"
+                              className="mt-0.5"
+                            />
+                          </button>
                         ) : (
                           <span className="text-[10px] text-transparent group-hover:text-muted-foreground/60 pt-1 select-none leading-none mt-1">
                             {formatTime(msg.created_at)}
@@ -635,9 +650,10 @@ const DirectMessages = () => {
                       <div className="flex-1 min-w-0">
                         {startGroup && (
                           <div className="flex items-center gap-2 mb-0.5">
-                            <span className={`text-sm font-semibold ${devNameClass(userBadges[msg.sender_id] || [])} ${!devNameClass(userBadges[msg.sender_id] || []) ? (isOwn ? "text-primary" : "") : ""}`}>
+                            <button className={`text-sm font-semibold hover:underline cursor-pointer ${devNameClass(userBadges[msg.sender_id] || [])} ${!devNameClass(userBadges[msg.sender_id] || []) ? (isOwn ? "text-primary" : "") : ""}`}
+                              onClick={() => setProfileCard({ senderId: msg.sender_id, senderName: msg.senderName || "?", isAdmin: userRoles[msg.sender_id] === "admin", isTeacher: userRoles[msg.sender_id] === "teacher" || userRoles[msg.sender_id] === "moderator" })}>
                               {isOwn ? "You" : msg.senderName}
-                            </span>
+                            </button>
                             <span className="text-xs text-muted-foreground">{formatTime(msg.created_at)}</span>
                           </div>
                         )}
@@ -812,6 +828,19 @@ const DirectMessages = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Profile card */}
+      {profileCard && (
+        <UserProfileCard
+          open={!!profileCard}
+          onClose={() => setProfileCard(null)}
+          senderId={profileCard.senderId}
+          senderName={profileCard.senderName}
+          isAdmin={profileCard.isAdmin}
+          isTeacher={profileCard.isTeacher}
+          badges={userBadges[profileCard.senderId] || []}
+        />
+      )}
     </div>
   );
 };

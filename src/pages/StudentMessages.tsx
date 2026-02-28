@@ -603,10 +603,10 @@ const StudentMessages = () => {
                                   <span className={`text-xs font-bold uppercase tracking-wider ${msg.is_admin ? "text-amber-500" : "text-primary"}`}>Announcement</span>
                                   <button
                                     className={`text-sm font-semibold ${msg.is_admin ? "text-amber-500" : msg.is_teacher ? "text-primary" : ""} ${!isOwn ? "hover:underline cursor-pointer" : ""}`}
-                                    onClick={() => !isOwn && setProfileCard({ senderId: msg.sender_id, senderName: msg.sender_name || "", isAdmin: !!msg.is_admin, isTeacher: !!msg.is_teacher })}
-                                  >
-                                    {isOwn ? "You" : msg.sender_name}
-                                  </button>
+                                    onClick={() => setProfileCard({ senderId: msg.sender_id, senderName: msg.sender_name || "", isAdmin: !!msg.is_admin, isTeacher: !!msg.is_teacher })}
+                                   >
+                                     {isOwn ? "You" : msg.sender_name}
+                                   </button>
                                   {msg.is_admin && (
                                     <Badge variant="outline" className="text-xs bg-amber-500/10 text-amber-600 border-amber-500/30 h-4 px-1.5 py-0">
                                       <Crown className="h-2.5 w-2.5 mr-1" />Admin
@@ -639,8 +639,8 @@ const StudentMessages = () => {
                               <div className="w-10 flex-shrink-0 flex justify-center">
                                 {startGroup ? (
                                   <button
-                                    className={`${!isOwn ? "cursor-pointer hover:opacity-80 transition-opacity" : "cursor-default"}`}
-                                    onClick={() => !isOwn && setProfileCard({ senderId: msg.sender_id, senderName: msg.sender_name || "", isAdmin: !!msg.is_admin, isTeacher: !!msg.is_teacher })}
+                                    className="cursor-pointer hover:opacity-80 transition-opacity"
+                                    onClick={() => setProfileCard({ senderId: msg.sender_id, senderName: msg.sender_name || "", isAdmin: !!msg.is_admin, isTeacher: !!msg.is_teacher })}
                                   >
                                     <RoleAvatar
                                       userId={msg.sender_id}
@@ -661,8 +661,8 @@ const StudentMessages = () => {
                                 {startGroup && (
                                   <div className="flex items-center gap-2 flex-wrap mb-0.5">
                                     <button
-                                      className={`text-sm font-semibold ${devNameClass(senderBadges)} ${!devNameClass(senderBadges) ? (msg.is_admin ? "text-amber-500" : msg.is_teacher ? "text-primary" : "") : ""} ${!isOwn ? "hover:underline cursor-pointer" : "cursor-default"}`}
-                                      onClick={() => !isOwn && setProfileCard({ senderId: msg.sender_id, senderName: msg.sender_name || "", isAdmin: !!msg.is_admin, isTeacher: !!msg.is_teacher })}
+                                      className={`text-sm font-semibold ${devNameClass(senderBadges)} ${!devNameClass(senderBadges) ? (msg.is_admin ? "text-amber-500" : msg.is_teacher ? "text-primary" : "") : ""} hover:underline cursor-pointer`}
+                                      onClick={() => setProfileCard({ senderId: msg.sender_id, senderName: msg.sender_name || "", isAdmin: !!msg.is_admin, isTeacher: !!msg.is_teacher })}
                                     >
                                       {isOwn ? "You" : msg.sender_name}
                                     </button>
