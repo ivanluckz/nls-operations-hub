@@ -104,7 +104,7 @@ const ConvList = ({ conversations, selectedChannelId, onSelect, onBack, onNewDm,
           <div className="flex-1 min-w-0">
             <p className="font-medium truncate text-xs flex items-center gap-1">
               {conv.otherName}
-              {isDevUser(badges[conv.otherId] || []) && <img src={devBadgeImg} alt="Dev" className="h-3.5 w-3.5 object-contain inline-block" />}
+              {isDevUser(badges[conv.otherId] || []) && <img src={devBadgeImg} alt="Dev" className="h-5 w-5 object-contain inline-block" />}
             </p>
             {conv.lastMessage && (
               <p className="text-xs text-muted-foreground truncate">{conv.lastMessage}</p>
@@ -590,7 +590,7 @@ const DirectMessages = () => {
                 {isDevUser(userBadges[selectedConv.otherId] || [])
                   ? <span className="dev-nameplate">{selectedConv.otherName}</span>
                   : selectedConv.otherName}
-                {isDevUser(userBadges[selectedConv.otherId] || []) && <img src={devBadgeImg} alt="Dev" className="h-4 w-4 object-contain" />}
+                {isDevUser(userBadges[selectedConv.otherId] || []) && <img src={devBadgeImg} alt="Dev" className="h-5 w-5 object-contain" />}
               </button>
             </>
           ) : (
@@ -666,7 +666,7 @@ const DirectMessages = () => {
                             <button className={`text-sm font-semibold hover:underline cursor-pointer ${devNameClass(userBadges[msg.sender_id] || [])} ${!devNameClass(userBadges[msg.sender_id] || []) ? (isOwn ? "text-primary" : "") : ""}`}
                               onClick={() => setProfileCard({ senderId: msg.sender_id, senderName: msg.senderName || "?", isAdmin: userRoles[msg.sender_id] === "admin", isTeacher: userRoles[msg.sender_id] === "teacher" || userRoles[msg.sender_id] === "moderator" })}>
                               {isDevUser(userBadges[msg.sender_id] || [])
-                                ? <><span className="dev-nameplate">{isOwn ? "You" : msg.senderName}</span><img src={devBadgeImg} alt="Dev" className="h-4 w-4 object-contain ml-0.5" /></>
+                                ? <><span className="dev-nameplate">{isOwn ? "You" : msg.senderName}</span><img src={devBadgeImg} alt="Dev" className="h-5 w-5 object-contain ml-0.5" /></>
                                 : (isOwn ? "You" : msg.senderName)}
                             </button>
                             <span className="text-xs text-muted-foreground">{formatTime(msg.created_at)}</span>

@@ -211,7 +211,7 @@ const Leaderboard = () => {
                       <div className="text-center">
                         <p className={`font-semibold leading-tight ${devNameClass(entry.badges)} ${!devNameClass(entry.badges) ? (entry.id === currentUserId ? "text-primary" : "") : ""} ${actualRank === 0 ? "text-base" : "text-sm"} flex items-center justify-center gap-1`}>
                           {entry.name.split(" ")[0]}
-                          {entry.badges.includes("Dev") && <img src={devBadge} alt="Dev" className="h-3.5 w-3.5 object-contain" />}
+                          {entry.badges.includes("Dev") && <img src={devBadge} alt="Dev" className="h-5 w-5 object-contain" />}
                         </p>
                         <p className="text-xs text-muted-foreground">{entry.score} pts</p>
                       </div>

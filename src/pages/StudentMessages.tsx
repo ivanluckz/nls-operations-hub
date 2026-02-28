@@ -666,7 +666,7 @@ return opt.img ? <img key={b} src={opt.img} title={b} className="h-4 w-4 object-
                                       onClick={() => setProfileCard({ senderId: msg.sender_id, senderName: msg.sender_name || "", isAdmin: !!msg.is_admin, isTeacher: !!msg.is_teacher })}
                                     >
                                       {isDevUser(senderBadges)
-                                        ? <><span className="dev-nameplate">{isOwn ? "You" : msg.sender_name}</span><img src={devBadge} alt="Dev" className="h-4 w-4 object-contain ml-0.5" /></>
+                                        ? <><span className="dev-nameplate">{isOwn ? "You" : msg.sender_name}</span><img src={devBadge} alt="Dev" className="h-5 w-5 object-contain ml-0.5" /></>
                                         : (isOwn ? "You" : msg.sender_name)}
                                     </button>
                                     {msg.is_admin && (
