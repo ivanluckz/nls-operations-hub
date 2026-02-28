@@ -12,7 +12,7 @@ import FloatingChatButton from "@/components/student/FloatingChatButton";
 import MessagesCard from "@/components/student/MessagesCard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { GraduationCap, Activity, ArrowRight, KeyRound } from "lucide-react";
+import { GraduationCap, Activity, ArrowRight, KeyRound, Terminal } from "lucide-react";
 
 interface Profile {
   full_name: string;
@@ -199,6 +199,21 @@ const StudentDashboard = () => {
                   </div>
                 </div>
                 <span className="text-muted-foreground group-hover:text-purple-400 transition-colors text-sm">Enter →</span>
+              </button>
+            )}
+
+            {/* Dev AI Console */}
+            {hasDev && (
+              <button onClick={() => navigate("/dev/ai")}
+                className="w-full max-w-md flex items-center justify-between rounded-2xl border border-dashed border-cyan-400/50 bg-gradient-to-r from-cyan-500/5 via-background to-cyan-500/5 px-5 py-4 shadow-sm hover:border-cyan-400 hover:shadow-cyan-500/10 transition-all text-left group dev-msg-glow">
+                <div className="flex items-center gap-3">
+                  <Terminal className="w-6 h-6 text-cyan-400" />
+                  <div>
+                    <p className="font-semibold text-sm dev-name-glow">Dev AI Console</p>
+                    <p className="text-xs text-muted-foreground">AI assistant with full DB access</p>
+                  </div>
+                </div>
+                <span className="text-muted-foreground group-hover:text-cyan-400 transition-colors text-sm">Open →</span>
               </button>
             )}
 

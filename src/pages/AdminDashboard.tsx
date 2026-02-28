@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Card, CardDescription, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Users, Shield, UserCog, ClipboardCheck, AlertTriangle, UserCheck, Sparkles, BookOpen, GraduationCap, Activity, ArrowRight, FlaskConical, Zap } from "lucide-react";
+import { Users, Shield, UserCog, ClipboardCheck, AlertTriangle, UserCheck, Sparkles, BookOpen, GraduationCap, Activity, ArrowRight, FlaskConical, Zap, Terminal } from "lucide-react";
 import FloatingChatButton from "@/components/student/FloatingChatButton";
 import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -109,6 +109,21 @@ const AdminDashboard = () => {
               </CardContent>
             </Card>
           </div>
+
+          {/* Dev AI Console */}
+          {hasDev && (
+            <button onClick={() => navigate("/dev/ai")}
+              className="w-full max-w-2xl flex items-center justify-between rounded-2xl border border-dashed border-cyan-400/50 bg-gradient-to-r from-cyan-500/5 via-background to-cyan-500/5 px-5 py-4 shadow-sm hover:border-cyan-400 hover:shadow-cyan-500/10 transition-all text-left group dev-msg-glow">
+              <div className="flex items-center gap-3">
+                <Terminal className="w-6 h-6 text-cyan-400" />
+                <div>
+                  <p className="font-semibold text-sm dev-name-glow">Dev AI Console</p>
+                  <p className="text-xs text-muted-foreground">AI assistant with full DB access</p>
+                </div>
+              </div>
+              <span className="text-muted-foreground group-hover:text-cyan-400 transition-colors text-sm">Open →</span>
+            </button>
+          )}
         </div>
         <FloatingChatButton />
       </AdminLayout>

@@ -45,6 +45,7 @@ import AcademicClasses from "./pages/AcademicClasses";
 import AcademicTimetable from "./pages/AcademicTimetable";
 import AcademicAttendanceReports from "./pages/AcademicAttendanceReports";
 import SetPassword from "./pages/SetPassword";
+import DevAI from "./pages/DevAI";
 
 const queryClient = new QueryClient();
 
@@ -117,6 +118,9 @@ const AppContent = () => {
           <Route path="/teacher/attendance" element={<ProtectedRoute requiredRole="teacher"><TeacherAttendance /></ProtectedRoute>} />
           <Route path="/teacher/attendance-reports" element={<ProtectedRoute requiredRole="teacher"><AttendanceReports /></ProtectedRoute>} />
           <Route path="/teacher/academic" element={<ProtectedRoute requiredRole="teacher"><TeacherAcademic /></ProtectedRoute>} />
+
+          {/* Dev */}
+          <Route path="/dev/ai" element={<DevAI />} />
 
           {/* Public */}
           <Route path="/chatbot" element={<ActivityChatbot />} />
