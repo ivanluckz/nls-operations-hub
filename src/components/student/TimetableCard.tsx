@@ -15,7 +15,7 @@ interface Allocation {
   day_of_week: string;
   slot_number: number;
   preference_rank: number;
-  activities: Activity;
+  activities: Activity | null;
 }
 
 interface TimetableCardProps {
@@ -85,7 +85,7 @@ const TimetableCard = ({ allocations }: TimetableCardProps) => {
                         {allocation && getRankBadge(allocation.preference_rank)}
                       </div>
                       
-                      {allocation ? (
+                      {allocation?.activities ? (
                         <div>
                           <h4 className="font-semibold text-base truncate">
                             {allocation.activities.title}
@@ -101,6 +101,10 @@ const TimetableCard = ({ allocations }: TimetableCardProps) => {
                             </span>
                           </div>
                         </div>
+                      ) : allocation ? (
+                        <p className="text-sm text-muted-foreground italic">
+                          Activity details unavailable
+                        </p>
                       ) : (
                         <p className="text-sm text-muted-foreground italic">
                           No activity assigned
@@ -108,7 +112,7 @@ const TimetableCard = ({ allocations }: TimetableCardProps) => {
                       )}
                     </div>
                     
-                    {allocation && (
+                    {allocation?.activities && (
                       <Badge variant="outline" className="flex-shrink-0 mt-1">
                         {allocation.activities.category}
                       </Badge>
