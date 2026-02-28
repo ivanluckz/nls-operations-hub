@@ -61,7 +61,10 @@ serve(async (req) => {
       );
     }
 
-    const limitedMessages = messages.slice(-MAX_MESSAGES);
+    // Check if the client provided a system prompt (DevAI sends one)
+    const clientSystemPrompt = messages.find(m => m.role === 'system')?.content;
+    const nonSystemMessages = messages.filter(m => m.role !== 'system');
+    const limitedMessages = nonSystemMessages.slice(-MAX_MESSAGES);
 
     for (const msg of limitedMessages) {
       if (msg.role === 'system') continue;
@@ -202,7 +205,9 @@ ${personalContext}
 - For schedule questions, reference the actual activity data above
 - Be warm and professional`;
 
-    console.log(`User ${user.id} (${userRole}) calling Lovable AI Gateway...`);
+    // Use client-provided system prompt if available (DevAI), otherwise use built-in one
+    const finalSystemPrompt = clientSystemPrompt || systemPrompt;
+    console.log(`User ${user.id} (${userRole}) calling Lovable AI Gateway... (custom prompt: ${!!clientSystemPrompt})`);
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -213,7 +218,7 @@ ${personalContext}
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
         messages: [
-          { role: "system", content: systemPrompt },
+          { role: "system", content: finalSystemPrompt },
           ...limitedMessages,
         ],
         stream: true,
