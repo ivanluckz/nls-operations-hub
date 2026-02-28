@@ -1,33 +1,28 @@
 
-# Fix: Google Calendar OAuth Callback "Unauthorized" Error
 
-## Problem
-The Google OAuth flow successfully reaches the consent screen and the user grants permission, but the callback fails with `{"error":"Unauthorized"}`. This happens because the edge function checks for an `Authorization` header on **every** request, including the OAuth callback redirect from Google — which naturally has no auth header.
+## Plan: Lock Dev badge from being granted + restrict Academic testing to Dev holders only
 
-## Solution
-Move the `callback` action handler **before** the authorization check in the `google-calendar-sync` edge function. The callback doesn't need user-session auth because:
-- It validates the `state` parameter (which contains the userId)
-- It uses the service role client to store tokens
-- Google already verified the user through OAuth
+### What the user wants
+1. **Dev badge cannot be granted by anyone** — not admins, not other Dev holders, nobody. It's permanently locked.
+2. **Only Dev badge holders can access/test the Academic section** — this is already partially in place but needs confirmation.
 
-## Changes
+### Changes needed
 
-### 1. `supabase/functions/google-calendar-sync/index.ts`
-- Parse the `action` query parameter **before** the auth check
-- If `action === "callback"`, handle it immediately (before requiring Authorization header)
-- All other actions continue to require the Authorization header as before
+#### 1. Block Dev badge granting in UI (`src/components/chat/UserProfileCard.tsx`)
+- Filter out "Dev" from the `BADGE_OPTIONS` list shown in the admin grant panel, so it never appears as a grantable option.
+- This prevents the UI from even showing the Dev badge button.
 
-### Technical Detail
-The restructured flow:
+#### 2. Block Dev badge granting in database (SQL migration)
+- Add a database trigger on `user_badges` that prevents INSERT of any row where `badge_name = 'Dev'`. This is the server-side enforcement — even if someone bypasses the UI, the database rejects it.
 
-```text
-Request arrives
-  |
-  +-- Parse action from URL
-  |
-  +-- action === "callback"?
-  |     YES --> handle token exchange with Google, store tokens, redirect user
-  |     NO  --> check Authorization header --> handle other actions (auth-url, sync, status, disconnect)
-```
+#### 3. Block Dev badge in badge request system (`src/pages/AdminBadgeRequests.tsx`)
+- The `BADGE_OPTIONS` list here already excludes "Dev" (line 11-18), so students can't request it. No change needed.
 
-This is a single-file change to the edge function. No frontend changes needed — the `CalendarSyncCard` component is already correct.
+#### 4. Verify Academic access is Dev-only
+- `ProtectedRoute.tsx` already checks `hasDevBadge` and `userRole === "student"` before allowing access to `/admin/academic/*` pages. Admin/moderator/teacher roles access these via their own admin role. This is already correct.
+- `StudentDashboard.tsx` already checks for Dev badge before showing the clickable Academic card. Already correct.
+
+### Files to edit
+- `src/components/chat/UserProfileCard.tsx` — hide "Dev" from grant panel
+- New SQL migration — trigger to block Dev badge inserts
+
