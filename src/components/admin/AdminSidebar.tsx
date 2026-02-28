@@ -161,7 +161,10 @@ export function AdminSidebar() {
           </SidebarGroup>
         )}
         <SidebarGroup>
-          <SidebarGroupLabel>{sectionLabel}</SidebarGroupLabel>
+          <SidebarGroupLabel className="flex items-center gap-2">
+            {isAcademicSection && <GraduationCap className="h-4 w-4 text-primary" />}
+            {sectionLabel}
+          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {menuItems.map((item) => {
