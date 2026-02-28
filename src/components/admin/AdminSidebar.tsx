@@ -64,6 +64,7 @@ const coCurricularItems = [
 ];
 
 const academicItems = [
+  { title: "Dashboard", url: "/admin/academic", icon: GraduationCap, description: "Academic overview" },
   { title: "Timetable", url: "/admin/academic/timetable", icon: Calendar, description: "Build class timetables" },
   { title: "Subjects", url: "/admin/academic/subjects", icon: BookOpen, description: "Manage subjects" },
   { title: "Classes", url: "/admin/academic/classes", icon: Users, description: "Manage class groups" },
