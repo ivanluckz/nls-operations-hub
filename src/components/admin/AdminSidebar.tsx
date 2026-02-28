@@ -24,22 +24,24 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
    DropdownMenuSeparator,
    DropdownMenuTrigger,
  } from "@/components/ui/dropdown-menu";
- import {
-   UserCog,
-   Shield,
-   Users,
-   BookOpen,
-   ClipboardCheck,
-   AlertTriangle,
-   UserCheck,
-   Sparkles,
-   LogOut,
-   ChevronUp,
-   Settings,
-   LayoutDashboard,
-   MessageSquare,
-   Award,
- } from "lucide-react";
+import {
+    UserCog,
+    Shield,
+    Users,
+    BookOpen,
+    ClipboardCheck,
+    AlertTriangle,
+    UserCheck,
+    Sparkles,
+    LogOut,
+    ChevronUp,
+    Settings,
+    LayoutDashboard,
+    MessageSquare,
+    Award,
+    Calendar,
+    GraduationCap,
+  } from "lucide-react";
  import nlsLogo from "@/assets/nls-logo.png";
  
  const menuItems = [
@@ -128,7 +130,14 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
      icon: MessageSquare,
      description: "Message anyone directly",
    },
- ];
+];
+
+const academicMenuItems = [
+  { title: "Subjects", url: "/admin/academic/subjects", icon: BookOpen, description: "Manage subjects" },
+  { title: "Classes", url: "/admin/academic/classes", icon: Users, description: "Manage class groups" },
+  { title: "Timetable", url: "/admin/academic/timetable", icon: Calendar, description: "Build timetable" },
+  { title: "Reports", url: "/admin/academic/attendance", icon: ClipboardCheck, description: "Attendance reports" },
+];
  
  interface UserProfile {
    id: string;
@@ -199,36 +208,67 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
          </div>
        </SidebarHeader>
  
-       <SidebarContent>
-         <SidebarGroup>
-           <SidebarGroupLabel>Navigation</SidebarGroupLabel>
-           <SidebarGroupContent>
-             <SidebarMenu>
-               {menuItems.map((item) => {
-                 const isActive = location.pathname === item.url;
-                 return (
-                   <SidebarMenuItem key={item.title}>
-                     <SidebarMenuButton
-                       asChild
-                       isActive={isActive}
-                       tooltip={item.title}
-                       className={item.highlight ? "text-primary" : ""}
-                     >
-                       <button
-                         onClick={() => navigate(item.url)}
-                         className="w-full flex items-center gap-3"
-                       >
-                         <item.icon className={`h-4 w-4 ${item.highlight ? "text-primary" : ""}`} />
-                         <span>{item.title}</span>
-                       </button>
-                     </SidebarMenuButton>
-                   </SidebarMenuItem>
-                 );
-               })}
-             </SidebarMenu>
-           </SidebarGroupContent>
-         </SidebarGroup>
-       </SidebarContent>
+      <SidebarContent>
+          <SidebarGroup>
+            <SidebarGroupLabel>Co-curricular</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {menuItems.map((item) => {
+                  const isActive = location.pathname === item.url;
+                  return (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={isActive}
+                        tooltip={item.title}
+                        className={item.highlight ? "text-primary" : ""}
+                      >
+                        <button
+                          onClick={() => navigate(item.url)}
+                          className="w-full flex items-center gap-3"
+                        >
+                          <item.icon className={`h-4 w-4 ${item.highlight ? "text-primary" : ""}`} />
+                          <span>{item.title}</span>
+                        </button>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+
+          <SidebarGroup>
+            <SidebarGroupLabel>
+              <GraduationCap className="h-4 w-4 mr-1 inline" />
+              Academic
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {academicMenuItems.map((item) => {
+                  const isActive = location.pathname === item.url;
+                  return (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={isActive}
+                        tooltip={item.title}
+                      >
+                        <button
+                          onClick={() => navigate(item.url)}
+                          className="w-full flex items-center gap-3"
+                        >
+                          <item.icon className="h-4 w-4" />
+                          <span>{item.title}</span>
+                        </button>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        </SidebarContent>
  
        <SidebarFooter className="p-4">
          <DropdownMenu>

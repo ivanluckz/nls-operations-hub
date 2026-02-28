@@ -31,8 +31,12 @@
    "/admin/weekly-summary": { title: "AI Weekly Summary", description: "AI-powered attendance trend reports" },
    "/admin/profile": { title: "Profile Settings", description: "Manage your account settings" },
    "/admin/messages": { title: "All Chats", description: "View and moderate all activity channel messages" },
-   "/admin/badge-requests": { title: "Badge Requests", description: "Review and approve student badge requests" },
- };
+  "/admin/badge-requests": { title: "Badge Requests", description: "Review and approve student badge requests" },
+  "/admin/academic/subjects": { title: "Subjects", description: "Manage academic subjects" },
+  "/admin/academic/classes": { title: "Class Groups", description: "Manage class groups and members" },
+  "/admin/academic/timetable": { title: "Timetable", description: "Build the academic timetable" },
+  "/admin/academic/attendance": { title: "Academic Reports", description: "Academic attendance reports" },
+};
  
  export function AdminLayout({ children, title, description }: AdminLayoutProps) {
    const location = useLocation();

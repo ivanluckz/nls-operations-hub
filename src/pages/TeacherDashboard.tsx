@@ -116,6 +116,32 @@ const TeacherDashboard = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8 space-y-6">
+        {/* Academic + Co-curricular split */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-2">
+          <Card className="cursor-pointer hover:shadow-md hover:border-primary/40 transition-all group" onClick={() => navigate("/teacher/academic")}>
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center"><GraduationCap className="w-5 h-5 text-primary" /></div>
+                <div>
+                  <CardTitle className="text-base group-hover:text-primary transition-colors">Academic Classes</CardTitle>
+                  <CardDescription className="text-xs">Timetable & academic attendance</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+          </Card>
+          <Card className="cursor-pointer hover:shadow-md hover:border-secondary/40 transition-all group" onClick={() => navigate("/teacher/attendance")}>
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-secondary/10 flex items-center justify-center"><ClipboardCheck className="w-5 h-5 text-secondary" /></div>
+                <div>
+                  <CardTitle className="text-base group-hover:text-secondary transition-colors">Co-curricular</CardTitle>
+                  <CardDescription className="text-xs">Activity attendance & reports</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+          </Card>
+        </div>
+
         <div className="flex justify-end gap-2 mb-4">
           <Button variant="outline" onClick={() => navigate("/teacher/attendance-reports")}>
             <AlertTriangle className="w-4 h-4 mr-2" />

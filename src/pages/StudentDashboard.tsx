@@ -125,6 +125,37 @@ const StudentDashboard = () => {
 
       <main className="container mx-auto px-4 py-8 pb-24">
         <div className="max-w-5xl mx-auto space-y-8">
+          {/* Academic + Co-curricular split */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <button
+              onClick={() => navigate("/student/academic")}
+              className="w-full flex items-center gap-4 rounded-2xl border-2 bg-card p-5 shadow-sm hover:border-primary/40 hover:shadow-md transition-all text-left group"
+            >
+              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                <span className="text-2xl">📚</span>
+              </div>
+              <div>
+                <p className="font-semibold">Academic</p>
+                <p className="text-xs text-muted-foreground">View your timetable & attendance</p>
+              </div>
+              <span className="ml-auto text-muted-foreground group-hover:text-primary transition-colors">→</span>
+            </button>
+
+            <button
+              onClick={() => navigate("/student/preferences")}
+              className="w-full flex items-center gap-4 rounded-2xl border-2 bg-card p-5 shadow-sm hover:border-secondary/40 hover:shadow-md transition-all text-left group"
+            >
+              <div className="w-12 h-12 rounded-xl bg-secondary/10 flex items-center justify-center shrink-0">
+                <span className="text-2xl">🎯</span>
+              </div>
+              <div>
+                <p className="font-semibold">Co-curricular</p>
+                <p className="text-xs text-muted-foreground">Activities, messages & preferences</p>
+              </div>
+              <span className="ml-auto text-muted-foreground group-hover:text-secondary transition-colors">→</span>
+            </button>
+          </div>
+
           {/* Status and QR Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <StatusCard 
