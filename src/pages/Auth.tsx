@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { lovable } from "@/integrations/lovable/index";
 import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { GraduationCap, Mail, Eye, EyeOff } from "lucide-react";
 
 const Auth = () => {
+  const navigate = useNavigate();
   const { toast } = useToast();
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [showEmailLogin, setShowEmailLogin] = useState(false);
@@ -18,6 +20,20 @@ const Auth = () => {
   const [isEmailLoading, setIsEmailLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const checkSession = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (user) {
+        navigate("/");
+      }
+    };
+
+    void checkSession();
+  }, [navigate]);
 
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
@@ -65,7 +81,10 @@ const Auth = () => {
           title: "Sign-In Failed",
           description: error.message,
         });
+        return;
       }
+
+      navigate("/");
     } catch (error: any) {
       toast({
         variant: "destructive",
