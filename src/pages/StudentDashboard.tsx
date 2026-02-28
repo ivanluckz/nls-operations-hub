@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { isDevUser } from "@/lib/dev-badge";
 import { useToast } from "@/hooks/use-toast";
 import WelcomeHeader from "@/components/student/WelcomeHeader";
 import StatusCard from "@/components/student/StatusCard";
@@ -40,6 +41,7 @@ const StudentDashboard = () => {
   const [hasPreferences, setHasPreferences] = useState(false);
   const [allocations, setAllocations] = useState<Allocation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [hasDev, setHasDev] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -66,12 +68,13 @@ const StudentDashboard = () => {
 
       setHasPreferences(!!preferenceData);
 
-      const { data: allocationsData } = await supabase
-        .from("allocations")
-        .select("*, activities(*)")
-        .eq("student_id", user.id);
+      const [{ data: allocationsData }, { data: badgeData }] = await Promise.all([
+        supabase.from("allocations").select("*, activities(*)").eq("student_id", user.id),
+        (supabase as any).from("user_badges").select("badge_name").eq("user_id", user.id).eq("badge_name", "Dev").maybeSingle(),
+      ]);
 
       setAllocations(allocationsData as Allocation[] || []);
+      setHasDev(!!badgeData);
     } catch (error) {
       console.error("Error fetching data:", error);
       toast({
@@ -147,6 +150,21 @@ const StudentDashboard = () => {
                 </div>
               </div>
               <span className="text-muted-foreground group-hover:text-primary transition-colors text-sm">View →</span>
+            </button>
+          )}
+
+          {/* Dev Mode — admin-lite access */}
+          {hasDev && (
+            <button onClick={() => navigate("/admin")}
+              className="w-full flex items-center justify-between rounded-2xl border border-dashed border-purple-400/50 bg-gradient-to-r from-purple-500/5 via-background to-purple-500/5 px-5 py-4 shadow-sm hover:border-purple-400 hover:shadow-purple-500/10 transition-all text-left group dev-msg-glow">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">⚡</span>
+                <div>
+                  <p className="font-semibold text-sm dev-name-glow">Dev Mode</p>
+                  <p className="text-xs text-muted-foreground">View admin dashboard, reports & more (read-only)</p>
+                </div>
+              </div>
+              <span className="text-muted-foreground group-hover:text-purple-400 transition-colors text-sm">Enter →</span>
             </button>
           )}
 

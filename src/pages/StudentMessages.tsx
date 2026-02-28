@@ -20,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { ArrowLeft, Hash, Menu, Send, Trash2, ShieldCheck, Megaphone, Award, Crown, MessageSquare, Trophy } from "lucide-react";
 import { UserProfileCard } from "@/components/chat/UserProfileCard";
 import devBadge from "@/assets/dev.png";
+import { devNameClass, devMsgClass, isDevUser } from "@/lib/dev-badge";
 
 const REACT_EMOJIS = ['👍', '❤️', '😂', '🔥', '👀', '✅'];
 
@@ -120,6 +121,7 @@ const StudentMessages = () => {
   const [adminEmail, setAdminEmail] = useState<string>("");
   const [submittingBadge, setSubmittingBadge] = useState(false);
   const [userBadges, setUserBadges] = useState<Record<string, string[]>>({});
+  const [myBadges, setMyBadges] = useState<string[]>([]);
   const [profileCard, setProfileCard] = useState<{
     senderId: string; senderName: string; isAdmin: boolean; isTeacher: boolean;
   } | null>(null);
@@ -166,8 +168,12 @@ const StudentMessages = () => {
 
       if (acts.length > 0) { setSelectedActivity(acts[0].id); markSeen(acts[0].id); }
 
-      const { data: adminRoles } = await supabase.from("user_roles").select("user_id").eq("role", "admin").limit(100);
+      const [{ data: adminRoles }, { data: myBadgeData }] = await Promise.all([
+        supabase.from("user_roles").select("user_id").eq("role", "admin").limit(100),
+        (supabase as any).from("user_badges").select("badge_name").eq("user_id", user.id),
+      ]);
       adminRoles?.forEach(r => adminIdsRef.current.add(r.user_id));
+      setMyBadges((myBadgeData || []).map((b: any) => b.badge_name));
 
       const lastSeen = getLastSeen();
       const counts: Record<string, number> = {};
@@ -321,7 +327,33 @@ const StudentMessages = () => {
   };
 
   const handleBadgeRequest = async () => {
-    if (!selectedBadge || !badgeReason.trim() || !adminEmail.trim()) return;
+    if (!selectedBadge || !badgeReason.trim()) return;
+    const isDev = isDevUser(myBadges);
+
+    // Dev users bypass approval — auto-grant immediately
+    if (isDev) {
+      setSubmittingBadge(true);
+      try {
+        const { error: badgeError } = await (supabase as any)
+          .from("user_badges")
+          .upsert({ user_id: userId, badge_name: selectedBadge, awarded_by: userId }, { onConflict: "user_id,badge_name" });
+        if (badgeError) throw badgeError;
+
+        // Still create a record for audit, auto-approved
+        await (supabase as any).from("badge_requests").insert({
+          student_id: userId, badge_name: selectedBadge, reason: badgeReason.trim(),
+          status: "approved", reviewed_by: userId, reviewed_at: new Date().toISOString(),
+        });
+
+        toast({ title: "⚡ Badge auto-granted!", description: `Dev perk: ${selectedBadge} badge awarded instantly.` });
+        setMyBadges(prev => prev.includes(selectedBadge) ? prev : [...prev, selectedBadge]);
+        setBadgeOpen(false); setSelectedBadge(""); setBadgeReason("");
+      } catch { toast({ variant: "destructive", title: "Failed to grant badge" }); }
+      finally { setSubmittingBadge(false); }
+      return;
+    }
+
+    if (!adminEmail.trim()) return;
     setSubmittingBadge(true);
     try {
       // Look up admin by email
@@ -603,7 +635,7 @@ const StudentMessages = () => {
                               )}
                             </div>
                           ) : (
-                            <div className={`group flex gap-3 px-2 py-0.5 rounded-md hover:bg-muted/40 ${startGroup ? "mt-4" : "mt-0.5"} ${msg.is_admin ? "border-l-2 border-amber-400/40" : ""}`}>
+                            <div className={`group flex gap-3 px-2 py-0.5 rounded-md hover:bg-muted/40 ${startGroup ? "mt-4" : "mt-0.5"} ${msg.is_admin ? "border-l-2 border-amber-400/40" : ""} ${devMsgClass(senderBadges)}`}>
                               <div className="w-10 flex-shrink-0 flex justify-center">
                                 {startGroup ? (
                                   <button
@@ -629,7 +661,7 @@ const StudentMessages = () => {
                                 {startGroup && (
                                   <div className="flex items-center gap-2 flex-wrap mb-0.5">
                                     <button
-                                      className={`text-sm font-semibold ${msg.is_admin ? "text-amber-500" : msg.is_teacher ? "text-primary" : ""} ${!isOwn ? "hover:underline cursor-pointer" : "cursor-default"}`}
+                                      className={`text-sm font-semibold ${devNameClass(senderBadges)} ${!devNameClass(senderBadges) ? (msg.is_admin ? "text-amber-500" : msg.is_teacher ? "text-primary" : "") : ""} ${!isOwn ? "hover:underline cursor-pointer" : "cursor-default"}`}
                                       onClick={() => !isOwn && setProfileCard({ senderId: msg.sender_id, senderName: msg.sender_name || "", isAdmin: !!msg.is_admin, isTeacher: !!msg.is_teacher })}
                                     >
                                       {isOwn ? "You" : msg.sender_name}
@@ -754,10 +786,13 @@ const StudentMessages = () => {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Award className="h-5 w-5 text-primary" /> Request a Badge
+              <Award className="h-5 w-5 text-primary" />
+              {isDevUser(myBadges) ? "⚡ Instant Badge Grant" : "Request a Badge"}
             </DialogTitle>
             <DialogDescription>
-              Choose a badge and tell an admin why you deserve it. They'll review and approve or decline.
+              {isDevUser(myBadges)
+                ? "Dev perk: badges are auto-granted instantly. No approval needed!"
+                : "Choose a badge and tell an admin why you deserve it. They'll review and approve or decline."}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
@@ -770,7 +805,9 @@ const StudentMessages = () => {
                       : "border-border hover:border-primary/40 hover:bg-muted/50"
                   }`}
                 >
-                  <span className="text-xl">{badge.emoji}</span>
+                  {badge.img
+                    ? <img src={badge.img} alt={badge.name} className="h-6 w-6 object-contain" />
+                    : <span className="text-xl">{badge.emoji}</span>}
                   <div className="min-w-0">
                     <p className="text-sm font-medium leading-tight">{badge.name}</p>
                     <p className="text-xs text-muted-foreground leading-tight">{badge.desc}</p>
@@ -778,19 +815,21 @@ const StudentMessages = () => {
                 </button>
               ))}
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="admin-email">Send request to (admin email)</Label>
-              <Input
-                id="admin-email"
-                type="email"
-                value={adminEmail}
-                onChange={(e) => setAdminEmail(e.target.value)}
-                placeholder="admin@school.org"
-              />
-            </div>
+            {!isDevUser(myBadges) && (
+              <div className="space-y-1.5">
+                <Label htmlFor="admin-email">Send request to (admin email)</Label>
+                <Input
+                  id="admin-email"
+                  type="email"
+                  value={adminEmail}
+                  onChange={(e) => setAdminEmail(e.target.value)}
+                  placeholder="admin@school.org"
+                />
+              </div>
+            )}
 
             <div className="space-y-1.5">
-              <Label htmlFor="badge-reason">Why do you deserve this badge?</Label>
+              <Label htmlFor="badge-reason">{isDevUser(myBadges) ? "Reason (for audit)" : "Why do you deserve this badge?"}</Label>
               <Textarea id="badge-reason" value={badgeReason} onChange={(e) => setBadgeReason(e.target.value)}
                 placeholder="Explain your reason..." className="resize-none" rows={3} maxLength={500} />
               <p className="text-xs text-muted-foreground text-right">{badgeReason.length}/500</p>
@@ -798,8 +837,8 @@ const StudentMessages = () => {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setBadgeOpen(false)}>Cancel</Button>
-            <Button onClick={handleBadgeRequest} disabled={submittingBadge || !selectedBadge || !badgeReason.trim() || !adminEmail.trim()}>
-              {submittingBadge ? "Sending..." : "Submit Request"}
+            <Button onClick={handleBadgeRequest} disabled={submittingBadge || !selectedBadge || !badgeReason.trim() || (!isDevUser(myBadges) && !adminEmail.trim())}>
+              {submittingBadge ? "Processing..." : isDevUser(myBadges) ? "⚡ Grant Instantly" : "Submit Request"}
             </Button>
           </DialogFooter>
         </DialogContent>

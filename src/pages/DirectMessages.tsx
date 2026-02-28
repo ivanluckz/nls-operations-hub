@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { RoleAvatar } from "@/components/ui/RoleAvatar";
+import { devNameClass, devMsgClass } from "@/lib/dev-badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -134,6 +135,8 @@ const DirectMessages = () => {
 
   // Role map: userId → "admin" | "teacher" | "moderator" | "student"
   const [userRoles, setUserRoles] = useState<Record<string, string>>({});
+  // Badge map: userId → badge names[]
+  const [userBadges, setUserBadges] = useState<Record<string, string[]>>({});
 
   // Reactions
   const [dmReactions, setDmReactions] = useState<Record<string, Reaction[]>>({});
@@ -349,9 +352,10 @@ const DirectMessages = () => {
     if (!data) return;
 
     const senderIds = [...new Set((data as any[]).map((m: any) => m.sender_id))] as string[];
-    const [{ data: profiles }, { data: roleRows }] = await Promise.all([
+    const [{ data: profiles }, { data: roleRows }, { data: badgeRows }] = await Promise.all([
       supabase.from("profiles").select("id, full_name").in("id", senderIds),
       supabase.from("user_roles").select("user_id, role").in("user_id", senderIds),
+      (supabase as any).from("user_badges").select("user_id, badge_name").in("user_id", senderIds),
     ]);
     const profileMap = new Map((profiles || []).map(p => [p.id, p.full_name]));
 
@@ -360,6 +364,13 @@ const DirectMessages = () => {
       if (!roleMap[r.user_id] || r.role === "admin") roleMap[r.user_id] = r.role;
     });
     setUserRoles(prev => ({ ...prev, ...roleMap }));
+
+    const badgeMap: Record<string, string[]> = {};
+    (badgeRows || []).forEach((b: any) => {
+      if (!badgeMap[b.user_id]) badgeMap[b.user_id] = [];
+      badgeMap[b.user_id].push(b.badge_name);
+    });
+    setUserBadges(prev => ({ ...prev, ...badgeMap }));
 
     const msgs: DM[] = (data as any[]).map((m: any) => ({ ...m, senderName: profileMap.get(m.sender_id) || "Unknown" }));
     setMessages(msgs);
@@ -601,7 +612,7 @@ const DirectMessages = () => {
                         <div className="flex-1 h-px bg-border" />
                       </div>
                     )}
-                    <div className={`group flex gap-3 px-2 py-0.5 rounded-md hover:bg-muted/40 ${startGroup ? "mt-4" : "mt-0.5"}`}>
+                    <div className={`group flex gap-3 px-2 py-0.5 rounded-md hover:bg-muted/40 ${startGroup ? "mt-4" : "mt-0.5"} ${devMsgClass(userBadges[msg.sender_id] || [])}`}>
                       {/* Avatar / timestamp column */}
                       <div className="w-9 flex-shrink-0 flex justify-center">
                         {startGroup ? (
@@ -624,7 +635,7 @@ const DirectMessages = () => {
                       <div className="flex-1 min-w-0">
                         {startGroup && (
                           <div className="flex items-center gap-2 mb-0.5">
-                            <span className={`text-sm font-semibold ${isOwn ? "text-primary" : ""}`}>
+                            <span className={`text-sm font-semibold ${devNameClass(userBadges[msg.sender_id] || [])} ${!devNameClass(userBadges[msg.sender_id] || []) ? (isOwn ? "text-primary" : "") : ""}`}>
                               {isOwn ? "You" : msg.senderName}
                             </span>
                             <span className="text-xs text-muted-foreground">{formatTime(msg.created_at)}</span>

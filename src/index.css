@@ -255,4 +255,33 @@
 .badge-anim-grow  { display: inline-block; animation: badge-grow  2.5s ease-in-out infinite; }
 .badge-anim-bulb  { display: inline-block; animation: badge-bulb  1.8s ease-in-out infinite; }
 .badge-anim-team  { display: inline-block; animation: badge-team  2s   ease-in-out infinite; }
+
+/* ── Dev badge: rainbow glow name + message effects ──────────────── */
+@keyframes dev-rainbow {
+  0%   { color: #ff6b6b; text-shadow: 0 0 8px rgba(255,107,107,0.6); }
+  16%  { color: #ffa500; text-shadow: 0 0 8px rgba(255,165,0,0.6); }
+  33%  { color: #ffd700; text-shadow: 0 0 8px rgba(255,215,0,0.6); }
+  50%  { color: #4ecdc4; text-shadow: 0 0 8px rgba(78,205,196,0.6); }
+  66%  { color: #45b7d1; text-shadow: 0 0 8px rgba(69,183,209,0.6); }
+  83%  { color: #a855f7; text-shadow: 0 0 8px rgba(168,85,247,0.6); }
+  100% { color: #ff6b6b; text-shadow: 0 0 8px rgba(255,107,107,0.6); }
+}
+
+@keyframes dev-border-glow {
+  0%   { border-color: rgba(255,107,107,0.5); box-shadow: 0 0 6px rgba(255,107,107,0.15); }
+  33%  { border-color: rgba(78,205,196,0.5);  box-shadow: 0 0 6px rgba(78,205,196,0.15); }
+  66%  { border-color: rgba(168,85,247,0.5);  box-shadow: 0 0 6px rgba(168,85,247,0.15); }
+  100% { border-color: rgba(255,107,107,0.5); box-shadow: 0 0 6px rgba(255,107,107,0.15); }
+}
+
+.dev-name-glow {
+  animation: dev-rainbow 3s linear infinite;
+  font-weight: 700;
+}
+
+.dev-msg-glow {
+  border-left: 3px solid;
+  animation: dev-border-glow 4s ease-in-out infinite;
+  background: linear-gradient(90deg, rgba(168,85,247,0.03) 0%, transparent 60%);
+}
 /* ───────────────────────────────────────────────────────────────────── */
