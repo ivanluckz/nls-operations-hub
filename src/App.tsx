@@ -39,6 +39,7 @@ import ThemeManagement from "./pages/ThemeManagement";
 import Leaderboard from "./pages/Leaderboard";
 import DirectMessages from "./pages/DirectMessages";
 import AcademicComingSoon from "./pages/AcademicComingSoon";
+import AcademicDashboard from "./pages/AcademicDashboard";
 import AcademicSubjects from "./pages/AcademicSubjects";
 import AcademicClasses from "./pages/AcademicClasses";
 import AcademicTimetable from "./pages/AcademicTimetable";
@@ -104,7 +105,8 @@ const AppContent = () => {
           <Route path="/admin/dms" element={<ProtectedRoute requiredRole="admin"><DirectMessages /></ProtectedRoute>} />
           <Route path="/admin/profile" element={<ProtectedRoute requiredRole="admin"><AdminProfile /></ProtectedRoute>} />
 
-          {/* Academic — real pages, access controlled by ProtectedRoute (Dev badge holders allowed) */}
+          {/* Academic — real pages */}
+          <Route path="/admin/academic" element={<ProtectedRoute requiredRole="admin"><AcademicDashboard /></ProtectedRoute>} />
           <Route path="/admin/academic/subjects" element={<ProtectedRoute requiredRole="admin"><AcademicSubjects /></ProtectedRoute>} />
           <Route path="/admin/academic/classes" element={<ProtectedRoute requiredRole="admin"><AcademicClasses /></ProtectedRoute>} />
           <Route path="/admin/academic/timetable" element={<ProtectedRoute requiredRole="admin"><AcademicTimetable /></ProtectedRoute>} />
