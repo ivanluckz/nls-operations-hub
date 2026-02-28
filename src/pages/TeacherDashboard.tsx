@@ -7,11 +7,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { LogOut, GraduationCap, ClipboardCheck, AlertTriangle } from "lucide-react";
+import { LogOut, GraduationCap, ClipboardCheck, AlertTriangle, Activity, ArrowRight } from "lucide-react";
 import ActivityMessaging from "@/components/teacher/ActivityMessaging";
 import FloatingChatButton from "@/components/student/FloatingChatButton";
 
-interface Activity {
+interface ActivityData {
   id: string;
   title: string;
   days_of_week: string[];
@@ -33,9 +33,10 @@ const TeacherDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [profile, setProfile] = useState<{ full_name: string } | null>(null);
-  const [activities, setActivities] = useState<Activity[]>([]);
+  const [activities, setActivities] = useState<ActivityData[]>([]);
   const [students, setStudents] = useState<StudentAllocation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [section, setSection] = useState<"choose" | "cocurricular">("choose");
 
   useEffect(() => {
     fetchData();
@@ -95,6 +96,85 @@ const TeacherDashboard = () => {
     );
   }
 
+  if (section === "choose") {
+    return (
+      <div className="min-h-screen bg-background">
+        <header className="border-b bg-card shadow-card">
+          <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-gradient-primary flex items-center justify-center">
+                <GraduationCap className="w-5 h-5 text-primary-foreground" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold">Teacher Portal</h1>
+                <p className="text-sm text-muted-foreground">{profile?.full_name}</p>
+              </div>
+            </div>
+            <Button variant="outline" onClick={handleLogout}>
+              <LogOut className="w-4 h-4 mr-2" />
+              Logout
+            </Button>
+          </div>
+        </header>
+
+        <main className="container mx-auto px-4 py-8">
+          <div className="max-w-2xl mx-auto flex flex-col items-center justify-center min-h-[60vh] space-y-8">
+            <div className="text-center space-y-2">
+              <h2 className="text-2xl font-bold tracking-tight">Welcome, {profile?.full_name?.split(" ")[0] || "Teacher"}!</h2>
+              <p className="text-muted-foreground text-sm">Choose a section</p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 w-full">
+              {/* Academic — Coming Soon */}
+              <div className="relative">
+                <Card className="h-full border-2 border-dashed border-primary/20 bg-gradient-to-br from-primary/5 via-background to-primary/5 opacity-80 cursor-default">
+                  <CardHeader className="pb-4 text-center">
+                    <div className="mx-auto w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-3">
+                      <GraduationCap className="h-7 w-7 text-primary" />
+                    </div>
+                    <CardTitle className="text-lg">Academic</CardTitle>
+                    <CardDescription className="text-xs">
+                      Timetable & class attendance
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-0 text-center">
+                    <Badge variant="secondary" className="text-xs px-3 py-1">
+                      🚧 Coming Soon
+                    </Badge>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Co-curricular */}
+              <Card
+                className="h-full border-2 border-transparent hover:border-secondary/40 cursor-pointer hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group bg-gradient-to-br from-secondary/5 via-background to-secondary/5"
+                onClick={() => setSection("cocurricular")}
+              >
+                <CardHeader className="pb-4 text-center">
+                  <div className="mx-auto w-14 h-14 rounded-2xl bg-secondary/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                    <Activity className="h-7 w-7 text-secondary" />
+                  </div>
+                  <CardTitle className="text-lg group-hover:text-secondary transition-colors">
+                    Co-curricular
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    Activity attendance & messaging
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="pt-0 text-center">
+                  <span className="inline-flex items-center gap-1 text-sm font-medium text-secondary group-hover:gap-2 transition-all">
+                    Enter <ArrowRight className="w-4 h-4" />
+                  </span>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </main>
+        <FloatingChatButton />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card shadow-card">
@@ -108,40 +188,22 @@ const TeacherDashboard = () => {
               <p className="text-sm text-muted-foreground">{profile?.full_name}</p>
             </div>
           </div>
-          <Button variant="outline" onClick={handleLogout}>
-            <LogOut className="w-4 h-4 mr-2" />
-            Logout
-          </Button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setSection("choose")}
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5 bg-muted/50 hover:bg-muted px-3 py-1.5 rounded-lg"
+            >
+              ← Back
+            </button>
+            <Button variant="outline" onClick={handleLogout}>
+              <LogOut className="w-4 h-4 mr-2" />
+              Logout
+            </Button>
+          </div>
         </div>
       </header>
 
       <main className="container mx-auto px-4 py-8 space-y-6">
-        {/* Academic + Co-curricular split */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-2">
-          <Card className="cursor-pointer hover:shadow-md hover:border-primary/40 transition-all group" onClick={() => navigate("/teacher/academic")}>
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center"><GraduationCap className="w-5 h-5 text-primary" /></div>
-                <div>
-                  <CardTitle className="text-base group-hover:text-primary transition-colors">Academic Classes</CardTitle>
-                  <CardDescription className="text-xs">Timetable & academic attendance</CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-          </Card>
-          <Card className="cursor-pointer hover:shadow-md hover:border-secondary/40 transition-all group" onClick={() => navigate("/teacher/attendance")}>
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-secondary/10 flex items-center justify-center"><ClipboardCheck className="w-5 h-5 text-secondary" /></div>
-                <div>
-                  <CardTitle className="text-base group-hover:text-secondary transition-colors">Co-curricular</CardTitle>
-                  <CardDescription className="text-xs">Activity attendance & reports</CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-          </Card>
-        </div>
-
         <div className="flex justify-end gap-2 mb-4">
           <Button variant="outline" onClick={() => navigate("/teacher/attendance-reports")}>
             <AlertTriangle className="w-4 h-4 mr-2" />
@@ -156,9 +218,7 @@ const TeacherDashboard = () => {
         <Card className="shadow-card">
           <CardHeader>
             <CardTitle>My Activities</CardTitle>
-            <CardDescription>
-              Activities you're teaching this week
-            </CardDescription>
+            <CardDescription>Activities you're teaching this week</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
@@ -177,9 +237,7 @@ const TeacherDashboard = () => {
                 ));
               })}
               {activities.length === 0 && (
-                <p className="text-center text-muted-foreground py-4">
-                  No activities assigned yet
-                </p>
+                <p className="text-center text-muted-foreground py-4">No activities assigned yet</p>
               )}
             </div>
           </CardContent>
@@ -188,9 +246,7 @@ const TeacherDashboard = () => {
         <Card className="shadow-card">
           <CardHeader>
             <CardTitle>My Students</CardTitle>
-            <CardDescription>
-              Students enrolled in your activities
-            </CardDescription>
+            <CardDescription>Students enrolled in your activities</CardDescription>
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="Monday">
@@ -223,9 +279,7 @@ const TeacherDashboard = () => {
                         </TableBody>
                       </Table>
                     ) : (
-                      <p className="text-center text-muted-foreground py-8">
-                        No students enrolled for {day}
-                      </p>
+                      <p className="text-center text-muted-foreground py-8">No students enrolled for {day}</p>
                     )}
                   </TabsContent>
                 );
@@ -236,7 +290,6 @@ const TeacherDashboard = () => {
 
         <ActivityMessaging />
       </main>
-
       <FloatingChatButton />
     </div>
   );
