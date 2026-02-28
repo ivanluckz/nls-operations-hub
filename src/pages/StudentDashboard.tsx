@@ -12,7 +12,7 @@ import FloatingChatButton from "@/components/student/FloatingChatButton";
 import MessagesCard from "@/components/student/MessagesCard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { GraduationCap, Activity, ArrowRight, FlaskConical, KeyRound } from "lucide-react";
+import { GraduationCap, Activity, ArrowRight, KeyRound } from "lucide-react";
 
 interface Profile {
   full_name: string;
@@ -137,48 +137,31 @@ const StudentDashboard = () => {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 w-full">
               {/* Academic */}
-              {hasDev ? (
-                <Card
-                  className="h-full border-2 border-transparent hover:border-primary/40 cursor-pointer hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group bg-gradient-to-br from-primary/5 via-background to-primary/5"
-                  onClick={() => navigate("/admin/academic/subjects")}
-                >
-                  <CardHeader className="pb-4 text-center">
-                    <div className="mx-auto w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                      <GraduationCap className="h-7 w-7 text-primary" />
-                    </div>
-                    <CardTitle className="text-lg group-hover:text-primary transition-colors">Academic</CardTitle>
-                    <CardDescription className="text-xs">
-                      Your timetable & attendance
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="pt-0 text-center">
-                    <span className="inline-flex items-center gap-1 text-sm font-medium text-primary group-hover:gap-2 transition-all">
-                      <FlaskConical className="w-3 h-3" />
-                      Dev Access <ArrowRight className="w-4 h-4" />
+              <Card
+                className="h-full border-2 border-transparent hover:border-primary/40 cursor-pointer hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group bg-gradient-to-br from-primary/5 via-background to-primary/5"
+                onClick={() => navigate("/student/academic")}
+              >
+                <CardHeader className="pb-4 text-center">
+                  <div className="mx-auto w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                    <GraduationCap className="h-7 w-7 text-primary" />
+                  </div>
+                  <CardTitle className="text-lg group-hover:text-primary transition-colors">Academic</CardTitle>
+                  <CardDescription className="text-xs">
+                    Your timetable & attendance
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="pt-0 text-center">
+                  {hasDev ? (
+                    <span className="inline-flex items-center gap-1 text-sm font-medium dev-name-glow">
+                      ⚡ DEV Respect <ArrowRight className="w-4 h-4" />
                     </span>
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="relative">
-                  <Card className="h-full border-2 border-dashed border-primary/20 bg-gradient-to-br from-primary/5 via-background to-primary/5 opacity-80 cursor-default">
-                    <CardHeader className="pb-4 text-center">
-                      <div className="mx-auto w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-3">
-                        <GraduationCap className="h-7 w-7 text-primary" />
-                      </div>
-                      <CardTitle className="text-lg">Academic</CardTitle>
-                      <CardDescription className="text-xs">
-                        Your timetable & attendance
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="pt-0 text-center">
-                      <Badge variant="outline" className="text-xs px-3 py-1 border-amber-500/40 text-amber-600 dark:text-amber-400 bg-amber-500/10">
-                        <FlaskConical className="w-3 h-3 mr-1" />
-                        In Testing — Request Access from Dev
-                      </Badge>
-                    </CardContent>
-                  </Card>
-                </div>
-              )}
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-sm font-medium text-primary group-hover:gap-2 transition-all">
+                      Enter <ArrowRight className="w-4 h-4" />
+                    </span>
+                  )}
+                </CardContent>
+              </Card>
 
               {/* Co-curricular */}
               <Card
