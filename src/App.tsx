@@ -9,6 +9,8 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { useTheme } from "@/hooks/use-custom-theme";
 
 const SandboxedAnimation = lazy(() => import("./components/SandboxedAnimation"));
+const StudentAcademicLazy = lazy(() => import("./pages/StudentAcademic"));
+import TeacherAcademic from "./pages/TeacherAcademic";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import StudentDashboard from "./pages/StudentDashboard";
@@ -70,7 +72,7 @@ const AppContent = () => {
           <Route path="/student/messages" element={<ProtectedRoute requiredRole="student"><StudentMessages /></ProtectedRoute>} />
           <Route path="/student/leaderboard" element={<ProtectedRoute requiredRole="student"><Leaderboard /></ProtectedRoute>} />
           <Route path="/student/dms" element={<ProtectedRoute requiredRole="student"><DirectMessages /></ProtectedRoute>} />
-          <Route path="/student/academic" element={<ProtectedRoute requiredRole="student"><AcademicComingSoon /></ProtectedRoute>} />
+          <Route path="/student/academic" element={<ProtectedRoute requiredRole="student"><Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" /></div>}><StudentAcademicLazy /></Suspense></ProtectedRoute>} />
 
           {/* Moderator */}
           <Route path="/moderator" element={<ProtectedRoute requiredRole="moderator"><ModeratorDashboard /></ProtectedRoute>} />
@@ -112,7 +114,7 @@ const AppContent = () => {
           <Route path="/teacher" element={<ProtectedRoute requiredRole="teacher"><TeacherDashboard /></ProtectedRoute>} />
           <Route path="/teacher/attendance" element={<ProtectedRoute requiredRole="teacher"><TeacherAttendance /></ProtectedRoute>} />
           <Route path="/teacher/attendance-reports" element={<ProtectedRoute requiredRole="teacher"><AttendanceReports /></ProtectedRoute>} />
-          <Route path="/teacher/academic" element={<ProtectedRoute requiredRole="teacher"><AcademicComingSoon /></ProtectedRoute>} />
+          <Route path="/teacher/academic" element={<ProtectedRoute requiredRole="teacher"><TeacherAcademic /></ProtectedRoute>} />
 
           {/* Public */}
           <Route path="/chatbot" element={<ActivityChatbot />} />

@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { LogOut, GraduationCap, ClipboardCheck, AlertTriangle, Activity, ArrowRight, FlaskConical } from "lucide-react";
+import { LogOut, GraduationCap, ClipboardCheck, AlertTriangle, Activity, ArrowRight } from "lucide-react";
 import ActivityMessaging from "@/components/teacher/ActivityMessaging";
 import FloatingChatButton from "@/components/student/FloatingChatButton";
 
@@ -125,26 +125,26 @@ const TeacherDashboard = () => {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 w-full">
-              {/* Academic — Coming Soon */}
-              <div className="relative">
-                <Card className="h-full border-2 border-dashed border-primary/20 bg-gradient-to-br from-primary/5 via-background to-primary/5 opacity-80 cursor-default">
-                  <CardHeader className="pb-4 text-center">
-                    <div className="mx-auto w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-3">
-                      <GraduationCap className="h-7 w-7 text-primary" />
-                    </div>
-                    <CardTitle className="text-lg">Academic</CardTitle>
-                    <CardDescription className="text-xs">
-                      Timetable & class attendance
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="pt-0 text-center">
-                    <Badge variant="outline" className="text-xs px-3 py-1 border-amber-500/40 text-amber-600 dark:text-amber-400 bg-amber-500/10">
-                      <FlaskConical className="w-3 h-3 mr-1" />
-                      In Testing — Request Access from Dev
-                    </Badge>
-                  </CardContent>
-                </Card>
-              </div>
+              {/* Academic */}
+              <Card
+                className="h-full border-2 border-transparent hover:border-primary/40 cursor-pointer hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group bg-gradient-to-br from-primary/5 via-background to-primary/5"
+                onClick={() => navigate("/teacher/academic")}
+              >
+                <CardHeader className="pb-4 text-center">
+                  <div className="mx-auto w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                    <GraduationCap className="h-7 w-7 text-primary" />
+                  </div>
+                  <CardTitle className="text-lg group-hover:text-primary transition-colors">Academic</CardTitle>
+                  <CardDescription className="text-xs">
+                    Timetable & class attendance
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="pt-0 text-center">
+                  <span className="inline-flex items-center gap-1 text-sm font-medium text-primary group-hover:gap-2 transition-all">
+                    Enter <ArrowRight className="w-4 h-4" />
+                  </span>
+                </CardContent>
+              </Card>
 
               {/* Co-curricular */}
               <Card
