@@ -138,8 +138,8 @@ const StudentDashboard = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 w-full">
               {/* Academic */}
               <Card
-                className="h-full border-2 border-transparent hover:border-primary/40 cursor-pointer hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group bg-gradient-to-br from-primary/5 via-background to-primary/5"
-                onClick={() => navigate("/student/academic")}
+                className={`h-full border-2 border-transparent transition-all duration-300 group bg-gradient-to-br from-primary/5 via-background to-primary/5 ${hasDev ? "hover:border-primary/40 cursor-pointer hover:shadow-xl hover:-translate-y-1" : "opacity-75"}`}
+                onClick={() => hasDev && navigate("/student/academic")}
               >
                 <CardHeader className="pb-4 text-center">
                   <div className="mx-auto w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
@@ -156,9 +156,9 @@ const StudentDashboard = () => {
                       ⚡ DEV Respect <ArrowRight className="w-4 h-4" />
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-1 text-sm font-medium text-primary group-hover:gap-2 transition-all">
-                      Enter <ArrowRight className="w-4 h-4" />
-                    </span>
+                    <Badge variant="outline" className="text-xs border-amber-500/40 text-amber-600 dark:text-amber-400 bg-amber-500/10">
+                      In Development
+                    </Badge>
                   )}
                 </CardContent>
               </Card>
