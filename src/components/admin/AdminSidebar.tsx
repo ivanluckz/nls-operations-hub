@@ -39,10 +39,14 @@ import {
   LayoutDashboard,
   MessageSquare,
   Award,
+  GraduationCap,
+  Calendar,
+  BarChart3,
+  ArrowLeft,
 } from "lucide-react";
 import nlsLogo from "@/assets/nls-logo.png";
 
-const menuItems = [
+const coCurricularItems = [
   { title: "Dashboard", url: "/admin", icon: LayoutDashboard, description: "Overview" },
   { title: "User Management", url: "/admin/user-management", icon: UserCog, description: "Manage users and roles" },
   { title: "Manage Activities", url: "/admin/co-curricular/activities", icon: Shield, description: "Add, edit activities" },
@@ -57,6 +61,13 @@ const menuItems = [
   { title: "All Chats", url: "/admin/co-curricular/messages", icon: MessageSquare, description: "View all activity chats" },
   { title: "Badge Requests", url: "/admin/co-curricular/badge-requests", icon: Award, description: "Approve student badges" },
   { title: "Direct Messages", url: "/admin/dms", icon: MessageSquare, description: "Message anyone directly" },
+];
+
+const academicItems = [
+  { title: "Timetable", url: "/admin/academic/timetable", icon: Calendar, description: "Build class timetables" },
+  { title: "Subjects", url: "/admin/academic/subjects", icon: BookOpen, description: "Manage subjects" },
+  { title: "Classes", url: "/admin/academic/classes", icon: Users, description: "Manage class groups" },
+  { title: "Attendance", url: "/admin/academic/attendance", icon: BarChart3, description: "Academic attendance" },
 ];
 
 interface UserProfile {
@@ -110,6 +121,10 @@ export function AdminSidebar() {
       .slice(0, 2);
   };
 
+  const isAcademicSection = location.pathname.startsWith("/admin/academic");
+  const menuItems = isAcademicSection ? academicItems : coCurricularItems;
+  const sectionLabel = isAcademicSection ? "Academic" : "Co-curricular";
+
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
       <SidebarHeader className="p-4">
@@ -122,32 +137,49 @@ export function AdminSidebar() {
           {!collapsed && (
             <div className="flex flex-col">
               <span className="font-semibold text-sidebar-foreground">NLS Admin</span>
-              <span className="text-xs text-muted-foreground">Co-Curricular</span>
+              <span className="text-xs text-muted-foreground">{sectionLabel}</span>
             </div>
           )}
         </div>
       </SidebarHeader>
 
       <SidebarContent>
+        {isAcademicSection && (
+          <SidebarGroup>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild tooltip="Back to Dashboard">
+                    <button onClick={() => navigate("/admin")} className="w-full flex items-center gap-3 text-muted-foreground">
+                      <ArrowLeft className="h-4 w-4" />
+                      <span>Back to Dashboard</span>
+                    </button>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
         <SidebarGroup>
-          <SidebarGroupLabel>Co-curricular</SidebarGroupLabel>
+          <SidebarGroupLabel>{sectionLabel}</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {menuItems.map((item) => {
                 const isActive = location.pathname === item.url;
+                const isHighlighted = 'highlight' in item && item.highlight;
                 return (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton
                       asChild
                       isActive={isActive}
                       tooltip={item.title}
-                      className={item.highlight ? "text-primary" : ""}
+                      className={isHighlighted ? "text-primary" : ""}
                     >
                       <button
                         onClick={() => navigate(item.url)}
                         className="w-full flex items-center gap-3"
                       >
-                        <item.icon className={`h-4 w-4 ${item.highlight ? "text-primary" : ""}`} />
+                        <item.icon className={`h-4 w-4 ${isHighlighted ? "text-primary" : ""}`} />
                         <span>{item.title}</span>
                       </button>
                     </SidebarMenuButton>
