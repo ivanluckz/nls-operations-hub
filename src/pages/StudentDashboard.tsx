@@ -10,13 +10,16 @@ import QRCodeCard from "@/components/student/QRCodeCard";
 import CalendarSyncCard from "@/components/student/CalendarSyncCard";
 import FloatingChatButton from "@/components/student/FloatingChatButton";
 import MessagesCard from "@/components/student/MessagesCard";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { GraduationCap, Activity, ArrowRight } from "lucide-react";
 
 interface Profile {
   full_name: string;
   email: string;
 }
 
-interface Activity {
+interface Activity2 {
   id: string;
   title: string;
   description: string;
@@ -31,7 +34,7 @@ interface Allocation {
   day_of_week: string;
   slot_number: number;
   preference_rank: number;
-  activities: Activity;
+  activities: Activity2;
 }
 
 const StudentDashboard = () => {
@@ -42,6 +45,7 @@ const StudentDashboard = () => {
   const [allocations, setAllocations] = useState<Allocation[]>([]);
   const [loading, setLoading] = useState(true);
   const [hasDev, setHasDev] = useState(false);
+  const [section, setSection] = useState<"choose" | "cocurricular">("choose");
 
   useEffect(() => {
     fetchData();
@@ -116,58 +120,124 @@ const StudentDashboard = () => {
 
   const status = getStatus();
 
+  if (section === "choose") {
+    return (
+      <div className="min-h-screen bg-background">
+        <WelcomeHeader
+          name={profile?.full_name || "Student"}
+          onLogout={handleLogout}
+        />
+
+        <main className="container mx-auto px-4 py-8 pb-24">
+          <div className="max-w-2xl mx-auto flex flex-col items-center justify-center min-h-[60vh] space-y-8">
+            <div className="text-center space-y-2">
+              <h2 className="text-2xl font-bold tracking-tight">What's on your mind?</h2>
+              <p className="text-muted-foreground text-sm">Choose a section to explore</p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 w-full">
+              {/* Academic — Coming Soon */}
+              <div className="relative">
+                <Card className="h-full border-2 border-dashed border-primary/20 bg-gradient-to-br from-primary/5 via-background to-primary/5 opacity-80 cursor-default">
+                  <CardHeader className="pb-4 text-center">
+                    <div className="mx-auto w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-3">
+                      <GraduationCap className="h-7 w-7 text-primary" />
+                    </div>
+                    <CardTitle className="text-lg">Academic</CardTitle>
+                    <CardDescription className="text-xs">
+                      Your timetable & attendance
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-0 text-center">
+                    <Badge variant="secondary" className="text-xs px-3 py-1">
+                      🚧 Coming Soon
+                    </Badge>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Co-curricular */}
+              <Card
+                className="h-full border-2 border-transparent hover:border-secondary/40 cursor-pointer hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group bg-gradient-to-br from-secondary/5 via-background to-secondary/5"
+                onClick={() => setSection("cocurricular")}
+              >
+                <CardHeader className="pb-4 text-center">
+                  <div className="mx-auto w-14 h-14 rounded-2xl bg-secondary/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                    <Activity className="h-7 w-7 text-secondary" />
+                  </div>
+                  <CardTitle className="text-lg group-hover:text-secondary transition-colors">
+                    Co-curricular
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    Activities, messages & preferences
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="pt-0 text-center">
+                  <span className="inline-flex items-center gap-1 text-sm font-medium text-secondary group-hover:gap-2 transition-all">
+                    Enter <ArrowRight className="w-4 h-4" />
+                  </span>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Dev Mode */}
+            {hasDev && (
+              <button onClick={() => navigate("/admin")}
+                className="w-full max-w-md flex items-center justify-between rounded-2xl border border-dashed border-purple-400/50 bg-gradient-to-r from-purple-500/5 via-background to-purple-500/5 px-5 py-4 shadow-sm hover:border-purple-400 hover:shadow-purple-500/10 transition-all text-left group dev-msg-glow">
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">⚡</span>
+                  <div>
+                    <p className="font-semibold text-sm dev-name-glow">Dev Mode</p>
+                    <p className="text-xs text-muted-foreground">View admin dashboard (read-only)</p>
+                  </div>
+                </div>
+                <span className="text-muted-foreground group-hover:text-purple-400 transition-colors text-sm">Enter →</span>
+              </button>
+            )}
+          </div>
+        </main>
+        <FloatingChatButton />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
-      <WelcomeHeader 
-        name={profile?.full_name || "Student"} 
+      <WelcomeHeader
+        name={profile?.full_name || "Student"}
         onLogout={handleLogout}
       />
 
       <main className="container mx-auto px-4 py-8 pb-24">
         <div className="max-w-5xl mx-auto space-y-8">
-          {/* Academic + Co-curricular split */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Switcher bar */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-secondary/10 flex items-center justify-center">
+                <Activity className="h-5 w-5 text-secondary" />
+              </div>
+              <h2 className="text-lg font-bold">Co-curricular</h2>
+            </div>
             <button
-              onClick={() => navigate("/student/academic")}
-              className="w-full flex items-center gap-4 rounded-2xl border-2 bg-card p-5 shadow-sm hover:border-primary/40 hover:shadow-md transition-all text-left group"
+              onClick={() => setSection("choose")}
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5 bg-muted/50 hover:bg-muted px-3 py-1.5 rounded-lg"
             >
-              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                <span className="text-2xl">📚</span>
-              </div>
-              <div>
-                <p className="font-semibold">Academic</p>
-                <p className="text-xs text-muted-foreground">View your timetable & attendance</p>
-              </div>
-              <span className="ml-auto text-muted-foreground group-hover:text-primary transition-colors">→</span>
-            </button>
-
-            <button
-              onClick={() => navigate("/student/preferences")}
-              className="w-full flex items-center gap-4 rounded-2xl border-2 bg-card p-5 shadow-sm hover:border-secondary/40 hover:shadow-md transition-all text-left group"
-            >
-              <div className="w-12 h-12 rounded-xl bg-secondary/10 flex items-center justify-center shrink-0">
-                <span className="text-2xl">🎯</span>
-              </div>
-              <div>
-                <p className="font-semibold">Co-curricular</p>
-                <p className="text-xs text-muted-foreground">Activities, messages & preferences</p>
-              </div>
-              <span className="ml-auto text-muted-foreground group-hover:text-secondary transition-colors">→</span>
+              ← Back
             </button>
           </div>
 
           {/* Status and QR Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <StatusCard 
-              status={status} 
+            <StatusCard
+              status={status}
               onAction={() => navigate("/student/preferences")}
             />
             <QRCodeCard />
           </div>
 
           {/* Calendar Sync */}
-           {allocations.length > 0 && <CalendarSyncCard />}
-           {allocations.length > 0 && <MessagesCard />}
+          {allocations.length > 0 && <CalendarSyncCard />}
+          {allocations.length > 0 && <MessagesCard />}
 
           {/* Leaderboard quick-link */}
           {allocations.length > 0 && (
@@ -181,21 +251,6 @@ const StudentDashboard = () => {
                 </div>
               </div>
               <span className="text-muted-foreground group-hover:text-primary transition-colors text-sm">View →</span>
-            </button>
-          )}
-
-          {/* Dev Mode — admin-lite access */}
-          {hasDev && (
-            <button onClick={() => navigate("/admin")}
-              className="w-full flex items-center justify-between rounded-2xl border border-dashed border-purple-400/50 bg-gradient-to-r from-purple-500/5 via-background to-purple-500/5 px-5 py-4 shadow-sm hover:border-purple-400 hover:shadow-purple-500/10 transition-all text-left group dev-msg-glow">
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">⚡</span>
-                <div>
-                  <p className="font-semibold text-sm dev-name-glow">Dev Mode</p>
-                  <p className="text-xs text-muted-foreground">View admin dashboard, reports & more (read-only)</p>
-                </div>
-              </div>
-              <span className="text-muted-foreground group-hover:text-purple-400 transition-colors text-sm">Enter →</span>
             </button>
           )}
 
