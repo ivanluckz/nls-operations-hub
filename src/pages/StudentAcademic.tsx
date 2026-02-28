@@ -32,9 +32,10 @@ const StudentAcademic = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Check Dev badge
+      // Check Dev badge — redirect non-dev users
       const { data: devBadge } = await (supabase as any).from("user_badges").select("id").eq("user_id", user.id).eq("badge_name", "Dev").maybeSingle();
-      setHasDev(!!devBadge);
+      if (!devBadge) { navigate("/student"); return; }
+      setHasDev(true);
 
       const [p, s] = await Promise.all([
         (supabase as any).from("academic_periods").select("*").order("sort_order"),
