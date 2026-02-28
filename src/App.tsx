@@ -36,12 +36,7 @@ import StudentMessages from "./pages/StudentMessages";
 import ThemeManagement from "./pages/ThemeManagement";
 import Leaderboard from "./pages/Leaderboard";
 import DirectMessages from "./pages/DirectMessages";
-import AcademicSubjects from "./pages/AcademicSubjects";
-import AcademicClasses from "./pages/AcademicClasses";
-import AcademicTimetable from "./pages/AcademicTimetable";
-import AcademicAttendanceReports from "./pages/AcademicAttendanceReports";
-import TeacherAcademic from "./pages/TeacherAcademic";
-import StudentAcademic from "./pages/StudentAcademic";
+import AcademicComingSoon from "./pages/AcademicComingSoon";
 
 const queryClient = new QueryClient();
 
@@ -62,49 +57,55 @@ const AppContent = () => {
           <Route path="/" element={<Index />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/bg-removal" element={<BackgroundRemoval />} />
+
+          {/* Student */}
           <Route path="/student" element={<ProtectedRoute requiredRole="student"><StudentDashboard /></ProtectedRoute>} />
           <Route path="/student/preferences" element={<ProtectedRoute requiredRole="student"><StudentPreferences /></ProtectedRoute>} />
           <Route path="/student/messages" element={<ProtectedRoute requiredRole="student"><StudentMessages /></ProtectedRoute>} />
           <Route path="/student/leaderboard" element={<ProtectedRoute requiredRole="student"><Leaderboard /></ProtectedRoute>} />
           <Route path="/student/dms" element={<ProtectedRoute requiredRole="student"><DirectMessages /></ProtectedRoute>} />
+          <Route path="/student/academic" element={<ProtectedRoute requiredRole="student"><AcademicComingSoon /></ProtectedRoute>} />
+
+          {/* Moderator */}
           <Route path="/moderator" element={<ProtectedRoute requiredRole="moderator"><ModeratorDashboard /></ProtectedRoute>} />
           <Route path="/moderator/activities" element={<ProtectedRoute requiredRole="moderator"><ModeratorActivities /></ProtectedRoute>} />
           <Route path="/moderator/allocations" element={<ProtectedRoute requiredRole="moderator"><ModeratorAllocations /></ProtectedRoute>} />
-          <Route path="/admin" element={<ProtectedRoute requiredRole="admin"><AdminDashboard /></ProtectedRoute>} />
-          <Route path="/admin/user-management" element={<ProtectedRoute requiredRole="admin"><UserManagement /></ProtectedRoute>} />
-          <Route path="/admin/activities" element={<ProtectedRoute requiredRole="admin"><ModeratorActivities /></ProtectedRoute>} />
-          <Route path="/admin/allocations" element={<ProtectedRoute requiredRole="admin"><ModeratorAllocations /></ProtectedRoute>} />
-          <Route path="/admin/view-allocations" element={<ProtectedRoute requiredRole="admin"><AllocationsView /></ProtectedRoute>} />
-          <Route path="/admin/manual-allocations" element={<ProtectedRoute requiredRole="admin"><ManualAllocations /></ProtectedRoute>} />
-          <Route path="/teacher" element={<ProtectedRoute requiredRole="teacher"><TeacherDashboard /></ProtectedRoute>} />
-          <Route path="/teacher/attendance" element={<ProtectedRoute requiredRole="teacher"><TeacherAttendance /></ProtectedRoute>} />
           <Route path="/moderator/view-allocations" element={<ProtectedRoute requiredRole="moderator"><AllocationsView /></ProtectedRoute>} />
           <Route path="/moderator/manual-allocations" element={<ProtectedRoute requiredRole="moderator"><ManualAllocations /></ProtectedRoute>} />
           <Route path="/moderator/attendance" element={<ProtectedRoute requiredRole="moderator"><TeacherAttendance /></ProtectedRoute>} />
-          <Route path="/admin/attendance" element={<ProtectedRoute requiredRole="admin"><TeacherAttendance /></ProtectedRoute>} />
           <Route path="/moderator/attendance-reports" element={<ProtectedRoute requiredRole="moderator"><AttendanceReports /></ProtectedRoute>} />
-          <Route path="/admin/attendance-reports" element={<ProtectedRoute requiredRole="admin"><AttendanceReports /></ProtectedRoute>} />
-          <Route path="/teacher/attendance-reports" element={<ProtectedRoute requiredRole="teacher"><AttendanceReports /></ProtectedRoute>} />
-          <Route path="/admin/pre-excuse" element={<ProtectedRoute requiredRole="admin"><PreExcuseStudents /></ProtectedRoute>} />
           <Route path="/moderator/pre-excuse" element={<ProtectedRoute requiredRole="moderator"><PreExcuseStudents /></ProtectedRoute>} />
-          <Route path="/admin/weekly-summary" element={<ProtectedRoute requiredRole="admin"><WeeklySummary /></ProtectedRoute>} />
           <Route path="/moderator/weekly-summary" element={<ProtectedRoute requiredRole="moderator"><WeeklySummary /></ProtectedRoute>} />
-          <Route path="/admin/activity-roster" element={<ProtectedRoute requiredRole="admin"><ActivityRoster /></ProtectedRoute>} />
           <Route path="/moderator/activity-roster" element={<ProtectedRoute requiredRole="moderator"><ActivityRoster /></ProtectedRoute>} />
-          <Route path="/admin/profile" element={<ProtectedRoute requiredRole="admin"><AdminProfile /></ProtectedRoute>} />
-          <Route path="/admin/messages" element={<ProtectedRoute requiredRole="admin"><AdminMessages /></ProtectedRoute>} />
-          <Route path="/admin/badge-requests" element={<ProtectedRoute requiredRole="admin"><AdminBadgeRequests /></ProtectedRoute>} />
+          <Route path="/moderator/academic/*" element={<ProtectedRoute requiredRole="moderator"><AcademicComingSoon /></ProtectedRoute>} />
+
+          {/* Admin */}
+          <Route path="/admin" element={<ProtectedRoute requiredRole="admin"><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/admin/user-management" element={<ProtectedRoute requiredRole="admin"><UserManagement /></ProtectedRoute>} />
+          <Route path="/admin/co-curricular/activities" element={<ProtectedRoute requiredRole="admin"><ModeratorActivities /></ProtectedRoute>} />
+          <Route path="/admin/co-curricular/allocations" element={<ProtectedRoute requiredRole="admin"><ModeratorAllocations /></ProtectedRoute>} />
+          <Route path="/admin/co-curricular/view-allocations" element={<ProtectedRoute requiredRole="admin"><AllocationsView /></ProtectedRoute>} />
+          <Route path="/admin/co-curricular/manual-allocations" element={<ProtectedRoute requiredRole="admin"><ManualAllocations /></ProtectedRoute>} />
+          <Route path="/admin/co-curricular/attendance" element={<ProtectedRoute requiredRole="admin"><TeacherAttendance /></ProtectedRoute>} />
+          <Route path="/admin/co-curricular/attendance-reports" element={<ProtectedRoute requiredRole="admin"><AttendanceReports /></ProtectedRoute>} />
+          <Route path="/admin/co-curricular/pre-excuse" element={<ProtectedRoute requiredRole="admin"><PreExcuseStudents /></ProtectedRoute>} />
+          <Route path="/admin/co-curricular/weekly-summary" element={<ProtectedRoute requiredRole="admin"><WeeklySummary /></ProtectedRoute>} />
+          <Route path="/admin/co-curricular/activity-roster" element={<ProtectedRoute requiredRole="admin"><ActivityRoster /></ProtectedRoute>} />
+          <Route path="/admin/co-curricular/messages" element={<ProtectedRoute requiredRole="admin"><AdminMessages /></ProtectedRoute>} />
+          <Route path="/admin/co-curricular/badge-requests" element={<ProtectedRoute requiredRole="admin"><AdminBadgeRequests /></ProtectedRoute>} />
           <Route path="/admin/dms" element={<ProtectedRoute requiredRole="admin"><DirectMessages /></ProtectedRoute>} />
-          <Route path="/admin/academic/subjects" element={<ProtectedRoute requiredRole="admin"><AcademicSubjects /></ProtectedRoute>} />
-          <Route path="/admin/academic/classes" element={<ProtectedRoute requiredRole="admin"><AcademicClasses /></ProtectedRoute>} />
-          <Route path="/admin/academic/timetable" element={<ProtectedRoute requiredRole="admin"><AcademicTimetable /></ProtectedRoute>} />
-          <Route path="/admin/academic/attendance" element={<ProtectedRoute requiredRole="admin"><AcademicAttendanceReports /></ProtectedRoute>} />
-          <Route path="/moderator/academic/subjects" element={<ProtectedRoute requiredRole="moderator"><AcademicSubjects /></ProtectedRoute>} />
-          <Route path="/moderator/academic/classes" element={<ProtectedRoute requiredRole="moderator"><AcademicClasses /></ProtectedRoute>} />
-          <Route path="/moderator/academic/timetable" element={<ProtectedRoute requiredRole="moderator"><AcademicTimetable /></ProtectedRoute>} />
-          <Route path="/moderator/academic/attendance" element={<ProtectedRoute requiredRole="moderator"><AcademicAttendanceReports /></ProtectedRoute>} />
-          <Route path="/teacher/academic" element={<ProtectedRoute requiredRole="teacher"><TeacherAcademic /></ProtectedRoute>} />
-          <Route path="/student/academic" element={<ProtectedRoute requiredRole="student"><StudentAcademic /></ProtectedRoute>} />
+          <Route path="/admin/profile" element={<ProtectedRoute requiredRole="admin"><AdminProfile /></ProtectedRoute>} />
+
+          {/* Academic — Coming Soon for all roles */}
+          <Route path="/admin/academic/*" element={<ProtectedRoute requiredRole="admin"><AcademicComingSoon /></ProtectedRoute>} />
+
+          {/* Teacher */}
+          <Route path="/teacher" element={<ProtectedRoute requiredRole="teacher"><TeacherDashboard /></ProtectedRoute>} />
+          <Route path="/teacher/attendance" element={<ProtectedRoute requiredRole="teacher"><TeacherAttendance /></ProtectedRoute>} />
+          <Route path="/teacher/attendance-reports" element={<ProtectedRoute requiredRole="teacher"><AttendanceReports /></ProtectedRoute>} />
+          <Route path="/teacher/academic" element={<ProtectedRoute requiredRole="teacher"><AcademicComingSoon /></ProtectedRoute>} />
+
+          {/* Public */}
           <Route path="/chatbot" element={<ActivityChatbot />} />
           <Route path="/themes" element={<ThemeManagement />} />
           <Route path="*" element={<NotFound />} />

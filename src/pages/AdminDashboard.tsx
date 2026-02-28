@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Card, CardDescription, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Users, Shield, UserCog, ClipboardCheck, AlertTriangle, UserCheck, Sparkles, BookOpen, GraduationCap, Activity, ArrowRight } from "lucide-react";
+import { Users, Shield, UserCog, ClipboardCheck, AlertTriangle, UserCheck, Sparkles, BookOpen, GraduationCap, Activity, ArrowRight, FlaskConical } from "lucide-react";
 import FloatingChatButton from "@/components/student/FloatingChatButton";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -12,15 +12,15 @@ const AdminDashboard = () => {
 
   const quickActions = [
     { title: "User Management", description: "Manage users and roles", icon: UserCog, url: "/admin/user-management", color: "bg-secondary/10 text-secondary" },
-    { title: "Manage Activities", description: "Add, edit, or remove activities", icon: Shield, url: "/admin/activities", color: "bg-primary/10 text-primary" },
-    { title: "Manual Allocation", description: "Assign students to activities", icon: Users, url: "/admin/manual-allocations", color: "bg-accent/10 text-accent-foreground" },
-    { title: "Auto Allocation", description: "Auto-allocate based on preferences", icon: Shield, url: "/admin/allocations", color: "bg-success/10 text-success" },
-    { title: "View Allocations", description: "See all student assignments", icon: Users, url: "/admin/view-allocations", color: "bg-secondary/10 text-secondary" },
-    { title: "Activity Roster", description: "View enrolled students", icon: BookOpen, url: "/admin/activity-roster", color: "bg-primary/10 text-primary" },
-    { title: "Attendance", description: "Take attendance records", icon: ClipboardCheck, url: "/admin/attendance", color: "bg-success/10 text-success" },
-    { title: "Attendance Reports", description: "View absent & late students", icon: AlertTriangle, url: "/admin/attendance-reports", color: "bg-destructive/10 text-destructive" },
-    { title: "Pre-Excuse Students", description: "Excuse students ahead of time", icon: UserCheck, url: "/admin/pre-excuse", color: "bg-accent/10 text-accent-foreground" },
-    { title: "AI Weekly Summary", description: "AI-powered trend reports", icon: Sparkles, url: "/admin/weekly-summary", color: "bg-primary/10 text-primary", highlight: true },
+    { title: "Manage Activities", description: "Add, edit, or remove activities", icon: Shield, url: "/admin/co-curricular/activities", color: "bg-primary/10 text-primary" },
+    { title: "Manual Allocation", description: "Assign students to activities", icon: Users, url: "/admin/co-curricular/manual-allocations", color: "bg-accent/10 text-accent-foreground" },
+    { title: "Auto Allocation", description: "Auto-allocate based on preferences", icon: Shield, url: "/admin/co-curricular/allocations", color: "bg-success/10 text-success" },
+    { title: "View Allocations", description: "See all student assignments", icon: Users, url: "/admin/co-curricular/view-allocations", color: "bg-secondary/10 text-secondary" },
+    { title: "Activity Roster", description: "View enrolled students", icon: BookOpen, url: "/admin/co-curricular/activity-roster", color: "bg-primary/10 text-primary" },
+    { title: "Attendance", description: "Take attendance records", icon: ClipboardCheck, url: "/admin/co-curricular/attendance", color: "bg-success/10 text-success" },
+    { title: "Attendance Reports", description: "View absent & late students", icon: AlertTriangle, url: "/admin/co-curricular/attendance-reports", color: "bg-destructive/10 text-destructive" },
+    { title: "Pre-Excuse Students", description: "Excuse students ahead of time", icon: UserCheck, url: "/admin/co-curricular/pre-excuse", color: "bg-accent/10 text-accent-foreground" },
+    { title: "AI Weekly Summary", description: "AI-powered trend reports", icon: Sparkles, url: "/admin/co-curricular/weekly-summary", color: "bg-primary/10 text-primary", highlight: true },
   ];
 
   if (section === "choose") {
@@ -33,26 +33,26 @@ const AdminDashboard = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-2xl">
-            {/* Academic Card */}
-            <Card
-              className="h-full border-2 border-transparent hover:border-primary/40 cursor-pointer hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group bg-gradient-to-br from-primary/5 via-background to-primary/5"
-              onClick={() => navigate("/admin/academic/subjects")}
-            >
-              <CardHeader className="pb-4 text-center">
-                <div className="mx-auto w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                  <GraduationCap className="h-8 w-8 text-primary" />
-                </div>
-                <CardTitle className="text-xl group-hover:text-primary transition-colors">Academic</CardTitle>
-                <CardDescription className="text-sm">
-                  Timetable, subjects, class groups & academic attendance
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="pt-0 text-center">
-                <span className="inline-flex items-center gap-1 text-sm font-medium text-primary group-hover:gap-2 transition-all">
-                  Enter <ArrowRight className="w-4 h-4" />
-                </span>
-              </CardContent>
-            </Card>
+            {/* Academic Card — Locked */}
+            <div className="relative group">
+              <Card className="h-full border-2 border-dashed border-primary/20 bg-gradient-to-br from-primary/5 via-background to-primary/5 opacity-80 cursor-default">
+                <CardHeader className="pb-4 text-center">
+                  <div className="mx-auto w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
+                    <GraduationCap className="h-8 w-8 text-primary" />
+                  </div>
+                  <CardTitle className="text-xl">Academic</CardTitle>
+                  <CardDescription className="text-sm">
+                    Timetable, subjects, class groups & academic attendance
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="pt-0 text-center">
+                  <Badge variant="outline" className="text-xs px-3 py-1 border-amber-500/40 text-amber-600 dark:text-amber-400 bg-amber-500/10">
+                    <FlaskConical className="w-3 h-3 mr-1" />
+                    In Testing — Request Access from Dev
+                  </Badge>
+                </CardContent>
+              </Card>
+            </div>
 
             {/* Co-curricular Card */}
             <Card
@@ -86,7 +86,6 @@ const AdminDashboard = () => {
   return (
     <AdminLayout>
       <div className="space-y-8">
-        {/* Back to choice + header */}
         <div className="flex items-center justify-between">
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-3">
@@ -103,12 +102,11 @@ const AdminDashboard = () => {
             onClick={() => setSection("choose")}
             className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5 bg-muted/50 hover:bg-muted px-3 py-1.5 rounded-lg"
           >
-            <GraduationCap className="w-4 h-4" />
-            Switch to Academic
+            <ArrowRight className="w-4 h-4 rotate-180" />
+            Back
           </button>
         </div>
 
-        {/* Quick Actions Grid */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
           {quickActions.map((action) => (
             <Card

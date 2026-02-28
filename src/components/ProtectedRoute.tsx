@@ -11,12 +11,12 @@ interface ProtectedRouteProps {
 /** Admin pages Dev badge holders can view (read-only) */
 const DEV_ALLOWED_ADMIN_PAGES = [
   "/admin",
-  "/admin/view-allocations",
-  "/admin/activity-roster",
-  "/admin/attendance-reports",
-  "/admin/weekly-summary",
-  "/admin/messages",
-  "/admin/badge-requests",
+  "/admin/co-curricular/view-allocations",
+  "/admin/co-curricular/activity-roster",
+  "/admin/co-curricular/attendance-reports",
+  "/admin/co-curricular/weekly-summary",
+  "/admin/co-curricular/messages",
+  "/admin/co-curricular/badge-requests",
 ];
 
 const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {

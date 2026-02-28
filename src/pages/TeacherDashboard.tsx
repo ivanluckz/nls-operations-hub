@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { LogOut, GraduationCap, ClipboardCheck, AlertTriangle, Activity, ArrowRight } from "lucide-react";
+import { LogOut, GraduationCap, ClipboardCheck, AlertTriangle, Activity, ArrowRight, FlaskConical } from "lucide-react";
 import ActivityMessaging from "@/components/teacher/ActivityMessaging";
 import FloatingChatButton from "@/components/student/FloatingChatButton";
 
@@ -139,7 +139,8 @@ const TeacherDashboard = () => {
                   </CardHeader>
                   <CardContent className="pt-0 text-center">
                     <Badge variant="outline" className="text-xs px-3 py-1 border-amber-500/40 text-amber-600 dark:text-amber-400 bg-amber-500/10">
-                      🧪 In Testing — Ask for access
+                      <FlaskConical className="w-3 h-3 mr-1" />
+                      In Testing — Request Access from Dev
                     </Badge>
                   </CardContent>
                 </Card>
