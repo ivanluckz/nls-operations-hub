@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, Trophy } from "lucide-react";
 import devBadge from "@/assets/dev.png";
+import { devNameClass } from "@/lib/dev-badge";
 
 const BADGE_OPTIONS: { name: string; emoji: string; animClass: string; img?: string }[] = [
   { name: "Growing",      emoji: "🌱", animClass: "badge-anim-grow"  },
@@ -203,7 +204,7 @@ const Leaderboard = () => {
                         </AvatarFallback>
                       </Avatar>
                       <div className="text-center">
-                        <p className={`font-semibold leading-tight ${entry.id === currentUserId ? "text-primary" : ""} ${actualRank === 0 ? "text-base" : "text-sm"}`}>
+                        <p className={`font-semibold leading-tight ${devNameClass(entry.badges)} ${!devNameClass(entry.badges) ? (entry.id === currentUserId ? "text-primary" : "") : ""} ${actualRank === 0 ? "text-base" : "text-sm"}`}>
                           {entry.name.split(" ")[0]}
                         </p>
                         <p className="text-xs text-muted-foreground">{entry.score} pts</p>
@@ -236,7 +237,7 @@ const Leaderboard = () => {
                     </Avatar>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className={`text-sm font-semibold ${isMe ? "text-primary" : ""}`}>
+                        <span className={`text-sm font-semibold ${devNameClass(entry.badges)} ${!devNameClass(entry.badges) ? (isMe ? "text-primary" : "") : ""}`}>
                           {entry.name}{isMe && " (You)"}
                         </span>
                         {entry.badges.slice(0, 5).map(b => {

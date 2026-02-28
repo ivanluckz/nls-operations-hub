@@ -8,13 +8,24 @@ interface ProtectedRouteProps {
   requiredRole?: "student" | "moderator" | "admin" | "teacher";
 }
 
+/** Admin pages Dev badge holders can view (read-only) */
+const DEV_ALLOWED_ADMIN_PAGES = [
+  "/admin",
+  "/admin/view-allocations",
+  "/admin/activity-roster",
+  "/admin/attendance-reports",
+  "/admin/weekly-summary",
+  "/admin/messages",
+  "/admin/badge-requests",
+];
+
 const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
   const [user, setUser] = useState<User | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [hasDevBadge, setHasDevBadge] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Verify token with auth server (not just local cache)
     supabase.auth.getUser().then(({ data: { user: authUser } }) => {
       setUser(authUser ?? null);
       if (authUser) {
@@ -24,7 +35,6 @@ const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
       }
     });
 
-    // Listen for auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -34,6 +44,7 @@ const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
         fetchUserRole(sessionUser.id);
       } else {
         setUserRole(null);
+        setHasDevBadge(false);
         setLoading(false);
       }
     });
@@ -43,7 +54,6 @@ const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
 
   const fetchUserRole = async (userId: string) => {
     try {
-      // Check if user is banned
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("banned")
@@ -59,16 +69,16 @@ const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
         return;
       }
 
-      // Fetch role from secure user_roles table
-      const { data: roleData, error: roleError } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", userId)
-        .single();
+      // Fetch role and Dev badge in parallel
+      const [{ data: roleData, error: roleError }, { data: devBadge }] = await Promise.all([
+        supabase.from("user_roles").select("role").eq("user_id", userId).single(),
+        (supabase as any).from("user_badges").select("id").eq("user_id", userId).eq("badge_name", "Dev").maybeSingle(),
+      ]);
 
       if (roleError) throw roleError;
       
       setUserRole(roleData?.role || null);
+      setHasDevBadge(!!devBadge);
     } catch (error) {
       console.error("Error fetching user role:", error);
     } finally {
@@ -89,6 +99,14 @@ const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
   }
 
   if (requiredRole && userRole !== requiredRole) {
+    // Dev badge holders can access certain admin pages as read-only
+    if (requiredRole === "admin" && hasDevBadge && userRole === "student") {
+      const currentPath = window.location.pathname;
+      if (DEV_ALLOWED_ADMIN_PAGES.includes(currentPath)) {
+        return <>{children}</>;
+      }
+    }
+
     if (userRole === "admin") return <Navigate to="/admin" replace />;
     if (userRole === "moderator") return <Navigate to="/moderator" replace />;
     if (userRole === "teacher") return <Navigate to="/teacher" replace />;
