@@ -45,6 +45,7 @@ const StudentDashboard = () => {
   const [allocations, setAllocations] = useState<Allocation[]>([]);
   const [loading, setLoading] = useState(true);
   const [hasDev, setHasDev] = useState(false);
+  const [userBadges, setUserBadges] = useState<string[]>([]);
   const [section, setSection] = useState<"choose" | "cocurricular">("choose");
 
   useEffect(() => {
@@ -72,13 +73,15 @@ const StudentDashboard = () => {
 
       setHasPreferences(!!preferenceData);
 
-      const [{ data: allocationsData }, { data: badgeData }] = await Promise.all([
+      const [{ data: allocationsData }, { data: allBadges }] = await Promise.all([
         supabase.from("allocations").select("*, activities(*)").eq("student_id", user.id),
-        (supabase as any).from("user_badges").select("badge_name").eq("user_id", user.id).eq("badge_name", "Dev").maybeSingle(),
+        (supabase as any).from("user_badges").select("badge_name").eq("user_id", user.id).limit(20),
       ]);
 
+      const badgeNames = (allBadges || []).map((b: any) => b.badge_name);
       setAllocations((allocationsData as Allocation[] || []).filter(a => a.activities != null));
-      setHasDev(!!badgeData);
+      setHasDev(badgeNames.includes("Dev"));
+      setUserBadges(badgeNames);
     } catch (error) {
       console.error("Error fetching data:", error);
       toast({
@@ -126,6 +129,7 @@ const StudentDashboard = () => {
         <WelcomeHeader
           name={profile?.full_name || "Student"}
           onLogout={handleLogout}
+          badges={userBadges}
         />
 
         <main className="container mx-auto px-4 py-8 pb-24">
@@ -241,6 +245,7 @@ const StudentDashboard = () => {
       <WelcomeHeader
         name={profile?.full_name || "Student"}
         onLogout={handleLogout}
+        badges={userBadges}
       />
 
       <main className="container mx-auto px-4 py-8 pb-24">

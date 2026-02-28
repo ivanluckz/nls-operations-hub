@@ -7,26 +7,37 @@
  import { Label } from "@/components/ui/label";
  import { useToast } from "@/hooks/use-toast";
  import { AvatarUpload } from "@/components/AvatarUpload";
-import { Loader2, Save, User, Mail, Shield } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { useNavigate } from "react-router-dom";
+ import { Loader2, Save, User, Mail, Shield, Award } from "lucide-react";
+ import { Badge } from "@/components/ui/badge";
+ import { useNavigate } from "react-router-dom";
+ import devBadgeImg from "@/assets/dev.png";
+
+ const BADGE_DISPLAY: Record<string, { emoji: string }> = {
+   "Growing": { emoji: "🌱" },
+   "Star Student": { emoji: "⭐" },
+   "Leader": { emoji: "👑" },
+   "On Fire": { emoji: "🔥" },
+   "Creative": { emoji: "💡" },
+   "Team Player": { emoji: "🤝" },
+ };
  
- interface Profile {
-   id: string;
-   email: string;
-   full_name: string;
-   avatar_url: string | null;
-   created_at: string;
- }
- 
- const AdminProfile = () => {
-    const navigate = useNavigate();
-    const { toast } = useToast();
-   const [profile, setProfile] = useState<Profile | null>(null);
-   const [loading, setLoading] = useState(true);
-   const [saving, setSaving] = useState(false);
-   const [fullName, setFullName] = useState("");
-   const [role, setRole] = useState<string>("");
+  interface Profile {
+    id: string;
+    email: string;
+    full_name: string;
+    avatar_url: string | null;
+    created_at: string;
+  }
+  
+  const AdminProfile = () => {
+     const navigate = useNavigate();
+     const { toast } = useToast();
+    const [profile, setProfile] = useState<Profile | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [fullName, setFullName] = useState("");
+    const [role, setRole] = useState<string>("");
+    const [userBadges, setUserBadges] = useState<string[]>([]);
  
    useEffect(() => {
      fetchProfile();
@@ -43,25 +54,25 @@ import { useNavigate } from "react-router-dom";
          .eq("id", user.id)
          .single();
  
-       const { data: roleData } = await supabase
-         .from("user_roles")
-         .select("role")
-         .eq("user_id", user.id)
-         .single();
- 
-       if (profileData) {
-         setProfile(profileData);
-         setFullName(profileData.full_name);
-       }
-       if (roleData) {
-         setRole(roleData.role);
-       }
-     } catch (error) {
-       console.error("Error fetching profile:", error);
-     } finally {
-       setLoading(false);
-     }
-   };
+        const [{ data: roleData }, { data: badgesData }] = await Promise.all([
+          supabase.from("user_roles").select("role").eq("user_id", user.id).single(),
+          (supabase as any).from("user_badges").select("badge_name").eq("user_id", user.id).limit(20),
+        ]);
+
+        if (profileData) {
+          setProfile(profileData);
+          setFullName(profileData.full_name);
+        }
+        if (roleData) {
+          setRole(roleData.role);
+        }
+        setUserBadges((badgesData || []).map((b: any) => b.badge_name));
+      } catch (error) {
+        console.error("Error fetching profile:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
  
    const handleSave = async () => {
      if (!profile) return;
@@ -190,8 +201,38 @@ import { useNavigate } from "react-router-dom";
                    {role}
                  </Badge>
                </div>
-             </div>
- 
+              </div>
+
+              {/* Badges */}
+              {userBadges.length > 0 && (
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <Award className="h-4 w-4" />
+                    Badges
+                  </Label>
+                  <div className="flex flex-wrap gap-2">
+                    {userBadges.map((badgeName) => (
+                      <div
+                        key={badgeName}
+                        className="flex items-center gap-1.5 rounded-full border bg-muted/50 px-3 py-1.5 text-sm font-medium"
+                      >
+                        {badgeName === "Dev" ? (
+                          <img src={devBadgeImg} alt="Dev" className="h-5 w-5 object-contain" />
+                        ) : (
+                          <span>{BADGE_DISPLAY[badgeName]?.emoji || "🏅"}</span>
+                        )}
+                        {badgeName === "Dev" ? (
+                          <span className="dev-nameplate dev-name-glow">{badgeName}</span>
+                        ) : (
+                          badgeName
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+
              <div className="pt-4">
                <Button onClick={handleSave} disabled={saving}>
                  {saving ? (
