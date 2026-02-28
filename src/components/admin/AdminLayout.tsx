@@ -32,6 +32,10 @@ const pageTitles: Record<string, { title: string; description: string }> = {
   "/admin/profile": { title: "Profile Settings", description: "Manage your account settings" },
   "/admin/co-curricular/messages": { title: "All Chats", description: "View and moderate all activity channel messages" },
   "/admin/co-curricular/badge-requests": { title: "Badge Requests", description: "Review and approve student badge requests" },
+  "/admin/academic/timetable": { title: "Timetable Builder", description: "Build and manage class timetables" },
+  "/admin/academic/subjects": { title: "Subjects", description: "Manage academic subjects" },
+  "/admin/academic/classes": { title: "Class Groups", description: "Manage class groups and students" },
+  "/admin/academic/attendance": { title: "Academic Attendance", description: "View academic attendance reports" },
 };
 
 export function AdminLayout({ children, title, description }: AdminLayoutProps) {
