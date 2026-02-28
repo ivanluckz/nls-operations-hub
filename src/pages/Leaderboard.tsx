@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ArrowLeft, Trophy } from "lucide-react";
 import devBadge from "@/assets/dev.png";
 import { devNameClass } from "@/lib/dev-badge";
+import { UserProfileCard } from "@/components/chat/UserProfileCard";
 
 const BADGE_OPTIONS: { name: string; emoji: string; animClass: string; img?: string }[] = [
   { name: "Growing",      emoji: "🌱", animClass: "badge-anim-grow"  },
@@ -54,6 +55,9 @@ const Leaderboard = () => {
   const [loading, setLoading] = useState(true);
   const [activityFilter, setActivityFilter] = useState("all");
   const [timeFilter, setTimeFilter] = useState<TimePeriod>("all");
+  const [profileCard, setProfileCard] = useState<{
+    senderId: string; senderName: string; badges: string[];
+  } | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -196,7 +200,8 @@ const Leaderboard = () => {
                 {[top3[1], top3[0], top3[2]].filter(Boolean).map((entry) => {
                   const actualRank = entry === top3[0] ? 0 : entry === top3[1] ? 1 : 2;
                   return (
-                    <div key={entry.id} className="flex flex-col items-center gap-2">
+                    <button key={entry.id} className="flex flex-col items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
+                      onClick={() => setProfileCard({ senderId: entry.id, senderName: entry.name, badges: entry.badges })}>
                       <span className="text-2xl">{PODIUM_MEDALS[actualRank]}</span>
                       <Avatar className={`${PODIUM_SIZES[actualRank]} ${getAvatarColor(entry.id)}`}>
                         <AvatarFallback className={`text-white font-bold ${getAvatarColor(entry.id)}`}>
@@ -213,7 +218,7 @@ const Leaderboard = () => {
                         ${actualRank === 0 ? "bg-amber-400" : actualRank === 1 ? "bg-slate-400" : "bg-amber-600/80"}`}>
                         {actualRank + 1}
                       </div>
-                    </div>
+                    </button>
                   );
                 })}
               </div>
@@ -224,8 +229,9 @@ const Leaderboard = () => {
               {entries.map((entry, i) => {
                 const isMe = entry.id === currentUserId;
                 return (
-                  <div key={entry.id}
-                    className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-colors
+                  <button key={entry.id}
+                    onClick={() => setProfileCard({ senderId: entry.id, senderName: entry.name, badges: entry.badges })}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border transition-colors text-left cursor-pointer
                       ${isMe ? "border-primary/40 bg-primary/5" : "border-transparent hover:bg-muted/50"}`}>
                     <span className={`w-7 text-center text-sm font-bold shrink-0 ${i < 3 ? "text-amber-500" : "text-muted-foreground"}`}>
                       {i < 3 ? PODIUM_MEDALS[i] : `#${i + 1}`}
@@ -253,7 +259,7 @@ const Leaderboard = () => {
                       </p>
                     </div>
                     <span className="text-sm font-bold text-muted-foreground shrink-0">{entry.score}pts</span>
-                  </div>
+                  </button>
                 );
               })}
             </div>
@@ -264,6 +270,18 @@ const Leaderboard = () => {
           </>
         )}
       </main>
+
+      {profileCard && (
+        <UserProfileCard
+          open={!!profileCard}
+          onClose={() => setProfileCard(null)}
+          senderId={profileCard.senderId}
+          senderName={profileCard.senderName}
+          isAdmin={false}
+          isTeacher={false}
+          badges={profileCard.badges}
+        />
+      )}
     </div>
   );
 };
