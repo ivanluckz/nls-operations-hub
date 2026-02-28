@@ -250,7 +250,7 @@ const Leaderboard = () => {
                           const opt = BADGE_OPTIONS.find(o => o.name === b);
                           if (!opt) return null;
                           return opt.img
-                            ? <img key={b} src={opt.img} title={b} className="h-5 w-5 object-contain" />
+                            ? <img key={b} src={opt.img} title={b} className="h-7 w-7 object-contain" />
                             : <span key={b} title={b} className={`text-sm leading-none ${opt.animClass}`}>{opt.emoji}</span>;
                         })}
                       </div>

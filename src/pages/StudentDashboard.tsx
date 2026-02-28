@@ -12,7 +12,7 @@ import FloatingChatButton from "@/components/student/FloatingChatButton";
 import MessagesCard from "@/components/student/MessagesCard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { GraduationCap, Activity, ArrowRight, FlaskConical } from "lucide-react";
+import { GraduationCap, Activity, ArrowRight, FlaskConical, KeyRound } from "lucide-react";
 
 interface Profile {
   full_name: string;
@@ -218,6 +218,19 @@ const StudentDashboard = () => {
                 <span className="text-muted-foreground group-hover:text-purple-400 transition-colors text-sm">Enter →</span>
               </button>
             )}
+
+            {/* Set Password */}
+            <button onClick={() => navigate("/set-password")}
+              className="w-full max-w-md flex items-center justify-between rounded-2xl border border-dashed border-muted-foreground/30 bg-muted/30 px-5 py-3 shadow-sm hover:border-muted-foreground/50 hover:bg-muted/50 transition-all text-left group">
+              <div className="flex items-center gap-3">
+                <KeyRound className="w-5 h-5 text-muted-foreground" />
+                <div>
+                  <p className="font-medium text-sm">Set Password</p>
+                  <p className="text-xs text-muted-foreground">Enable email &amp; password sign-in</p>
+                </div>
+              </div>
+              <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:translate-x-0.5 transition-transform" />
+            </button>
           </div>
         </main>
         <FloatingChatButton />

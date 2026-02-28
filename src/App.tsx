@@ -41,6 +41,7 @@ import AcademicSubjects from "./pages/AcademicSubjects";
 import AcademicClasses from "./pages/AcademicClasses";
 import AcademicTimetable from "./pages/AcademicTimetable";
 import AcademicAttendanceReports from "./pages/AcademicAttendanceReports";
+import SetPassword from "./pages/SetPassword";
 
 const queryClient = new QueryClient();
 
@@ -61,6 +62,7 @@ const AppContent = () => {
           <Route path="/" element={<Index />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/bg-removal" element={<BackgroundRemoval />} />
+          <Route path="/set-password" element={<SetPassword />} />
 
           {/* Student */}
           <Route path="/student" element={<ProtectedRoute requiredRole="student"><StudentDashboard /></ProtectedRoute>} />
