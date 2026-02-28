@@ -150,7 +150,9 @@ export function UserProfileCard({
                     className="flex items-center gap-1.5 rounded-full border bg-muted/50 px-2.5 py-1 text-xs font-medium"
                     title={b.desc}
                   >
-                    <span className={b.animClass}>{b.emoji}</span>
+                    {b.img
+                      ? <img src={b.img} alt={b.name} className="h-4 w-4 object-contain" />
+                      : <span className={b.animClass}>{b.emoji}</span>}
                     {b.name}
                   </div>
                 ))}

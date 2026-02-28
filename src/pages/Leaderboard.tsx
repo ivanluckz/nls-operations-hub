@@ -1,18 +1,21 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, Trophy } from "lucide-react";
+import devBadge from "@/assets/dev.png";
 
-const BADGE_OPTIONS = [
+const BADGE_OPTIONS: { name: string; emoji: string; animClass: string; img?: string }[] = [
   { name: "Growing",      emoji: "🌱", animClass: "badge-anim-grow"  },
   { name: "Star Student", emoji: "⭐", animClass: "badge-anim-star"  },
   { name: "Leader",       emoji: "👑", animClass: "badge-anim-crown" },
   { name: "On Fire",      emoji: "🔥", animClass: "badge-anim-fire"  },
   { name: "Creative",     emoji: "💡", animClass: "badge-anim-bulb"  },
   { name: "Team Player",  emoji: "🤝", animClass: "badge-anim-team"  },
+  { name: "Dev",          emoji: "",   animClass: "",                  img: devBadge },
 ];
 
 const AVATAR_COLORS = [
@@ -30,23 +33,26 @@ function getInitials(name: string) {
   return name.split(" ").map(n => n[0]).filter(Boolean).slice(0, 2).join("").toUpperCase() || "?";
 }
 
-interface Entry {
-  id: string;
-  name: string;
-  badges: string[];
-  activityCount: number;
-  score: number;
-}
+interface RawBadge { user_id: string; badge_name: string; awarded_at: string; }
+interface BaseEntry { id: string; name: string; }
+type TimePeriod = "all" | "month" | "week";
 
 const PODIUM_MEDALS = ["🥇", "🥈", "🥉"];
 const PODIUM_HEIGHTS = ["h-28", "h-20", "h-16"];
 const PODIUM_SIZES  = ["h-16 w-16 text-lg ring-4 ring-amber-400", "h-12 w-12 text-sm ring-2 ring-slate-400", "h-12 w-12 text-sm ring-2 ring-amber-600"];
 
+const TIME_LABELS: Record<TimePeriod, string> = { all: "All Time", month: "This Month", week: "This Week" };
+
 const Leaderboard = () => {
   const navigate = useNavigate();
-  const [entries, setEntries] = useState<Entry[]>([]);
+  const [baseEntries, setBaseEntries] = useState<BaseEntry[]>([]);
+  const [rawBadges, setRawBadges] = useState<RawBadge[]>([]);
+  const [activityMap, setActivityMap] = useState<Record<string, Set<string>>>({});
+  const [allActivities, setAllActivities] = useState<{ id: string; title: string }[]>([]);
   const [currentUserId, setCurrentUserId] = useState("");
   const [loading, setLoading] = useState(true);
+  const [activityFilter, setActivityFilter] = useState("all");
+  const [timeFilter, setTimeFilter] = useState<TimePeriod>("all");
 
   useEffect(() => {
     const load = async () => {
@@ -54,57 +60,68 @@ const Leaderboard = () => {
       if (!user) return;
       setCurrentUserId(user.id);
 
-      // Get student user IDs
       const { data: studentRoles } = await supabase
         .from("user_roles").select("user_id").eq("role", "student").limit(500);
       const studentIds = (studentRoles || []).map(r => r.user_id);
       if (studentIds.length === 0) { setLoading(false); return; }
 
-      // Fetch badges, profiles, allocations in parallel
-      const [profilesRes, badgesRes, allocsRes] = await Promise.all([
+      const [profilesRes, badgesRes, allocsRes, activitiesRes] = await Promise.all([
         supabase.from("profiles").select("id, full_name").in("id", studentIds),
-        supabase.from("user_badges").select("user_id, badge_name").in("user_id", studentIds).limit(2000),
+        supabase.from("user_badges").select("user_id, badge_name, awarded_at").in("user_id", studentIds).limit(2000),
         supabase.from("allocations").select("student_id, activity_id").in("student_id", studentIds).limit(5000),
+        supabase.from("activities").select("id, title").order("title").limit(200),
       ]);
 
       const profileMap = new Map((profilesRes.data || []).map(p => [p.id, p.full_name]));
 
-      // Aggregate badges per user
-      const badgeMap: Record<string, string[]> = {};
-      (badgesRes.data || []).forEach(b => {
-        if (!badgeMap[b.user_id]) badgeMap[b.user_id] = [];
-        badgeMap[b.user_id].push(b.badge_name);
-      });
-
-      // Aggregate unique activities per user
-      const activityMap: Record<string, Set<string>> = {};
+      const aMap: Record<string, Set<string>> = {};
       (allocsRes.data || []).forEach(a => {
-        if (!activityMap[a.student_id]) activityMap[a.student_id] = new Set();
-        activityMap[a.student_id].add(a.activity_id);
+        if (!aMap[a.student_id]) aMap[a.student_id] = new Set();
+        aMap[a.student_id].add(a.activity_id);
       });
 
-      const list: Entry[] = studentIds
+      const entries: BaseEntry[] = studentIds
         .filter(id => profileMap.has(id))
-        .map(id => {
-          const badges = badgeMap[id] || [];
-          const activityCount = activityMap[id]?.size || 0;
-          return {
-            id,
-            name: profileMap.get(id) || "Unknown",
-            badges,
-            activityCount,
-            score: badges.length * 3 + activityCount,
-          };
-        })
-        .filter(e => e.score > 0)
-        .sort((a, b) => b.score - a.score)
-        .slice(0, 50);
+        .map(id => ({ id, name: profileMap.get(id) || "Unknown" }));
 
-      setEntries(list);
+      setBaseEntries(entries);
+      setRawBadges((badgesRes.data || []) as RawBadge[]);
+      setActivityMap(aMap);
+      setAllActivities(activitiesRes.data || []);
       setLoading(false);
     };
     load();
   }, []);
+
+  const entries = useMemo(() => {
+    const now = new Date();
+
+    const filteredBadges = rawBadges.filter(b => {
+      if (timeFilter === "all") return true;
+      const d = new Date(b.awarded_at);
+      if (timeFilter === "month") return d >= new Date(now.getFullYear(), now.getMonth(), 1);
+      const ws = new Date(now); ws.setDate(now.getDate() - now.getDay()); ws.setHours(0, 0, 0, 0);
+      return d >= ws;
+    });
+
+    const badgeMap: Record<string, string[]> = {};
+    filteredBadges.forEach(b => {
+      if (!badgeMap[b.user_id]) badgeMap[b.user_id] = [];
+      badgeMap[b.user_id].push(b.badge_name);
+    });
+
+    return baseEntries
+      .filter(e => activityFilter === "all" || activityMap[e.id]?.has(activityFilter))
+      .map(e => ({
+        ...e,
+        badges: badgeMap[e.id] || [],
+        activityCount: activityMap[e.id]?.size || 0,
+        score: (badgeMap[e.id]?.length || 0) * 3 + (activityMap[e.id]?.size || 0),
+      }))
+      .filter(e => e.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 50);
+  }, [baseEntries, rawBadges, activityMap, activityFilter, timeFilter]);
 
   const top3 = entries.slice(0, 3);
   const rest = entries.slice(3);
@@ -129,20 +146,53 @@ const Leaderboard = () => {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8 max-w-2xl">
+      <main className="container mx-auto px-4 py-6 max-w-2xl">
+        {/* Filters */}
+        <div className="flex flex-wrap gap-3 mb-6 items-center">
+          {/* Activity filter */}
+          <Select value={activityFilter} onValueChange={setActivityFilter}>
+            <SelectTrigger className="h-8 text-xs w-44">
+              <SelectValue placeholder="All Activities" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Activities</SelectItem>
+              {allActivities.map(a => (
+                <SelectItem key={a.id} value={a.id}>{a.title}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {/* Time period filter */}
+          <div className="flex rounded-lg border overflow-hidden h-8">
+            {(["all", "month", "week"] as TimePeriod[]).map(t => (
+              <button
+                key={t}
+                onClick={() => setTimeFilter(t)}
+                className={`px-3 text-xs font-medium transition-colors
+                  ${timeFilter === t ? "bg-primary text-primary-foreground" : "bg-background hover:bg-muted text-muted-foreground"}`}
+              >
+                {TIME_LABELS[t]}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {loading ? (
           <div className="flex justify-center py-20">
             <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary" />
           </div>
         ) : entries.length === 0 ? (
-          <p className="text-center text-muted-foreground py-20">No data yet — earn badges to appear here!</p>
+          <p className="text-center text-muted-foreground py-20">
+            {activityFilter !== "all" || timeFilter !== "all"
+              ? "No results for the selected filters."
+              : "No data yet — earn badges to appear here!"}
+          </p>
         ) : (
           <>
             {/* Podium */}
             {top3.length >= 2 && (
               <div className="flex items-end justify-center gap-4 mb-10 pt-4">
-                {/* Reorder: 2nd | 1st | 3rd */}
-                {[top3[1], top3[0], top3[2]].filter(Boolean).map((entry, podiumIdx) => {
+                {[top3[1], top3[0], top3[2]].filter(Boolean).map((entry) => {
                   const actualRank = entry === top3[0] ? 0 : entry === top3[1] ? 1 : 2;
                   return (
                     <div key={entry.id} className="flex flex-col items-center gap-2">
@@ -185,15 +235,16 @@ const Leaderboard = () => {
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
+                      <div className="flex items-center gap-1.5 flex-wrap">
                         <span className={`text-sm font-semibold ${isMe ? "text-primary" : ""}`}>
                           {entry.name}{isMe && " (You)"}
                         </span>
-                        {entry.badges.slice(0, 4).map(b => {
+                        {entry.badges.slice(0, 5).map(b => {
                           const opt = BADGE_OPTIONS.find(o => o.name === b);
-                          return opt ? (
-                            <span key={b} title={b} className={`text-sm leading-none ${opt.animClass}`}>{opt.emoji}</span>
-                          ) : null;
+                          if (!opt) return null;
+                          return opt.img
+                            ? <img key={b} src={opt.img} title={b} className="h-5 w-5 object-contain" />
+                            : <span key={b} title={b} className={`text-sm leading-none ${opt.animClass}`}>{opt.emoji}</span>;
                         })}
                       </div>
                       <p className="text-xs text-muted-foreground">

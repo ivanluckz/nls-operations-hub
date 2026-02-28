@@ -19,6 +19,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, Hash, Menu, Send, Trash2, ShieldCheck, Megaphone, Award, Crown, MessageSquare, Trophy } from "lucide-react";
 import { UserProfileCard } from "@/components/chat/UserProfileCard";
+import devBadge from "@/assets/dev.png";
 
 const REACT_EMOJIS = ['👍', '❤️', '😂', '🔥', '👀', '✅'];
 
@@ -65,13 +66,14 @@ const AVATAR_COLORS = [
   "bg-teal-500", "bg-blue-500", "bg-violet-500", "bg-pink-500",
 ];
 
-const BADGE_OPTIONS = [
+const BADGE_OPTIONS: { name: string; emoji: string; desc: string; animClass: string; img?: string }[] = [
   { name: "Growing",      emoji: "🌱", desc: "Active and improving",    animClass: "badge-anim-grow"  },
   { name: "Star Student", emoji: "⭐", desc: "Outstanding performance", animClass: "badge-anim-star"  },
   { name: "Leader",       emoji: "👑", desc: "Shows leadership",        animClass: "badge-anim-crown" },
   { name: "On Fire",      emoji: "🔥", desc: "Consistent effort",       animClass: "badge-anim-fire"  },
   { name: "Creative",     emoji: "💡", desc: "Brings fresh ideas",      animClass: "badge-anim-bulb"  },
   { name: "Team Player",  emoji: "🤝", desc: "Great collaboration",     animClass: "badge-anim-team"  },
+  { name: "Dev",          emoji: "",   desc: "Exclusive developer badge", animClass: "", img: devBadge },
 ];
 
 function getLastSeen(): Record<string, string> {
@@ -597,7 +599,8 @@ const StudentMessages = () => {
                                   )}
                                   {senderBadges.map(b => {
                                     const opt = BADGE_OPTIONS.find(o => o.name === b);
-                                    return opt ? <span key={b} title={`${b} — ${opt.desc}`} className={`text-sm leading-none ${opt.animClass}`}>{opt.emoji}</span> : null;
+                                    if (!opt) return null;
+                                  return opt.img ? <img key={b} src={opt.img} title={b} className="h-5 w-5 object-contain inline-block" /> : <span key={b} title={`${b} — ${opt.desc}`} className={`text-sm leading-none ${opt.animClass}`}>{opt.emoji}</span>;
                                   })}
                                   <span className="text-xs text-muted-foreground">{formatTime(msg.created_at)}</span>
                                 </div>
@@ -652,7 +655,8 @@ const StudentMessages = () => {
                                     )}
                                     {senderBadges.map(b => {
                                       const opt = BADGE_OPTIONS.find(o => o.name === b);
-                                      return opt ? <span key={b} title={`${b} — ${opt.desc}`} className={`text-base leading-none ${opt.animClass}`}>{opt.emoji}</span> : null;
+                                      if (!opt) return null;
+                                    return opt.img ? <img key={b} src={opt.img} title={b} className="h-5 w-5 object-contain inline-block" /> : <span key={b} title={`${b} — ${opt.desc}`} className={`text-base leading-none ${opt.animClass}`}>{opt.emoji}</span>;
                                     })}
                                     <span className="text-xs text-muted-foreground">{formatTime(msg.created_at)}</span>
                                   </div>
