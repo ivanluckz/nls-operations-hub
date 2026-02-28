@@ -149,8 +149,8 @@ const StudentDashboard = () => {
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="pt-0 text-center">
-                    <Badge variant="secondary" className="text-xs px-3 py-1">
-                      🚧 Coming Soon
+                    <Badge variant="outline" className="text-xs px-3 py-1 border-amber-500/40 text-amber-600 dark:text-amber-400 bg-amber-500/10">
+                      🧪 In Testing — Ask for access
                     </Badge>
                   </CardContent>
                 </Card>
