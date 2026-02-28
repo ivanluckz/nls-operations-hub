@@ -1,15 +1,26 @@
 import { useNavigate } from "react-router-dom";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Card, CardDescription, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Users, Shield, UserCog, ClipboardCheck, AlertTriangle, UserCheck, Sparkles, BookOpen, GraduationCap, Activity, ArrowRight, FlaskConical } from "lucide-react";
+import { Users, Shield, UserCog, ClipboardCheck, AlertTriangle, UserCheck, Sparkles, BookOpen, GraduationCap, Activity, ArrowRight, FlaskConical, Zap } from "lucide-react";
 import FloatingChatButton from "@/components/student/FloatingChatButton";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/integrations/supabase/client";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const [section, setSection] = useState<"choose" | "cocurricular">("choose");
+  const [hasDev, setHasDev] = useState(false);
 
+  useEffect(() => {
+    const checkDev = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await (supabase as any).from("user_badges").select("id").eq("user_id", user.id).eq("badge_name", "Dev").maybeSingle();
+      setHasDev(!!data);
+    };
+    checkDev();
+  }, []);
   const quickActions = [
     { title: "User Management", description: "Manage users and roles", icon: UserCog, url: "/admin/user-management", color: "bg-secondary/10 text-secondary" },
     { title: "Manage Activities", description: "Add, edit, or remove activities", icon: Shield, url: "/admin/co-curricular/activities", color: "bg-primary/10 text-primary" },
@@ -33,26 +44,47 @@ const AdminDashboard = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-2xl">
-            {/* Academic Card — Locked */}
-            <div className="relative group">
-              <Card className="h-full border-2 border-dashed border-primary/20 bg-gradient-to-br from-primary/5 via-background to-primary/5 opacity-80 cursor-default">
+            {hasDev ? (
+              <Card
+                className="h-full border-2 border-transparent hover:border-primary/40 cursor-pointer hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group bg-gradient-to-br from-primary/5 via-background to-primary/5"
+                onClick={() => navigate("/admin/academic")}
+              >
                 <CardHeader className="pb-4 text-center">
-                  <div className="mx-auto w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
+                  <div className="mx-auto w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                     <GraduationCap className="h-8 w-8 text-primary" />
                   </div>
-                  <CardTitle className="text-xl">Academic</CardTitle>
+                  <CardTitle className="text-xl group-hover:text-primary transition-colors">Academic</CardTitle>
                   <CardDescription className="text-sm">
                     Timetable, subjects, class groups & academic attendance
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="pt-0 text-center">
-                  <Badge variant="outline" className="text-xs px-3 py-1 border-amber-500/40 text-amber-600 dark:text-amber-400 bg-amber-500/10">
-                    <FlaskConical className="w-3 h-3 mr-1" />
-                    In Testing — Request Access from Dev
-                  </Badge>
+                  <span className="inline-flex items-center gap-1 text-sm font-medium text-primary group-hover:gap-2 transition-all">
+                    <Zap className="w-4 h-4" /> DEV Access <ArrowRight className="w-4 h-4" />
+                  </span>
                 </CardContent>
               </Card>
-            </div>
+            ) : (
+              <div className="relative group">
+                <Card className="h-full border-2 border-dashed border-primary/20 bg-gradient-to-br from-primary/5 via-background to-primary/5 opacity-80 cursor-default">
+                  <CardHeader className="pb-4 text-center">
+                    <div className="mx-auto w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
+                      <GraduationCap className="h-8 w-8 text-primary" />
+                    </div>
+                    <CardTitle className="text-xl">Academic</CardTitle>
+                    <CardDescription className="text-sm">
+                      Timetable, subjects, class groups & academic attendance
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-0 text-center">
+                    <Badge variant="outline" className="text-xs px-3 py-1 border-amber-500/40 text-amber-600 dark:text-amber-400 bg-amber-500/10">
+                      <FlaskConical className="w-3 h-3 mr-1" />
+                      In Testing — Request Access from Dev
+                    </Badge>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
 
             {/* Co-curricular Card */}
             <Card
