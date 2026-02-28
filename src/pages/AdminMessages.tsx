@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { RoleAvatar } from "@/components/ui/RoleAvatar";
 import { devNameClass, devMsgClass, isDevUser } from "@/lib/dev-badge";
+import devBadgeImg from "@/assets/dev.png";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
   AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
@@ -326,7 +327,7 @@ const AdminMessages = () => {
                                   onClick={() => canClick && openProfile(msg)}
                                 >
                                   {isDevUser(userBadges[msg.sender_id] || [])
-                                    ? <span className="dev-nameplate">{isOwn ? "You" : msg.sender_name}</span>
+                                    ? <><span className="dev-nameplate">{isOwn ? "You" : msg.sender_name}</span><img src={devBadgeImg} alt="Dev" className="h-4 w-4 object-contain ml-0.5" /></>
                                     : (isOwn ? "You" : msg.sender_name)}
                                 </button>
                                 {msg.is_admin && (

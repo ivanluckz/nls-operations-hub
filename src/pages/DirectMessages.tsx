@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { RoleAvatar } from "@/components/ui/RoleAvatar";
 import { devNameClass, devMsgClass, isDevUser } from "@/lib/dev-badge";
+import devBadgeImg from "@/assets/dev.png";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -101,7 +102,10 @@ const ConvList = ({ conversations, selectedChannelId, onSelect, onBack, onNewDm,
             textSize="text-[10px]"
           />
           <div className="flex-1 min-w-0">
-            <p className="font-medium truncate text-xs">{conv.otherName}</p>
+            <p className="font-medium truncate text-xs flex items-center gap-1">
+              {conv.otherName}
+              {isDevUser(badges[conv.otherId] || []) && <img src={devBadgeImg} alt="Dev" className="h-3.5 w-3.5 object-contain inline-block" />}
+            </p>
             {conv.lastMessage && (
               <p className="text-xs text-muted-foreground truncate">{conv.lastMessage}</p>
             )}
@@ -581,9 +585,12 @@ const DirectMessages = () => {
                   avatarSize="h-8 w-8"
                 />
               </button>
-              <button className="font-semibold text-sm hover:underline cursor-pointer"
+              <button className={`font-semibold text-sm hover:underline cursor-pointer flex items-center gap-1 ${devNameClass(userBadges[selectedConv.otherId] || [])}`}
                 onClick={() => setProfileCard({ senderId: selectedConv.otherId, senderName: selectedConv.otherName, isAdmin: userRoles[selectedConv.otherId] === "admin", isTeacher: userRoles[selectedConv.otherId] === "teacher" || userRoles[selectedConv.otherId] === "moderator" })}>
-                {selectedConv.otherName}
+                {isDevUser(userBadges[selectedConv.otherId] || [])
+                  ? <span className="dev-nameplate">{selectedConv.otherName}</span>
+                  : selectedConv.otherName}
+                {isDevUser(userBadges[selectedConv.otherId] || []) && <img src={devBadgeImg} alt="Dev" className="h-4 w-4 object-contain" />}
               </button>
             </>
           ) : (
@@ -659,7 +666,7 @@ const DirectMessages = () => {
                             <button className={`text-sm font-semibold hover:underline cursor-pointer ${devNameClass(userBadges[msg.sender_id] || [])} ${!devNameClass(userBadges[msg.sender_id] || []) ? (isOwn ? "text-primary" : "") : ""}`}
                               onClick={() => setProfileCard({ senderId: msg.sender_id, senderName: msg.senderName || "?", isAdmin: userRoles[msg.sender_id] === "admin", isTeacher: userRoles[msg.sender_id] === "teacher" || userRoles[msg.sender_id] === "moderator" })}>
                               {isDevUser(userBadges[msg.sender_id] || [])
-                                ? <span className="dev-nameplate">{isOwn ? "You" : msg.senderName}</span>
+                                ? <><span className="dev-nameplate">{isOwn ? "You" : msg.senderName}</span><img src={devBadgeImg} alt="Dev" className="h-4 w-4 object-contain ml-0.5" /></>
                                 : (isOwn ? "You" : msg.senderName)}
                             </button>
                             <span className="text-xs text-muted-foreground">{formatTime(msg.created_at)}</span>

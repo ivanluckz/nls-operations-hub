@@ -211,9 +211,9 @@ export function UserProfileCard({
 
           {/* Name + DM button */}
           <div className="flex items-start justify-between gap-2">
-            <h2 className={`text-lg font-bold leading-tight ${isAdmin ? "text-amber-500" : ""}`}>
+            <h2 className={`text-lg font-bold leading-tight flex items-center gap-1.5 ${isAdmin ? "text-amber-500" : ""}`}>
               {isDev
-                ? <span className="dev-nameplate dev-name-glow">{senderName}</span>
+                ? <><span className="dev-nameplate dev-name-glow">{senderName}</span><img src={devBadge} alt="Dev" className="h-5 w-5 object-contain" /></>
                 : senderName}
             </h2>
             <Button variant="outline" size="sm" className="gap-1.5 text-xs h-7 shrink-0"
