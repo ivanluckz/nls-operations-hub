@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Crown, ShieldCheck, GraduationCap, MessageSquare, Check } from "lucide-react";
+import { Crown, ShieldCheck, GraduationCap, MessageSquare, Check, X } from "lucide-react";
 import devBadge from "@/assets/dev.png";
 
 const BADGE_OPTIONS: { name: string; emoji: string; animClass: string; desc: string; img?: string }[] = [
@@ -58,6 +58,8 @@ interface Props {
   isAdminViewing?: boolean;
   /** Called after admin grants a badge so the parent can refresh badge data */
   onBadgeGranted?: (badgeName: string) => void;
+  /** Called after admin removes a badge so the parent can refresh badge data */
+  onBadgeRemoved?: (badgeName: string) => void;
 }
 
 interface UserActivity {
@@ -66,13 +68,14 @@ interface UserActivity {
 
 export function UserProfileCard({
   open, onClose, senderId, senderName, isAdmin, isTeacher, badges,
-  currentActivityTitle, isAdminViewing, onBadgeGranted,
+  currentActivityTitle, isAdminViewing, onBadgeGranted, onBadgeRemoved,
 }: Props) {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [activities, setActivities] = useState<UserActivity[]>([]);
   const [localBadges, setLocalBadges] = useState<string[]>(badges);
   const [grantingBadge, setGrantingBadge] = useState<string | null>(null);
+  const [removingBadge, setRemovingBadge] = useState<string | null>(null);
 
   // Sync local badge state if the parent passes new data
   useEffect(() => { setLocalBadges(badges); }, [badges]);
@@ -112,6 +115,26 @@ export function UserProfileCard({
       toast({ variant: "destructive", title: "Failed to grant badge" });
     } finally {
       setGrantingBadge(null);
+    }
+  };
+
+  const removeBadge = async (badgeName: string) => {
+    if (!localBadges.includes(badgeName)) return;
+    setRemovingBadge(badgeName);
+    try {
+      const { error } = await (supabase as any)
+        .from("user_badges")
+        .delete()
+        .eq("user_id", senderId)
+        .eq("badge_name", badgeName);
+      if (error) throw error;
+      setLocalBadges(prev => prev.filter(b => b !== badgeName));
+      onBadgeRemoved?.(badgeName);
+      toast({ title: `${badgeName} badge removed`, description: `${senderName} no longer has the ${badgeName} badge.` });
+    } catch {
+      toast({ variant: "destructive", title: "Failed to remove badge" });
+    } finally {
+      setRemovingBadge(null);
     }
   };
 
@@ -225,27 +248,31 @@ export function UserProfileCard({
                 {BADGE_OPTIONS.map(b => {
                   const hasIt = localBadges.includes(b.name);
                   const isGranting = grantingBadge === b.name;
+                  const isRemoving = removingBadge === b.name;
+                  const busy = isGranting || isRemoving;
                   return (
                     <button
                       key={b.name}
-                      onClick={() => grantBadge(b.name)}
-                      disabled={hasIt || isGranting}
-                      title={hasIt ? `${senderName} already has this badge` : `Grant ${b.name}`}
-                      className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors
+                      onClick={() => hasIt ? removeBadge(b.name) : grantBadge(b.name)}
+                      disabled={busy}
+                      title={hasIt ? `Remove ${b.name} from ${senderName}` : `Grant ${b.name} to ${senderName}`}
+                      className={`group flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors
                         ${hasIt
-                          ? "border-primary/40 bg-primary/10 text-primary cursor-default"
+                          ? "border-primary/40 bg-primary/10 text-primary hover:border-destructive/50 hover:bg-destructive/10 hover:text-destructive cursor-pointer"
                           : "border-border bg-muted/50 hover:border-primary/50 hover:bg-primary/5 hover:text-primary cursor-pointer"}`}>
                       {b.img
                         ? <img src={b.img} alt={b.name} className="h-4 w-4 object-contain" />
                         : <span className={b.animClass}>{b.emoji}</span>}
                       {b.name}
-                      {hasIt && <Check className="h-3 w-3 ml-0.5" />}
+                      {hasIt
+                        ? <><Check className="h-3 w-3 ml-0.5 group-hover:hidden" /><X className="h-3 w-3 ml-0.5 hidden group-hover:block" /></>
+                        : null}
                     </button>
                   );
                 })}
               </div>
               <p className="text-[10px] text-muted-foreground mt-2">
-                Highlighted = already granted. Click any badge to award it instantly.
+                Highlighted = already granted. Click to grant or remove.
               </p>
             </div>
           )}

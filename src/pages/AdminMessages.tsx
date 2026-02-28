@@ -438,6 +438,12 @@ const AdminMessages = () => {
               [profileCard.senderId]: [...(prev[profileCard.senderId] || []), badgeName],
             }));
           }}
+          onBadgeRemoved={(badgeName) => {
+            setUserBadges(prev => ({
+              ...prev,
+              [profileCard.senderId]: (prev[profileCard.senderId] || []).filter(b => b !== badgeName),
+            }));
+          }}
         />
       )}
     </AdminLayout>
