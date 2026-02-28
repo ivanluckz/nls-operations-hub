@@ -190,8 +190,17 @@ const DirectMessages = () => {
         const msg = payload.new as DM;
         const conv = selectedConvRef.current;
         if (conv && msg.channel_id === conv.channelId) {
+          // Skip if we already have this message (optimistic or duplicate)
+          setMessages(prev => {
+            if (prev.some(m => m.id === msg.id)) return prev;
+            // Also remove any optimistic message from same sender with same content
+            const filtered = prev.filter(m => !(m.id.startsWith("optimistic-") && m.sender_id === msg.sender_id && m.content === msg.content));
+            const { data: p } = { data: null } as any; // profile fetched below
+            return [...filtered, { ...msg, senderName: "..." }];
+          });
+          // Fetch sender name async and update
           const { data: p } = await supabase.from("profiles").select("full_name").eq("id", msg.sender_id).single();
-          setMessages(prev => [...prev, { ...msg, senderName: p?.full_name || "Unknown" }]);
+          setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, senderName: p?.full_name || "Unknown" } : m));
         }
         await loadConversations(userId);
       })
@@ -256,13 +265,26 @@ const DirectMessages = () => {
 
     if (!channels || channels.length === 0) { setConversations([]); return; }
 
+    const channelIds = channels.map((c: any) => c.id);
     const otherIds = channels.map((c: any) => c.user1_id === uid ? c.user2_id : c.user1_id);
-    const [{ data: profiles }, { data: roleRows }] = await Promise.all([
+
+    // Batch fetch: profiles, roles, and ALL recent messages in one go
+    const [{ data: profiles }, { data: roleRows }, { data: allMsgs }] = await Promise.all([
       supabase.from("profiles").select("id, full_name").in("id", otherIds),
       supabase.from("user_roles").select("user_id, role").in("user_id", otherIds),
+      (supabase as any).from("direct_messages")
+        .select("channel_id, content, created_at")
+        .in("channel_id", channelIds)
+        .order("created_at", { ascending: false })
+        .limit(200),
     ]);
 
-    // Build role map — admin takes precedence over teacher/moderator
+    // Build last-message map per channel
+    const lastMsgMap = new Map<string, { content: string; created_at: string }>();
+    (allMsgs || []).forEach((m: any) => {
+      if (!lastMsgMap.has(m.channel_id)) lastMsgMap.set(m.channel_id, m);
+    });
+
     const roleMap: Record<string, string> = {};
     (roleRows || []).forEach((r: any) => {
       if (!roleMap[r.user_id] || r.role === "admin") roleMap[r.user_id] = r.role;
@@ -270,15 +292,9 @@ const DirectMessages = () => {
     setUserRoles(prev => ({ ...prev, ...roleMap }));
     const profileMap = new Map((profiles || []).map(p => [p.id, p.full_name]));
 
-    const convs: Conversation[] = await Promise.all(channels.map(async (c: any) => {
+    const convs: Conversation[] = channels.map((c: any) => {
       const otherId = c.user1_id === uid ? c.user2_id : c.user1_id;
-      const { data: lastMsgs } = await (supabase as any)
-        .from("direct_messages")
-        .select("content, created_at")
-        .eq("channel_id", c.id)
-        .order("created_at", { ascending: false })
-        .limit(1);
-      const last = lastMsgs?.[0];
+      const last = lastMsgMap.get(c.id);
       return {
         channelId: c.id,
         otherId,
@@ -287,7 +303,7 @@ const DirectMessages = () => {
         lastAt: last?.created_at,
         unread: 0,
       };
-    }));
+    });
 
     convs.sort((a, b) => (b.lastAt || "").localeCompare(a.lastAt || ""));
     setConversations(convs);
@@ -383,12 +399,33 @@ const DirectMessages = () => {
     setSending(true);
     const text = content.trim();
     setContent("");
-    const { error } = await (supabase as any).from("direct_messages").insert({
+
+    // Optimistic: show message instantly
+    const optimisticId = `optimistic-${Date.now()}`;
+    const optimisticMsg: DM = {
+      id: optimisticId,
       channel_id: selectedConv.channelId,
       sender_id: userId,
       content: text,
-    });
-    if (error) toast({ variant: "destructive", title: "Failed to send" });
+      created_at: new Date().toISOString(),
+      senderName: myName,
+    };
+    setMessages(prev => [...prev, optimisticMsg]);
+
+    const { data, error } = await (supabase as any).from("direct_messages").insert({
+      channel_id: selectedConv.channelId,
+      sender_id: userId,
+      content: text,
+    }).select("*").single();
+
+    if (error) {
+      // Remove optimistic message on failure
+      setMessages(prev => prev.filter(m => m.id !== optimisticId));
+      toast({ variant: "destructive", title: "Failed to send" });
+    } else if (data) {
+      // Replace optimistic with real message
+      setMessages(prev => prev.map(m => m.id === optimisticId ? { ...data, senderName: myName } : m));
+    }
     setSending(false);
   };
 
