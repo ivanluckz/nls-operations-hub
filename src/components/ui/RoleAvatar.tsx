@@ -21,6 +21,7 @@ interface RoleAvatarProps {
   name: string;
   isAdmin?: boolean;
   isMod?: boolean;
+  isDev?: boolean;
   /** Tailwind size classes for the avatar, e.g. "h-9 w-9" */
   avatarSize?: string;
   /** Tailwind text size for initials, e.g. "text-xs" */
@@ -30,14 +31,16 @@ interface RoleAvatarProps {
 }
 
 /**
- * Avatar with an optional role-badge overlay.
+ * Avatar with optional role-badge overlay and Dev decoration ring.
  * Admin → amber crown. Teacher/Moderator → primary shield.
+ * Dev → spinning rainbow ring (Discord Nitro-style avatar decoration).
  */
 export function RoleAvatar({
   userId,
   name,
   isAdmin = false,
   isMod = false,
+  isDev = false,
   avatarSize = "h-9 w-9",
   textSize = "text-xs",
   className = "",
@@ -45,13 +48,21 @@ export function RoleAvatar({
   const color = getAvatarColor(userId);
   const showBadge = isAdmin || isMod;
 
+  const avatarEl = (
+    <Avatar className={`${avatarSize} ${color}`}>
+      <AvatarFallback className={`text-white font-bold ${textSize} ${color}`}>
+        {getInitials(name)}
+      </AvatarFallback>
+    </Avatar>
+  );
+
   return (
     <div className={`relative flex-shrink-0 ${className}`}>
-      <Avatar className={`${avatarSize} ${color}`}>
-        <AvatarFallback className={`text-white font-bold ${textSize} ${color}`}>
-          {getInitials(name)}
-        </AvatarFallback>
-      </Avatar>
+      {isDev ? (
+        <div className="dev-ring">
+          <div className="dev-ring-inner">{avatarEl}</div>
+        </div>
+      ) : avatarEl}
       {showBadge && (
         <span
           className={`absolute -bottom-1 -right-1 rounded-full p-1 ring-2 ring-background

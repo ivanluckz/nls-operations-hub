@@ -5,6 +5,7 @@ import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { RoleAvatar } from "@/components/ui/RoleAvatar";
+import { devNameClass, devMsgClass, isDevUser } from "@/lib/dev-badge";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
   AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
@@ -294,7 +295,7 @@ const AdminMessages = () => {
                           </Button>
                         </div>
                       ) : (
-                        <div className={`group flex gap-3 px-2 py-0.5 rounded-md hover:bg-muted/40 ${startGroup ? "mt-4" : "mt-0.5"} ${msg.is_admin ? "border-l-2 border-amber-400/40" : ""}`}>
+                        <div className={`group flex gap-3 px-2 py-0.5 rounded-md hover:bg-muted/40 ${startGroup ? "mt-4" : "mt-0.5"} ${msg.is_admin ? "border-l-2 border-amber-400/40" : ""} ${devMsgClass(userBadges[msg.sender_id] || [])}`}>
                           <div className="w-10 flex-shrink-0 flex justify-center">
                             {startGroup ? (
                               <button
@@ -306,6 +307,7 @@ const AdminMessages = () => {
                                   name={msg.sender_name || "?"}
                                   isAdmin={!!msg.is_admin}
                                   isMod={!msg.is_admin && !!msg.is_teacher}
+                                  isDev={isDevUser(userBadges[msg.sender_id] || [])}
                                   avatarSize="h-9 w-9"
                                   className="mt-0.5"
                                 />
@@ -320,10 +322,12 @@ const AdminMessages = () => {
                             {startGroup && (
                               <div className="flex items-center gap-2 flex-wrap mb-0.5">
                                 <button
-                                  className={`text-sm font-semibold ${msg.is_admin ? "text-amber-500" : msg.is_teacher ? "text-primary" : ""} ${canClick ? "hover:underline cursor-pointer" : "cursor-default"}`}
+                                  className={`text-sm font-semibold ${devNameClass(userBadges[msg.sender_id] || [])} ${!devNameClass(userBadges[msg.sender_id] || []) ? (msg.is_admin ? "text-amber-500" : msg.is_teacher ? "text-primary" : "") : ""} ${canClick ? "hover:underline cursor-pointer" : "cursor-default"}`}
                                   onClick={() => canClick && openProfile(msg)}
                                 >
-                                  {isOwn ? "You" : msg.sender_name}
+                                  {isDevUser(userBadges[msg.sender_id] || [])
+                                    ? <span className="dev-nameplate">{isOwn ? "You" : msg.sender_name}</span>
+                                    : (isOwn ? "You" : msg.sender_name)}
                                 </button>
                                 {msg.is_admin && (
                                   <Badge variant="outline" className="text-xs bg-amber-500/10 text-amber-600 border-amber-500/30 h-4 px-1.5 py-0">

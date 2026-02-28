@@ -35,6 +35,22 @@ const BANNER_CLASSES = [
   "from-pink-700 via-pink-500 to-pink-400",
 ];
 
+// Preset sparkle particles for the Dev profile effect
+const DEV_PARTICLES: { x: string; delay: string; color: string }[] = [
+  { x: "8%",  delay: "0s",    color: "#f472b6" },
+  { x: "18%", delay: "0.4s",  color: "#818cf8" },
+  { x: "28%", delay: "0.8s",  color: "#22d3ee" },
+  { x: "38%", delay: "1.2s",  color: "#4ade80" },
+  { x: "48%", delay: "0.2s",  color: "#facc15" },
+  { x: "58%", delay: "1.6s",  color: "#f472b6" },
+  { x: "68%", delay: "0.6s",  color: "#818cf8" },
+  { x: "78%", delay: "1.0s",  color: "#22d3ee" },
+  { x: "88%", delay: "1.4s",  color: "#4ade80" },
+  { x: "13%", delay: "1.8s",  color: "#facc15" },
+  { x: "53%", delay: "0.9s",  color: "#f472b6" },
+  { x: "73%", delay: "2.2s",  color: "#818cf8" },
+];
+
 function hashId(id: string): number {
   let h = 0;
   for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) & 0xffffffff;
@@ -138,6 +154,7 @@ export function UserProfileCard({
     }
   };
 
+  const isDev = localBadges.includes("Dev");
   const idx = hashId(senderId) % AVATAR_COLORS.length;
   const avatarColor = AVATAR_COLORS[idx];
   const bannerClass = BANNER_CLASSES[idx];
@@ -158,8 +175,16 @@ export function UserProfileCard({
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="p-0 overflow-hidden max-w-sm rounded-xl border-0 shadow-2xl gap-0">
-        {/* Banner */}
-        <div className={`h-24 bg-gradient-to-br ${bannerClass} relative`} />
+        {/* Banner — Dev users get animated rainbow gradient + floating sparkle particles */}
+        <div className={`h-24 relative overflow-hidden ${isDev ? "dev-banner" : `bg-gradient-to-br ${bannerClass}`}`}>
+          {isDev && DEV_PARTICLES.map((p, i) => (
+            <span
+              key={i}
+              className="dev-particle"
+              style={{ left: p.x, animationDelay: p.delay, background: p.color }}
+            />
+          ))}
+        </div>
 
         {/* Avatar overlapping banner */}
         <div className="px-4 pb-4">
@@ -187,7 +212,9 @@ export function UserProfileCard({
           {/* Name + DM button */}
           <div className="flex items-start justify-between gap-2">
             <h2 className={`text-lg font-bold leading-tight ${isAdmin ? "text-amber-500" : ""}`}>
-              {senderName}
+              {isDev
+                ? <span className="dev-nameplate dev-name-glow">{senderName}</span>
+                : senderName}
             </h2>
             <Button variant="outline" size="sm" className="gap-1.5 text-xs h-7 shrink-0"
               onClick={() => { onClose(); navigate(dmPath); }}>

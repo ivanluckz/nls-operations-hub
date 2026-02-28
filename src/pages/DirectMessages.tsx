@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { RoleAvatar } from "@/components/ui/RoleAvatar";
-import { devNameClass, devMsgClass } from "@/lib/dev-badge";
+import { devNameClass, devMsgClass, isDevUser } from "@/lib/dev-badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -64,9 +64,10 @@ interface ConvListProps {
   onBack: () => void;
   onNewDm: () => void;
   roles: Record<string, string>;
+  badges: Record<string, string[]>;
 }
 
-const ConvList = ({ conversations, selectedChannelId, onSelect, onBack, onNewDm, roles }: ConvListProps) => (
+const ConvList = ({ conversations, selectedChannelId, onSelect, onBack, onNewDm, roles, badges }: ConvListProps) => (
   <div className="flex flex-col h-full">
     <div className="px-3 py-4 border-b flex items-center gap-2">
       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onBack}>
@@ -95,6 +96,7 @@ const ConvList = ({ conversations, selectedChannelId, onSelect, onBack, onNewDm,
             name={conv.otherName}
             isAdmin={roles[conv.otherId] === "admin"}
             isMod={roles[conv.otherId] === "teacher" || roles[conv.otherId] === "moderator"}
+            isDev={isDevUser(badges[conv.otherId] || [])}
             avatarSize="h-7 w-7"
             textSize="text-[10px]"
           />
@@ -160,7 +162,7 @@ const DirectMessages = () => {
   const selectedConvRef = useRef<Conversation | null>(null);
 
   const isAdmin = location.pathname.startsWith("/admin");
-  const backPath = isAdmin ? "/admin/messages" : "/student/messages";
+  const backPath = isAdmin ? "/admin" : "/student";
 
   useEffect(() => { selectedConvRef.current = selectedConv; }, [selectedConv]);
   useEffect(() => { myNameRef.current = myName; }, [myName]);
@@ -539,6 +541,7 @@ const DirectMessages = () => {
           onBack={handleBack}
           onNewDm={handleNewDm}
           roles={userRoles}
+          badges={userBadges}
         />
       </aside>
 
@@ -560,6 +563,7 @@ const DirectMessages = () => {
                 onBack={handleBack}
                 onNewDm={handleNewDm}
                 roles={userRoles}
+                badges={userBadges}
               />
             </SheetContent>
           </Sheet>
@@ -573,6 +577,7 @@ const DirectMessages = () => {
                   name={selectedConv.otherName}
                   isAdmin={userRoles[selectedConv.otherId] === "admin"}
                   isMod={userRoles[selectedConv.otherId] === "teacher" || userRoles[selectedConv.otherId] === "moderator"}
+                  isDev={isDevUser(userBadges[selectedConv.otherId] || [])}
                   avatarSize="h-8 w-8"
                 />
               </button>
@@ -635,6 +640,7 @@ const DirectMessages = () => {
                               name={msg.senderName || "?"}
                               isAdmin={userRoles[msg.sender_id] === "admin"}
                               isMod={userRoles[msg.sender_id] === "teacher" || userRoles[msg.sender_id] === "moderator"}
+                              isDev={isDevUser(userBadges[msg.sender_id] || [])}
                               avatarSize="h-8 w-8"
                               className="mt-0.5"
                             />
@@ -652,7 +658,9 @@ const DirectMessages = () => {
                           <div className="flex items-center gap-2 mb-0.5">
                             <button className={`text-sm font-semibold hover:underline cursor-pointer ${devNameClass(userBadges[msg.sender_id] || [])} ${!devNameClass(userBadges[msg.sender_id] || []) ? (isOwn ? "text-primary" : "") : ""}`}
                               onClick={() => setProfileCard({ senderId: msg.sender_id, senderName: msg.senderName || "?", isAdmin: userRoles[msg.sender_id] === "admin", isTeacher: userRoles[msg.sender_id] === "teacher" || userRoles[msg.sender_id] === "moderator" })}>
-                              {isOwn ? "You" : msg.senderName}
+                              {isDevUser(userBadges[msg.sender_id] || [])
+                                ? <span className="dev-nameplate">{isOwn ? "You" : msg.senderName}</span>
+                                : (isOwn ? "You" : msg.senderName)}
                             </button>
                             <span className="text-xs text-muted-foreground">{formatTime(msg.created_at)}</span>
                           </div>

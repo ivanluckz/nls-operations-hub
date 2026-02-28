@@ -647,6 +647,7 @@ return opt.img ? <img key={b} src={opt.img} title={b} className="h-4 w-4 object-
                                       name={msg.sender_name || "?"}
                                       isAdmin={!!msg.is_admin}
                                       isMod={!msg.is_admin && !!msg.is_teacher}
+                                      isDev={isDevUser(senderBadges)}
                                       avatarSize="h-9 w-9"
                                       className="mt-0.5"
                                     />
@@ -664,7 +665,9 @@ return opt.img ? <img key={b} src={opt.img} title={b} className="h-4 w-4 object-
                                       className={`text-sm font-semibold ${devNameClass(senderBadges)} ${!devNameClass(senderBadges) ? (msg.is_admin ? "text-amber-500" : msg.is_teacher ? "text-primary" : "") : ""} hover:underline cursor-pointer`}
                                       onClick={() => setProfileCard({ senderId: msg.sender_id, senderName: msg.sender_name || "", isAdmin: !!msg.is_admin, isTeacher: !!msg.is_teacher })}
                                     >
-                                      {isOwn ? "You" : msg.sender_name}
+                                      {isDevUser(senderBadges)
+                                        ? <span className="dev-nameplate">{isOwn ? "You" : msg.sender_name}</span>
+                                        : (isOwn ? "You" : msg.sender_name)}
                                     </button>
                                     {msg.is_admin && (
                                       <Badge variant="outline" className="text-xs bg-amber-500/10 text-amber-600 border-amber-500/30 h-4 px-1.5 py-0">
