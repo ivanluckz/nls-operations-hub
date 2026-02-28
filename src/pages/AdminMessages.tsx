@@ -327,7 +327,7 @@ const AdminMessages = () => {
                                   onClick={() => canClick && openProfile(msg)}
                                 >
                                   {isDevUser(userBadges[msg.sender_id] || [])
-                                    ? <><span className="dev-nameplate">{isOwn ? "You" : msg.sender_name}</span><img src={devBadgeImg} alt="Dev" className="h-4 w-4 object-contain ml-0.5" /></>
+                                    ? <><span className="dev-nameplate">{isOwn ? "You" : msg.sender_name}</span><img src={devBadgeImg} alt="Dev" className="h-5 w-5 object-contain ml-0.5" /></>
                                     : (isOwn ? "You" : msg.sender_name)}
                                 </button>
                                 {msg.is_admin && (
