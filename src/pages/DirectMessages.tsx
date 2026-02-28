@@ -505,6 +505,7 @@ const DirectMessages = () => {
                 onSelect={selectConversation}
                 onBack={handleBack}
                 onNewDm={handleNewDm}
+                roles={userRoles}
               />
             </SheetContent>
           </Sheet>
