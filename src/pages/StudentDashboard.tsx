@@ -12,7 +12,7 @@ import FloatingChatButton from "@/components/student/FloatingChatButton";
 import MessagesCard from "@/components/student/MessagesCard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { GraduationCap, Activity, ArrowRight } from "lucide-react";
+import { GraduationCap, Activity, ArrowRight, FlaskConical } from "lucide-react";
 
 interface Profile {
   full_name: string;
@@ -150,7 +150,8 @@ const StudentDashboard = () => {
                   </CardHeader>
                   <CardContent className="pt-0 text-center">
                     <Badge variant="outline" className="text-xs px-3 py-1 border-amber-500/40 text-amber-600 dark:text-amber-400 bg-amber-500/10">
-                      🧪 In Testing — Ask for access
+                      <FlaskConical className="w-3 h-3 mr-1" />
+                      In Testing — Request Access from Dev
                     </Badge>
                   </CardContent>
                 </Card>
