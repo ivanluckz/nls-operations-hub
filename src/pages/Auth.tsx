@@ -1,13 +1,24 @@
 import { useState } from "react";
 import { lovable } from "@/integrations/lovable/index";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { GraduationCap } from "lucide-react";
+import { GraduationCap, Mail, Eye, EyeOff } from "lucide-react";
+
+const DEV_EMAIL = "ivan.kundwa@gmail.com";
 
 const Auth = () => {
   const { toast } = useToast();
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [showEmailLogin, setShowEmailLogin] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isEmailLoading, setIsEmailLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
@@ -30,6 +41,43 @@ const Auth = () => {
       });
     } finally {
       setIsGoogleLoading(false);
+    }
+  };
+
+  const handleEmailSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmedEmail = email.trim().toLowerCase();
+
+    if (trimmedEmail !== DEV_EMAIL) {
+      toast({
+        variant: "destructive",
+        title: "Access Denied",
+        description: "Email/password login is only available for the Dev account.",
+      });
+      return;
+    }
+
+    setIsEmailLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: trimmedEmail,
+        password,
+      });
+      if (error) {
+        toast({
+          variant: "destructive",
+          title: "Sign-In Failed",
+          description: error.message,
+        });
+      }
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Sign-In Failed",
+        description: error.message || "Could not sign in",
+      });
+    } finally {
+      setIsEmailLoading(false);
     }
   };
 
@@ -67,6 +115,71 @@ const Auth = () => {
             Use your <strong>@ntare-louisenlund.org</strong> Google account to sign in.
             New accounts are automatically created as students.
           </p>
+
+          <div className="relative">
+            <Separator />
+            <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs text-muted-foreground">
+              or
+            </span>
+          </div>
+
+          {!showEmailLogin ? (
+            <Button
+              variant="ghost"
+              className="w-full text-sm text-muted-foreground hover:text-foreground"
+              onClick={() => setShowEmailLogin(true)}
+            >
+              <Mail className="w-4 h-4 mr-2" />
+              Sign in with Email (Dev only)
+            </Button>
+          ) : (
+            <form onSubmit={handleEmailSignIn} className="space-y-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="email" className="text-xs">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="ivan.kundwa@gmail.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  autoComplete="email"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="password" className="text-xs">Password</Label>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    autoComplete="current-password"
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={isEmailLoading}
+              >
+                {isEmailLoading ? "Signing in..." : "Sign In"}
+              </Button>
+              <p className="text-[10px] text-center text-muted-foreground">
+                Email/password login is restricted to the Dev account only.
+              </p>
+            </form>
+          )}
         </CardContent>
       </Card>
     </div>

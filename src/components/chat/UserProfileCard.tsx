@@ -205,7 +205,7 @@ export function UserProfileCard({
                     className="flex items-center gap-1.5 rounded-full border bg-muted/50 px-2.5 py-1 text-xs font-medium"
                     title={b.desc}>
                     {b.img
-                      ? <img src={b.img} alt={b.name} className="h-4 w-4 object-contain" />
+                      ? <img src={b.img} alt={b.name} className="h-6 w-6 object-contain" />
                       : <span className={b.animClass}>{b.emoji}</span>}
                     {b.name}
                   </div>
@@ -261,7 +261,7 @@ export function UserProfileCard({
                           ? "border-primary/40 bg-primary/10 text-primary hover:border-destructive/50 hover:bg-destructive/10 hover:text-destructive cursor-pointer"
                           : "border-border bg-muted/50 hover:border-primary/50 hover:bg-primary/5 hover:text-primary cursor-pointer"}`}>
                       {b.img
-                        ? <img src={b.img} alt={b.name} className="h-4 w-4 object-contain" />
+                        ? <img src={b.img} alt={b.name} className="h-6 w-6 object-contain" />
                         : <span className={b.animClass}>{b.emoji}</span>}
                       {b.name}
                       {hasIt

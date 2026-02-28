@@ -620,7 +620,7 @@ const StudentMessages = () => {
                                   {senderBadges.map(b => {
                                     const opt = BADGE_OPTIONS.find(o => o.name === b);
                                     if (!opt) return null;
-                                  return opt.img ? <img key={b} src={opt.img} title={b} className="h-5 w-5 object-contain inline-block" /> : <span key={b} title={`${b} — ${opt.desc}`} className={`text-sm leading-none ${opt.animClass}`}>{opt.emoji}</span>;
+                                  return opt.img ? <img key={b} src={opt.img} title={b} className="h-7 w-7 object-contain inline-block" /> : <span key={b} title={`${b} — ${opt.desc}`} className={`text-sm leading-none ${opt.animClass}`}>{opt.emoji}</span>;
                                   })}
                                   <span className="text-xs text-muted-foreground">{formatTime(msg.created_at)}</span>
                                 </div>
@@ -679,7 +679,7 @@ const StudentMessages = () => {
                                     {senderBadges.map(b => {
                                       const opt = BADGE_OPTIONS.find(o => o.name === b);
                                       if (!opt) return null;
-                                    return opt.img ? <img key={b} src={opt.img} title={b} className="h-5 w-5 object-contain inline-block" /> : <span key={b} title={`${b} — ${opt.desc}`} className={`text-base leading-none ${opt.animClass}`}>{opt.emoji}</span>;
+                                    return opt.img ? <img key={b} src={opt.img} title={b} className="h-7 w-7 object-contain inline-block" /> : <span key={b} title={`${b} — ${opt.desc}`} className={`text-base leading-none ${opt.animClass}`}>{opt.emoji}</span>;
                                     })}
                                     <span className="text-xs text-muted-foreground">{formatTime(msg.created_at)}</span>
                                   </div>
