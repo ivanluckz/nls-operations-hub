@@ -131,28 +131,92 @@ const DevAI = () => {
 
   const buildSystemPrompt = async () => {
     const s = supabase as any;
-    const [{ count: studentCount }, { data: activities }, { count: allocCount }] = await Promise.all([
+    const [{ count: studentCount }, { data: activities }, { count: allocCount }, { data: allocations }, { data: badges }] = await Promise.all([
       s.from("user_roles").select("*", { count: "exact", head: true }).eq("role", "student"),
-      s.from("activities").select("id, title").eq("is_active", true).limit(100),
+      s.from("activities").select("id, title, category, capacity, current_enrollment, teacher_in_charge").eq("is_active", true).limit(100),
       s.from("allocations").select("*", { count: "exact", head: true }),
+      s.from("allocations").select("student_id, activity_id, day_of_week, slot_number, status").limit(500),
+      s.from("user_badges").select("user_id, badge_name").limit(200),
     ]);
 
-    const actList = activities?.map((a: any) => `- ${a.title} (${a.id})`).join("\n") || "None";
+    // Fetch student profiles for allocated students
+    const studentIds = [...new Set((allocations || []).map((a: any) => a.student_id))];
+    let studentProfiles: any[] = [];
+    if (studentIds.length > 0) {
+      const { data: profiles } = await s.from("profiles").select("id, full_name, email").in("id", studentIds.slice(0, 300));
+      studentProfiles = profiles || [];
+    }
+
+    const profileMap = new Map(studentProfiles.map((p: any) => [p.id, p]));
+    const activityMap = new Map<string, any>((activities || []).map((a: any) => [a.id, a]));
+
+    const actList = (activities || []).map((a: any) =>
+      `- ${a.title} [${a.id}] (${a.category}) — ${a.current_enrollment}/${a.capacity} enrolled, Teacher: ${a.teacher_in_charge}`
+    ).join("\n") || "None";
+
+    // Build student-allocation summary (compact)
+    const studentAllocMap = new Map<string, string[]>();
+    for (const al of (allocations || [])) {
+      const profile = profileMap.get(al.student_id);
+      const activity = activityMap.get(al.activity_id);
+      if (profile && activity) {
+        if (!studentAllocMap.has(al.student_id)) {
+          studentAllocMap.set(al.student_id, []);
+        }
+        studentAllocMap.get(al.student_id)!.push(`${activity.title} (${al.day_of_week})`);
+      }
+    }
+
+    const studentSummary = Array.from(studentAllocMap.entries()).map(([sid, acts]) => {
+      const p = profileMap.get(sid);
+      return `- ${p?.full_name || 'Unknown'} (${p?.email || sid}): ${acts.join(", ")}`;
+    }).join("\n");
+
+    // Unallocated students (students without any allocation)
+    const { data: allStudentRoles } = await s.from("user_roles").select("user_id").eq("role", "student").limit(500);
+    const allStudentIds = (allStudentRoles || []).map((r: any) => r.user_id);
+    const allocatedStudentIds = new Set(studentAllocMap.keys());
+    const unallocatedIds = allStudentIds.filter((id: string) => !allocatedStudentIds.has(id));
+
+    let unallocatedInfo = "";
+    if (unallocatedIds.length > 0) {
+      const { data: unallocProfiles } = await s.from("profiles").select("id, full_name, email").in("id", unallocatedIds.slice(0, 100));
+      unallocatedInfo = (unallocProfiles || []).map((p: any) => `- ${p.full_name} (${p.email})`).join("\n");
+    }
+
+    const badgeSummary = (badges || []).map((b: any) => `- User ${b.user_id}: ${b.badge_name}`).join("\n") || "No badges";
 
     return `You are DevBot, an internal AI assistant for authorized developers of the NLS Co-curricular & Academic system. You have full read/write access to the database.
 
-## Current System State
-- Total students: ${studentCount || 0}
-- Active activities:\n${actList}
-- Total allocations: ${allocCount || 0}
+You MUST use the ACTUAL DATA provided below to answer queries. Do NOT say you don't have access — the data is right here.
 
+## System Stats
+- Total students: ${studentCount || 0}
+- Total allocations: ${allocCount || 0}
+- Active activities: ${(activities || []).length}
+- Students with allocations: ${studentAllocMap.size}
+- Students without allocations: ${unallocatedIds.length}
+
+## All Active Activities
+${actList}
+
+## Students & Their Activities (${studentAllocMap.size} students)
+${studentSummary || "No allocation data available"}
+
+## Students Without Any Allocation (${unallocatedIds.length})
+${unallocatedInfo || "All students have allocations"}
+
+## Badges
+${badgeSummary}
+
+## Write Operations
 When the user asks you to make a change (move a student, grant a badge, etc.), respond with your explanation AND a JSON action block at the end of your message in this exact format:
 
 <ACTION>{"type":"move_student","student_id":"uuid","activity_id":"uuid"}</ACTION>
 
 Supported types: move_student, remove_allocation, add_allocation, grant_badge, remove_badge, excuse_attendance, ban_user, unban_user.
 
-The frontend will parse and execute this. Always confirm what you are about to do before suggesting irreversible actions. Be concise and technical.`;
+The frontend will parse and execute this. Always confirm what you are about to do before suggesting irreversible actions. Be concise and technical. Use the REAL data above — list actual names, emails, and activities when asked.`;
   };
 
   const sendMessage = async (content: string) => {
