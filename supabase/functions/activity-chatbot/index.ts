@@ -64,6 +64,7 @@ serve(async (req) => {
     const limitedMessages = messages.slice(-MAX_MESSAGES);
 
     for (const msg of limitedMessages) {
+      if (msg.role === 'system') continue;
       if (typeof msg.content !== 'string') {
         return new Response(
           JSON.stringify({ error: "Invalid message format" }),
