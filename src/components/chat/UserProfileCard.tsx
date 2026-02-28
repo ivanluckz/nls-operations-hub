@@ -245,7 +245,7 @@ export function UserProfileCard({
                 Grant Badge
               </p>
               <div className="flex flex-wrap gap-2">
-                {BADGE_OPTIONS.map(b => {
+                {BADGE_OPTIONS.filter(b => b.name !== "Dev").map(b => {
                   const hasIt = localBadges.includes(b.name);
                   const isGranting = grantingBadge === b.name;
                   const isRemoving = removingBadge === b.name;
