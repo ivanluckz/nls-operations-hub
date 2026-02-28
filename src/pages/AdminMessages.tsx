@@ -4,7 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { RoleAvatar } from "@/components/ui/RoleAvatar";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
   AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
@@ -40,19 +40,6 @@ interface ProfileCard {
   isTeacher: boolean;
 }
 
-const AVATAR_COLORS = [
-  "bg-red-500", "bg-orange-500", "bg-amber-500", "bg-emerald-500",
-  "bg-teal-500", "bg-blue-500", "bg-violet-500", "bg-pink-500",
-];
-
-function getAvatarColor(id: string): string {
-  let hash = 0;
-  for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) & 0xffffffff;
-  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
-}
-function getInitials(name: string): string {
-  return name.split(" ").map(n => n[0]).filter(Boolean).slice(0, 2).join("").toUpperCase() || "?";
-}
 function isNewGroup(msg: Message, prev: Message | undefined): boolean {
   if (!prev) return true;
   if (msg.sender_id !== prev.sender_id) return true;
@@ -311,14 +298,17 @@ const AdminMessages = () => {
                           <div className="w-10 flex-shrink-0 flex justify-center">
                             {startGroup ? (
                               <button
-                                className={`rounded-full ${canClick ? "cursor-pointer hover:opacity-80 transition-opacity" : "cursor-default"}`}
+                                className={`${canClick ? "cursor-pointer hover:opacity-80 transition-opacity" : "cursor-default"}`}
                                 onClick={() => canClick && openProfile(msg)}
                               >
-                                <Avatar className="h-9 w-9 mt-0.5">
-                                  <AvatarFallback className={`text-white text-xs font-bold ${getAvatarColor(msg.sender_id)}`}>
-                                    {getInitials(msg.sender_name || "?")}
-                                  </AvatarFallback>
-                                </Avatar>
+                                <RoleAvatar
+                                  userId={msg.sender_id}
+                                  name={msg.sender_name || "?"}
+                                  isAdmin={!!msg.is_admin}
+                                  isMod={!msg.is_admin && !!msg.is_teacher}
+                                  avatarSize="h-9 w-9"
+                                  className="mt-0.5"
+                                />
                               </button>
                             ) : (
                               <span className="text-[10px] text-transparent group-hover:text-muted-foreground/60 pt-1 select-none leading-none mt-1">

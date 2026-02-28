@@ -170,13 +170,13 @@ export function UserProfileCard({
                   {getInitials(senderName)}
                 </AvatarFallback>
               </Avatar>
-              <span className={`absolute -bottom-1 -right-1 rounded-full p-1 ring-2 ring-background
+              <span className={`absolute -bottom-1 -right-1 rounded-full p-1.5 ring-2 ring-background
                 ${isAdmin ? "bg-amber-500" : isTeacher ? "bg-primary" : "bg-muted border"}`}>
                 {isAdmin
-                  ? <Crown className="h-3.5 w-3.5 text-white" />
+                  ? <Crown className="h-5 w-5 text-white" />
                   : isTeacher
-                  ? <ShieldCheck className="h-3.5 w-3.5 text-white" />
-                  : <GraduationCap className="h-3.5 w-3.5 text-muted-foreground" />}
+                  ? <ShieldCheck className="h-5 w-5 text-white" />
+                  : <GraduationCap className="h-5 w-5 text-muted-foreground" />}
               </span>
             </div>
             <Badge variant="outline" className={`text-xs px-2 py-0.5 ${roleColor}`}>

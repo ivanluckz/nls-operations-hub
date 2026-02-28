@@ -5,7 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { RoleAvatar } from "@/components/ui/RoleAvatar";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
@@ -61,10 +61,6 @@ interface ActivityInfo {
 
 const LAST_SEEN_KEY = "nls-chat-last-seen";
 
-const AVATAR_COLORS = [
-  "bg-red-500", "bg-orange-500", "bg-amber-500", "bg-emerald-500",
-  "bg-teal-500", "bg-blue-500", "bg-violet-500", "bg-pink-500",
-];
 
 const BADGE_OPTIONS: { name: string; emoji: string; desc: string; animClass: string; img?: string }[] = [
   { name: "Growing",      emoji: "🌱", desc: "Active and improving",    animClass: "badge-anim-grow"  },
@@ -83,14 +79,6 @@ function markSeen(activityId: string) {
   const seen = getLastSeen();
   seen[activityId] = new Date().toISOString();
   localStorage.setItem(LAST_SEEN_KEY, JSON.stringify(seen));
-}
-function getAvatarColor(id: string): string {
-  let hash = 0;
-  for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) & 0xffffffff;
-  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
-}
-function getInitials(name: string): string {
-  return name.split(" ").map(n => n[0]).filter(Boolean).slice(0, 2).join("").toUpperCase() || "?";
 }
 function isNewGroup(msg: Message, prev: Message | undefined): boolean {
   if (!prev) return true;
@@ -619,14 +607,17 @@ const StudentMessages = () => {
                               <div className="w-10 flex-shrink-0 flex justify-center">
                                 {startGroup ? (
                                   <button
-                                    className={`rounded-full ${!isOwn ? "cursor-pointer hover:opacity-80 transition-opacity" : "cursor-default"}`}
+                                    className={`${!isOwn ? "cursor-pointer hover:opacity-80 transition-opacity" : "cursor-default"}`}
                                     onClick={() => !isOwn && setProfileCard({ senderId: msg.sender_id, senderName: msg.sender_name || "", isAdmin: !!msg.is_admin, isTeacher: !!msg.is_teacher })}
                                   >
-                                    <Avatar className="h-9 w-9 mt-0.5">
-                                      <AvatarFallback className={`text-white text-xs font-bold ${getAvatarColor(msg.sender_id)}`}>
-                                        {getInitials(msg.sender_name || "?")}
-                                      </AvatarFallback>
-                                    </Avatar>
+                                    <RoleAvatar
+                                      userId={msg.sender_id}
+                                      name={msg.sender_name || "?"}
+                                      isAdmin={!!msg.is_admin}
+                                      isMod={!msg.is_admin && !!msg.is_teacher}
+                                      avatarSize="h-9 w-9"
+                                      className="mt-0.5"
+                                    />
                                   </button>
                                 ) : (
                                   <span className="text-[10px] text-transparent group-hover:text-muted-foreground/60 pt-1 select-none leading-none mt-1">

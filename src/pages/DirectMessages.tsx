@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { RoleAvatar } from "@/components/ui/RoleAvatar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -12,19 +12,6 @@ import { ArrowLeft, Send, MessageSquare, Menu, Trash2, Plus, Search, Pencil, Che
 
 const REACT_EMOJIS = ['👍', '❤️', '😂', '🔥', '👀', '✅'];
 
-const AVATAR_COLORS = [
-  "bg-red-500", "bg-orange-500", "bg-amber-500", "bg-emerald-500",
-  "bg-teal-500", "bg-blue-500", "bg-violet-500", "bg-pink-500",
-];
-function hashId(id: string) {
-  let h = 0;
-  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) & 0xffffffff;
-  return Math.abs(h);
-}
-function getAvatarColor(id: string) { return AVATAR_COLORS[hashId(id) % AVATAR_COLORS.length]; }
-function getInitials(name: string) {
-  return name.split(" ").map(n => n[0]).filter(Boolean).slice(0, 2).join("").toUpperCase() || "?";
-}
 function formatTime(dateStr: string) {
   return new Date(dateStr).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
@@ -74,9 +61,10 @@ interface ConvListProps {
   onSelect: (conv: Conversation) => void;
   onBack: () => void;
   onNewDm: () => void;
+  roles: Record<string, string>;
 }
 
-const ConvList = ({ conversations, selectedChannelId, onSelect, onBack, onNewDm }: ConvListProps) => (
+const ConvList = ({ conversations, selectedChannelId, onSelect, onBack, onNewDm, roles }: ConvListProps) => (
   <div className="flex flex-col h-full">
     <div className="px-3 py-4 border-b flex items-center gap-2">
       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onBack}>
@@ -100,11 +88,14 @@ const ConvList = ({ conversations, selectedChannelId, onSelect, onBack, onNewDm 
             ${selectedChannelId === conv.channelId
               ? "bg-primary/15 text-foreground font-medium"
               : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
-          <Avatar className={`h-7 w-7 shrink-0 ${getAvatarColor(conv.otherId)}`}>
-            <AvatarFallback className={`text-white text-xs font-bold ${getAvatarColor(conv.otherId)}`}>
-              {getInitials(conv.otherName)}
-            </AvatarFallback>
-          </Avatar>
+          <RoleAvatar
+            userId={conv.otherId}
+            name={conv.otherName}
+            isAdmin={roles[conv.otherId] === "admin"}
+            isMod={roles[conv.otherId] === "teacher" || roles[conv.otherId] === "moderator"}
+            avatarSize="h-7 w-7"
+            textSize="text-[10px]"
+          />
           <div className="flex-1 min-w-0">
             <p className="font-medium truncate text-xs">{conv.otherName}</p>
             {conv.lastMessage && (
@@ -140,6 +131,9 @@ const DirectMessages = () => {
   const [userSearch, setUserSearch] = useState("");
   const [userResults, setUserResults] = useState<UserResult[]>([]);
   const [searchingUsers, setSearchingUsers] = useState(false);
+
+  // Role map: userId → "admin" | "teacher" | "moderator" | "student"
+  const [userRoles, setUserRoles] = useState<Record<string, string>>({});
 
   // Reactions
   const [dmReactions, setDmReactions] = useState<Record<string, Reaction[]>>({});
@@ -263,7 +257,17 @@ const DirectMessages = () => {
     if (!channels || channels.length === 0) { setConversations([]); return; }
 
     const otherIds = channels.map((c: any) => c.user1_id === uid ? c.user2_id : c.user1_id);
-    const { data: profiles } = await supabase.from("profiles").select("id, full_name").in("id", otherIds);
+    const [{ data: profiles }, { data: roleRows }] = await Promise.all([
+      supabase.from("profiles").select("id, full_name").in("id", otherIds),
+      supabase.from("user_roles").select("user_id, role").in("user_id", otherIds),
+    ]);
+
+    // Build role map — admin takes precedence over teacher/moderator
+    const roleMap: Record<string, string> = {};
+    (roleRows || []).forEach((r: any) => {
+      if (!roleMap[r.user_id] || r.role === "admin") roleMap[r.user_id] = r.role;
+    });
+    setUserRoles(prev => ({ ...prev, ...roleMap }));
     const profileMap = new Map((profiles || []).map(p => [p.id, p.full_name]));
 
     const convs: Conversation[] = await Promise.all(channels.map(async (c: any) => {
@@ -329,8 +333,18 @@ const DirectMessages = () => {
     if (!data) return;
 
     const senderIds = [...new Set((data as any[]).map((m: any) => m.sender_id))] as string[];
-    const { data: profiles } = await supabase.from("profiles").select("id, full_name").in("id", senderIds);
+    const [{ data: profiles }, { data: roleRows }] = await Promise.all([
+      supabase.from("profiles").select("id, full_name").in("id", senderIds),
+      supabase.from("user_roles").select("user_id, role").in("user_id", senderIds),
+    ]);
     const profileMap = new Map((profiles || []).map(p => [p.id, p.full_name]));
+
+    const roleMap: Record<string, string> = {};
+    (roleRows || []).forEach((r: any) => {
+      if (!roleMap[r.user_id] || r.role === "admin") roleMap[r.user_id] = r.role;
+    });
+    setUserRoles(prev => ({ ...prev, ...roleMap }));
+
     const msgs: DM[] = (data as any[]).map((m: any) => ({ ...m, senderName: profileMap.get(m.sender_id) || "Unknown" }));
     setMessages(msgs);
 
@@ -470,6 +484,7 @@ const DirectMessages = () => {
           onSelect={selectConversation}
           onBack={handleBack}
           onNewDm={handleNewDm}
+          roles={userRoles}
         />
       </aside>
 
@@ -496,11 +511,13 @@ const DirectMessages = () => {
 
           {selectedConv ? (
             <>
-              <Avatar className={`h-8 w-8 ${getAvatarColor(selectedConv.otherId)}`}>
-                <AvatarFallback className={`text-white text-xs font-bold ${getAvatarColor(selectedConv.otherId)}`}>
-                  {getInitials(selectedConv.otherName)}
-                </AvatarFallback>
-              </Avatar>
+              <RoleAvatar
+                userId={selectedConv.otherId}
+                name={selectedConv.otherName}
+                isAdmin={userRoles[selectedConv.otherId] === "admin"}
+                isMod={userRoles[selectedConv.otherId] === "teacher" || userRoles[selectedConv.otherId] === "moderator"}
+                avatarSize="h-8 w-8"
+              />
               <span className="font-semibold text-sm">{selectedConv.otherName}</span>
             </>
           ) : (
@@ -550,11 +567,14 @@ const DirectMessages = () => {
                       {/* Avatar / timestamp column */}
                       <div className="w-9 flex-shrink-0 flex justify-center">
                         {startGroup ? (
-                          <Avatar className={`h-8 w-8 mt-0.5 ${getAvatarColor(msg.sender_id)}`}>
-                            <AvatarFallback className={`text-white text-xs font-bold ${getAvatarColor(msg.sender_id)}`}>
-                              {getInitials(msg.senderName || "?")}
-                            </AvatarFallback>
-                          </Avatar>
+                          <RoleAvatar
+                            userId={msg.sender_id}
+                            name={msg.senderName || "?"}
+                            isAdmin={userRoles[msg.sender_id] === "admin"}
+                            isMod={userRoles[msg.sender_id] === "teacher" || userRoles[msg.sender_id] === "moderator"}
+                            avatarSize="h-8 w-8"
+                            className="mt-0.5"
+                          />
                         ) : (
                           <span className="text-[10px] text-transparent group-hover:text-muted-foreground/60 pt-1 select-none leading-none mt-1">
                             {formatTime(msg.created_at)}
@@ -722,11 +742,13 @@ const DirectMessages = () => {
                   <button key={u.id}
                     className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-accent transition-colors text-left"
                     onClick={() => startDM(u)}>
-                    <Avatar className={`h-8 w-8 shrink-0 ${getAvatarColor(u.id)}`}>
-                      <AvatarFallback className={`text-white text-xs font-bold ${getAvatarColor(u.id)}`}>
-                        {getInitials(u.full_name)}
-                      </AvatarFallback>
-                    </Avatar>
+                    <RoleAvatar
+                      userId={u.id}
+                      name={u.full_name}
+                      isAdmin={userRoles[u.id] === "admin"}
+                      isMod={userRoles[u.id] === "teacher" || userRoles[u.id] === "moderator"}
+                      avatarSize="h-8 w-8"
+                    />
                     <div className="min-w-0">
                       <p className="font-medium text-sm truncate">{u.full_name}</p>
                       <p className="text-xs text-muted-foreground truncate">{u.email}</p>
