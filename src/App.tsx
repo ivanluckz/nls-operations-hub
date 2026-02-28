@@ -36,6 +36,12 @@ import StudentMessages from "./pages/StudentMessages";
 import ThemeManagement from "./pages/ThemeManagement";
 import Leaderboard from "./pages/Leaderboard";
 import DirectMessages from "./pages/DirectMessages";
+import AcademicSubjects from "./pages/AcademicSubjects";
+import AcademicClasses from "./pages/AcademicClasses";
+import AcademicTimetable from "./pages/AcademicTimetable";
+import AcademicAttendanceReports from "./pages/AcademicAttendanceReports";
+import TeacherAcademic from "./pages/TeacherAcademic";
+import StudentAcademic from "./pages/StudentAcademic";
 
 const queryClient = new QueryClient();
 
@@ -89,6 +95,16 @@ const AppContent = () => {
           <Route path="/admin/messages" element={<ProtectedRoute requiredRole="admin"><AdminMessages /></ProtectedRoute>} />
           <Route path="/admin/badge-requests" element={<ProtectedRoute requiredRole="admin"><AdminBadgeRequests /></ProtectedRoute>} />
           <Route path="/admin/dms" element={<ProtectedRoute requiredRole="admin"><DirectMessages /></ProtectedRoute>} />
+          <Route path="/admin/academic/subjects" element={<ProtectedRoute requiredRole="admin"><AcademicSubjects /></ProtectedRoute>} />
+          <Route path="/admin/academic/classes" element={<ProtectedRoute requiredRole="admin"><AcademicClasses /></ProtectedRoute>} />
+          <Route path="/admin/academic/timetable" element={<ProtectedRoute requiredRole="admin"><AcademicTimetable /></ProtectedRoute>} />
+          <Route path="/admin/academic/attendance" element={<ProtectedRoute requiredRole="admin"><AcademicAttendanceReports /></ProtectedRoute>} />
+          <Route path="/moderator/academic/subjects" element={<ProtectedRoute requiredRole="moderator"><AcademicSubjects /></ProtectedRoute>} />
+          <Route path="/moderator/academic/classes" element={<ProtectedRoute requiredRole="moderator"><AcademicClasses /></ProtectedRoute>} />
+          <Route path="/moderator/academic/timetable" element={<ProtectedRoute requiredRole="moderator"><AcademicTimetable /></ProtectedRoute>} />
+          <Route path="/moderator/academic/attendance" element={<ProtectedRoute requiredRole="moderator"><AcademicAttendanceReports /></ProtectedRoute>} />
+          <Route path="/teacher/academic" element={<ProtectedRoute requiredRole="teacher"><TeacherAcademic /></ProtectedRoute>} />
+          <Route path="/student/academic" element={<ProtectedRoute requiredRole="student"><StudentAcademic /></ProtectedRoute>} />
           <Route path="/chatbot" element={<ActivityChatbot />} />
           <Route path="/themes" element={<ThemeManagement />} />
           <Route path="*" element={<NotFound />} />
