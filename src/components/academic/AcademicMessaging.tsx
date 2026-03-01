@@ -35,6 +35,7 @@ interface AcademicMessagingProps {
   userId: string;
   isTeacher?: boolean;
   onGroupViewed?: (groupId: string) => void;
+  unreadCounts?: Record<string, number>;
 }
 
 const AVATAR_COLORS = [
@@ -78,7 +79,7 @@ function formatTime(dateStr: string): string {
   return new Date(dateStr).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
-const AcademicMessaging = ({ classGroups, userId, isTeacher = false, onGroupViewed }: AcademicMessagingProps) => {
+const AcademicMessaging = ({ classGroups, userId, isTeacher = false, onGroupViewed, unreadCounts = {} }: AcademicMessagingProps) => {
   const { toast } = useToast();
   const [selectedGroup, setSelectedGroup] = useState<string>(classGroups[0]?.id || "");
   const [messages, setMessages] = useState<Message[]>([]);
@@ -208,7 +209,16 @@ const AcademicMessaging = ({ classGroups, userId, isTeacher = false, onGroupView
                 </SelectTrigger>
                 <SelectContent>
                   {classGroups.map(g => (
-                    <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
+                    <SelectItem key={g.id} value={g.id}>
+                      <span className="flex items-center gap-2">
+                        {g.name}
+                        {(unreadCounts[g.id] || 0) > 0 && (
+                          <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold leading-none">
+                            {unreadCounts[g.id] > 99 ? "99+" : unreadCounts[g.id]}
+                          </span>
+                        )}
+                      </span>
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
