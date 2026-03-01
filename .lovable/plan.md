@@ -1,64 +1,68 @@
 
 
-# Academic System Customization Plan
+# Bringing Academic to Co-curricular Parity
 
-This is a big scope covering all four areas. I'll break it into focused, impactful improvements for each.
+After comparing both systems, here are the key features co-curricular has that academic is missing:
 
----
+## Current Gaps
 
-## 1. Timetable Builder UI Improvements (Admin)
+| Feature | Co-curricular | Academic |
+|---------|:---:|:---:|
+| Dashboard with live stats | Yes | Bare cards only |
+| AI Weekly Summary | Yes | No |
+| Pre-excuse students | Yes | No |
+| PDF report export | Yes | No |
+| Class messaging/chat | Yes | No |
+| Attendance leaderboard | Yes | No |
+| Calendar sync | Yes | No |
+| QR attendance | Yes | No |
 
-**Current state**: Basic HTML table with click-to-edit dialog. Functional but plain.
+## Proposed Additions (Priority Order)
 
-**Changes**:
-- Add a **"Copy slot"** feature: right-click or hold a slot to copy it, then click an empty cell to paste (same subject/teacher/room)
-- Add a **"Clear all"** button with confirmation to reset a class's entire timetable
-- Add **conflict warnings** inline — highlight cells red if a teacher is double-booked across classes
-- Add **slot count summary** below the grid showing how many periods each subject has per week
-- Improve cell rendering with better color fills (full background with opacity instead of just left border)
+### 1. Academic Dashboard with Live Stats
+Replace the bare 4-card grid with real statistics: total students across classes, overall attendance rate this week, classes with lowest attendance, upcoming periods today. Same card-based stat layout as the co-curricular dashboard.
 
-## 2. Student Timetable View
+### 2. Academic Pre-Excuse Students
+New page at `/admin/academic/pre-excuse` — same flow as co-curricular: pick student, pick class/subject, pick date, add reason. Creates an "excused" record in `academic_attendance` for future sessions. Add sidebar link.
 
-**Current state**: Full timetable grid + upcoming classes + subjects + attendance tabs. Already quite good.
+### 3. Academic AI Weekly Summary
+New page at `/admin/academic/weekly-summary` — calls an edge function that queries `academic_attendance` + `academic_sessions` for the past week, feeds it to AI, returns a summary with repeat absentees, problematic subjects, and trends. Mirrors the co-curricular weekly summary.
 
-**Changes**:
-- Add a **"Today" view** as the default tab — shows only today's schedule as a vertical timeline with current period highlighted
-- Add a **countdown timer** to next class ("Math starts in 23 min")
-- Show **attendance percentage badge** per subject in the Subjects tab (color-coded: green >90%, amber >75%, red <75%)
-- Add **"No class right now"** or **"In: Period 3 — Math"** live status in the header stats bar
+### 4. Academic PDF Reports
+Add a "Download PDF" button to the existing Academic Attendance Reports page. Reuse the pattern from `generate-pdf-report` edge function but query academic tables instead.
 
-## 3. Attendance Marking Flow (Teacher)
+### 5. Class Group Messaging
+Add a chat tab to the Student Academic page and Teacher Academic page — per-class-group chat similar to activity messaging. Requires a new `academic_messages` table with RLS policies.
 
-**Current state**: Select today's class from dropdown → mark each student individually. Basic but works.
+### 6. Academic Calendar Sync
+Allow students to sync their academic timetable to Google Calendar — similar to the co-curricular calendar sync card. Reuses the existing Google Calendar token infrastructure.
 
-**Changes**:
-- Add **"Mark All Present"** and **"Mark All Absent"** bulk buttons at the top of the student list
-- Add **quick-tap toggle**: single tap cycles through present → absent → late → excused instead of showing 4 buttons per row (saves space on mobile)
-- Add **attendance summary bar** showing counts (12 present, 2 absent, 1 late) that updates live as you mark
-- Add **past date picker** so teachers can mark attendance for previous days, not just today
-- Show a **"Session already finalized"** warning more prominently with option to reopen (admin only)
+### 7. Academic Attendance Leaderboard
+Student-facing leaderboard ranked by academic attendance percentage. Filters by class group or overall. Same podium UI as co-curricular leaderboard.
 
-## 4. Subjects & Classes Management (Admin)
+## Database Changes
+- New table: `academic_messages` (class_group_id, sender_id, content, created_at) with RLS
+- New table: `academic_excuses` (student_id, slot_id, excuse_date, reason, created_by) with RLS
+- New edge function: `generate-academic-weekly-summary`
+- New edge function: `generate-academic-pdf-report`
 
-**Current state**: Simple CRUD table for subjects, card-based class list with member badges.
-
-**Changes**:
-- **Subjects page**: Add a usage column showing how many timetable slots use each subject. Add a search/filter bar. Add bulk color presets (material design palette).
-- **Classes page**: Show member count on each class card. Add **"Bulk add by year level"** — auto-add all students from profiles matching a year pattern. Add CSV export of class roster.
-
----
-
-## Technical Approach
-
-- All changes are frontend-only (existing DB schema supports everything)
-- No new tables or migrations needed
-- Edit existing page files directly rather than creating new components (keep it contained)
-- Use existing UI components (Badge, Button, Select, etc.)
+## New Routes & Sidebar Links
+- `/admin/academic/pre-excuse` — Pre-excuse students
+- `/admin/academic/weekly-summary` — AI Weekly Summary
+- Add these to `academicItems` in `AdminSidebar.tsx`
 
 ## Implementation Order
+1. Dashboard stats (no DB changes, quick win)
+2. Pre-excuse students (new table + page)
+3. AI Weekly Summary (new edge function + page)
+4. PDF export (extend existing page)
+5. Class messaging (new table + UI on student/teacher pages)
+6. Calendar sync (reuse existing infra)
+7. Leaderboard (frontend only, queries existing data)
 
-1. Timetable Builder improvements
-2. Teacher attendance flow
-3. Student timetable "Today" view
-4. Subjects & classes management polish
+## Technical Notes
+- All new tables get RLS policies matching existing patterns (admin/moderator full access, students see own data)
+- Edge functions reuse existing `LOVABLE_API_KEY` for AI calls
+- Edit existing files where possible; new pages only for genuinely new features
+- Sidebar updates in `AdminSidebar.tsx` to add new academic links
 
