@@ -39,6 +39,10 @@ const AcademicTimetable = () => {
   // Clipboard for copy/paste
   const [clipboard, setClipboard] = useState<{ subject_id: string; teacher_id: string | null; room: string | null; is_elective: boolean } | null>(null);
 
+  // Drag-and-drop state
+  const [dragSlot, setDragSlot] = useState<Slot | null>(null);
+  const [dragOverCell, setDragOverCell] = useState<string | null>(null);
+
   useEffect(() => {
     const fetch = async () => {
       const [p, s, c, t, all] = await Promise.all([
@@ -120,6 +124,58 @@ const AcademicTimetable = () => {
   const handleCopy = (slot: Slot) => {
     setClipboard({ subject_id: slot.subject_id, teacher_id: slot.teacher_id, room: slot.room, is_elective: slot.is_elective });
     toast({ title: "Slot copied", description: "Click an empty cell to paste" });
+  };
+
+  const handleDragStart = (e: React.DragEvent, slot: Slot) => {
+    setDragSlot(slot);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", slot.id);
+  };
+
+  const handleDragOver = (e: React.DragEvent, day: number, periodNum: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    setDragOverCell(`${day}-${periodNum}`);
+  };
+
+  const handleDragLeave = () => {
+    setDragOverCell(null);
+  };
+
+  const handleDrop = async (e: React.DragEvent, day: number, periodNum: number) => {
+    e.preventDefault();
+    setDragOverCell(null);
+    if (!dragSlot) return;
+
+    // Don't drop on itself
+    if (dragSlot.day_of_week === day && dragSlot.period_number === periodNum) {
+      setDragSlot(null);
+      return;
+    }
+
+    // Check if target cell already has a slot
+    const existing = getSlot(day, periodNum);
+    try {
+      if (existing) {
+        // Swap: update both slots
+        const [r1, r2] = await Promise.all([
+          (supabase as any).from("timetable_slots").update({ day_of_week: day, period_number: periodNum }).eq("id", dragSlot.id),
+          (supabase as any).from("timetable_slots").update({ day_of_week: dragSlot.day_of_week, period_number: dragSlot.period_number }).eq("id", existing.id),
+        ]);
+        if (r1.error) throw r1.error;
+        if (r2.error) throw r2.error;
+        toast({ title: "Slots swapped" });
+      } else {
+        // Move to empty cell
+        const { error } = await (supabase as any).from("timetable_slots").update({ day_of_week: day, period_number: periodNum }).eq("id", dragSlot.id);
+        if (error) throw error;
+        toast({ title: "Slot moved" });
+      }
+      await refreshSlots();
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Error moving slot", description: error.message });
+    }
+    setDragSlot(null);
   };
 
   const refreshSlots = async () => {
@@ -243,13 +299,20 @@ const AcademicTimetable = () => {
                             const sub = slot ? getSubject(slot.subject_id) : null;
                             const teacher = slot ? getTeacher(slot.teacher_id) : null;
                             const hasConflict = slot && conflicts.has(slot.id);
+                            const isDragOver = dragOverCell === `${day}-${period.sort_order}`;
                             return (
                               <td key={day}
-                                className={`border p-1 cursor-pointer hover:bg-muted/30 transition-colors h-16 relative ${hasConflict ? "ring-2 ring-inset ring-destructive/60" : ""}`}
-                                onClick={() => openCell(day, period.sort_order)}>
+                                className={`border p-1 cursor-pointer transition-colors h-16 relative ${hasConflict ? "ring-2 ring-inset ring-destructive/60" : ""} ${isDragOver ? "bg-primary/10 ring-2 ring-inset ring-primary/40" : "hover:bg-muted/30"}`}
+                                onClick={() => openCell(day, period.sort_order)}
+                                onDragOver={e => handleDragOver(e, day, period.sort_order)}
+                                onDragLeave={handleDragLeave}
+                                onDrop={e => handleDrop(e, day, period.sort_order)}>
                                 {sub ? (
-                                  <div className="rounded-md p-1.5 h-full flex flex-col justify-center text-center relative group"
-                                    style={{ backgroundColor: sub.color + "30", color: isLightColor(sub.color) ? '#1a1a1a' : undefined }}>
+                                  <div
+                                    className="rounded-md p-1.5 h-full flex flex-col justify-center text-center relative group cursor-grab active:cursor-grabbing"
+                                    style={{ backgroundColor: sub.color + "30", color: isLightColor(sub.color) ? '#1a1a1a' : undefined }}
+                                    draggable
+                                    onDragStart={e => handleDragStart(e, slot!)}>
                                     <span className="text-xs font-semibold truncate">{sub.code || sub.name.slice(0, 8)}</span>
                                     {teacher && <span className="text-[10px] text-muted-foreground truncate">{teacher.full_name.split(" ")[0]}</span>}
                                     {slot?.room && <span className="text-[10px] text-muted-foreground">{slot.room}</span>}
@@ -267,7 +330,7 @@ const AcademicTimetable = () => {
                                   </div>
                                 ) : (
                                   <div className="h-full flex items-center justify-center">
-                                    <span className="text-xs text-muted-foreground/50">{clipboard ? "📋" : "+"}</span>
+                                    <span className="text-xs text-muted-foreground/50">{isDragOver ? "⬇" : clipboard ? "📋" : "+"}</span>
                                   </div>
                                 )}
                               </td>
