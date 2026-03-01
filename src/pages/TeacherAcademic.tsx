@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,8 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Save, CheckCircle, GraduationCap, Calendar, ClipboardList } from "lucide-react";
+import { ArrowLeft, Save, CheckCircle, GraduationCap, Calendar as CalendarIcon, ClipboardList, CheckCheck, XCircle, AlertTriangle } from "lucide-react";
 import { isLightColor, DAY_LABELS } from "@/lib/academic-utils";
 import { format } from "date-fns";
 import FloatingChatButton from "@/components/student/FloatingChatButton";
@@ -32,13 +34,13 @@ const TeacherAcademic = () => {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [sessionStatus, setSessionStatus] = useState("open");
   const [saving, setSaving] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
   useEffect(() => {
     const load = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Check Dev badge — redirect non-dev users
       const { data: devBadge } = await (supabase as any).from("user_badges").select("id").eq("user_id", user.id).eq("badge_name", "Dev").maybeSingle();
       if (!devBadge) { navigate("/teacher"); return; }
 
@@ -60,19 +62,20 @@ const TeacherAcademic = () => {
   const getSub = (id: string) => subjects.find(s => s.id === id);
   const getCG = (id: string | null) => id ? classGroups.find(c => c.id === id) : null;
 
-  const todayDow = new Date().getDay();
-  const todayNum = todayDow === 0 || todayDow > 5 ? null : todayDow;
-  const todaySlots = todayNum ? slots.filter(s => s.day_of_week === todayNum) : [];
-  const today = format(new Date(), "yyyy-MM-dd");
+  const selectedDow = selectedDate.getDay();
+  const selectedNum = selectedDow === 0 || selectedDow > 5 ? null : selectedDow;
+  const daySlots = selectedNum ? slots.filter(s => s.day_of_week === selectedNum) : [];
+  const dateStr = format(selectedDate, "yyyy-MM-dd");
+  const isToday = format(new Date(), "yyyy-MM-dd") === dateStr;
 
   const loadAttendance = async (slotId: string) => {
     setSelectedSlot(slotId);
     const slot = slots.find(s => s.id === slotId);
     if (!slot) return;
 
-    let { data: session } = await (supabase as any).from("academic_sessions").select("*").eq("slot_id", slotId).eq("session_date", today).maybeSingle();
+    let { data: session } = await (supabase as any).from("academic_sessions").select("*").eq("slot_id", slotId).eq("session_date", dateStr).maybeSingle();
     if (!session) {
-      const { data: newSession, error } = await (supabase as any).from("academic_sessions").insert({ slot_id: slotId, session_date: today, status: "open" }).select().single();
+      const { data: newSession, error } = await (supabase as any).from("academic_sessions").insert({ slot_id: slotId, session_date: dateStr, status: "open" }).select().single();
       if (error) { toast({ variant: "destructive", title: "Error", description: error.message }); return; }
       session = newSession;
     }
@@ -101,8 +104,27 @@ const TeacherAcademic = () => {
     );
   };
 
-  const setStatus = (studentId: string, status: string) => {
-    setStudents(prev => prev.map(s => s.id === studentId ? { ...s, status } : s));
+  // Reset slot selection when date changes
+  useEffect(() => {
+    setSelectedSlot("");
+    setStudents([]);
+    setSessionId(null);
+  }, [selectedDate]);
+
+  const STATUS_CYCLE = ["present", "absent", "late", "excused"] as const;
+
+  const cycleStatus = (studentId: string) => {
+    if (sessionStatus === "finalized") return;
+    setStudents(prev => prev.map(s => {
+      if (s.id !== studentId) return s;
+      const idx = STATUS_CYCLE.indexOf(s.status as any);
+      return { ...s, status: STATUS_CYCLE[(idx + 1) % STATUS_CYCLE.length] };
+    }));
+  };
+
+  const markAll = (status: "present" | "absent") => {
+    if (sessionStatus === "finalized") return;
+    setStudents(prev => prev.map(s => ({ ...s, status })));
   };
 
   const handleSave = async (finalize = false) => {
@@ -123,17 +145,31 @@ const TeacherAcademic = () => {
     setSaving(false);
   };
 
-  const STATUS_OPTIONS = ["present", "absent", "late", "excused"] as const;
+  const handleReopen = async () => {
+    if (!sessionId) return;
+    await (supabase as any).from("academic_sessions").update({ status: "open" }).eq("id", sessionId);
+    setSessionStatus("open");
+    toast({ title: "Session reopened" });
+  };
+
+  // Summary counts
+  const summary = useMemo(() => {
+    const counts = { present: 0, absent: 0, late: 0, excused: 0 };
+    for (const s of students) {
+      if (s.status in counts) counts[s.status as keyof typeof counts]++;
+    }
+    return counts;
+  }, [students]);
+
   const statusStyles: Record<string, string> = {
-    present: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border-green-200 dark:border-green-800",
-    absent: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 border-red-200 dark:border-red-800",
-    late: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200 dark:border-amber-800",
-    excused: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200 dark:border-blue-800",
+    present: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border-green-300 dark:border-green-800",
+    absent: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 border-red-300 dark:border-red-800",
+    late: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border-amber-300 dark:border-amber-800",
+    excused: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 border-blue-300 dark:border-blue-800",
   };
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <header className="relative overflow-hidden border-b bg-gradient-to-r from-primary/8 via-background to-accent/8">
         <div className="absolute top-0 right-0 w-72 h-72 bg-primary/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
         <div className="container relative mx-auto px-4 py-5">
@@ -149,16 +185,14 @@ const TeacherAcademic = () => {
               <p className="text-xs text-muted-foreground">Timetable & attendance management</p>
             </div>
           </div>
-
-          {/* Quick stats */}
           <div className="flex gap-4 mt-4 flex-wrap">
             <div className="flex items-center gap-2 bg-card/80 backdrop-blur rounded-xl px-4 py-2 border shadow-sm">
-              <Calendar className="w-4 h-4 text-primary" />
+              <CalendarIcon className="w-4 h-4 text-primary" />
               <span className="text-sm font-medium">{slots.length} classes/week</span>
             </div>
             <div className="flex items-center gap-2 bg-card/80 backdrop-blur rounded-xl px-4 py-2 border shadow-sm">
               <ClipboardList className="w-4 h-4 text-primary" />
-              <span className="text-sm font-medium">{todaySlots.length} today</span>
+              <span className="text-sm font-medium">{daySlots.length} {isToday ? "today" : format(selectedDate, "EEE")}</span>
             </div>
           </div>
         </div>
@@ -168,7 +202,7 @@ const TeacherAcademic = () => {
         <Tabs defaultValue="timetable" className="space-y-6">
           <TabsList className="grid w-full grid-cols-2 max-w-sm mx-auto h-11 bg-muted/60 p-1 rounded-xl">
             <TabsTrigger value="timetable" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm">
-              <Calendar className="w-4 h-4 mr-2" />My Timetable
+              <CalendarIcon className="w-4 h-4 mr-2" />My Timetable
             </TabsTrigger>
             <TabsTrigger value="attendance" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm">
               <ClipboardList className="w-4 h-4 mr-2" />Take Attendance
@@ -230,26 +264,49 @@ const TeacherAcademic = () => {
           </TabsContent>
 
           <TabsContent value="attendance" className="space-y-4">
-            {!todayNum ? (
+            {/* Date picker */}
+            <div className="flex items-center gap-3 flex-wrap">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <CalendarIcon className="w-4 h-4" />
+                    {isToday ? "Today" : format(selectedDate, "EEE, MMM d")}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={d => d && setSelectedDate(d)}
+                    disabled={d => d > new Date() || d.getDay() === 0 || d.getDay() === 6}
+                  />
+                </PopoverContent>
+              </Popover>
+              {!isToday && (
+                <Button variant="ghost" size="sm" onClick={() => setSelectedDate(new Date())}>Back to today</Button>
+              )}
+            </div>
+
+            {!selectedNum ? (
               <Card className="border-dashed">
                 <CardContent className="py-12 text-center">
-                  <Calendar className="w-12 h-12 mx-auto text-muted-foreground/40 mb-3" />
+                  <CalendarIcon className="w-12 h-12 mx-auto text-muted-foreground/40 mb-3" />
                   <p className="text-muted-foreground font-medium">No classes on weekends</p>
                 </CardContent>
               </Card>
-            ) : todaySlots.length === 0 ? (
+            ) : daySlots.length === 0 ? (
               <Card className="border-dashed">
                 <CardContent className="py-12 text-center">
                   <ClipboardList className="w-12 h-12 mx-auto text-muted-foreground/40 mb-3" />
-                  <p className="text-muted-foreground font-medium">You have no classes today</p>
+                  <p className="text-muted-foreground font-medium">No classes on {format(selectedDate, "EEEE")}</p>
                 </CardContent>
               </Card>
             ) : (
               <>
                 <Select value={selectedSlot} onValueChange={loadAttendance}>
-                  <SelectTrigger className="w-full max-w-md"><SelectValue placeholder="Select today's class" /></SelectTrigger>
+                  <SelectTrigger className="w-full max-w-md"><SelectValue placeholder="Select class" /></SelectTrigger>
                   <SelectContent>
-                    {todaySlots.map(sl => {
+                    {daySlots.map(sl => {
                       const sub = getSub(sl.subject_id);
                       const cg = getCG(sl.class_group_id);
                       const per = periods.find(p => p.sort_order === sl.period_number);
@@ -260,31 +317,54 @@ const TeacherAcademic = () => {
 
                 {selectedSlot && students.length > 0 && (
                   <Card className="overflow-hidden">
-                    <CardHeader className="bg-muted/30">
-                      <CardTitle className="text-base flex items-center justify-between">
-                        <span>Mark Attendance ({students.length} students)</span>
-                        {sessionStatus === "finalized" && (
-                          <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border-0">
-                            ✓ Finalized
-                          </Badge>
+                    {/* Finalized warning */}
+                    {sessionStatus === "finalized" && (
+                      <div className="flex items-center justify-between gap-3 px-4 py-3 bg-amber-50 dark:bg-amber-900/20 border-b border-amber-200 dark:border-amber-800">
+                        <div className="flex items-center gap-2 text-amber-800 dark:text-amber-400">
+                          <AlertTriangle className="w-4 h-4 shrink-0" />
+                          <span className="text-sm font-medium">Session already finalized</span>
+                        </div>
+                        <Button variant="outline" size="sm" onClick={handleReopen} className="text-xs border-amber-300 dark:border-amber-700">
+                          Reopen
+                        </Button>
+                      </div>
+                    )}
+
+                    <CardHeader className="bg-muted/30 pb-3">
+                      <CardTitle className="text-base">Mark Attendance ({students.length} students)</CardTitle>
+                      {/* Summary bar */}
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        <span className="px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 rounded text-xs font-medium">Present: {summary.present}</span>
+                        <span className="px-2 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400 rounded text-xs font-medium">Absent: {summary.absent}</span>
+                        <span className="px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-400 rounded text-xs font-medium">Late: {summary.late}</span>
+                        {summary.excused > 0 && (
+                          <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400 rounded text-xs font-medium">Excused: {summary.excused}</span>
                         )}
-                      </CardTitle>
+                      </div>
                     </CardHeader>
+
+                    {/* Bulk actions */}
+                    {sessionStatus !== "finalized" && (
+                      <div className="flex gap-2 px-4 py-2 border-b bg-muted/10">
+                        <Button variant="outline" size="sm" onClick={() => markAll("present")} className="gap-1.5">
+                          <CheckCheck className="w-3.5 h-3.5" />All Present
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => markAll("absent")} className="gap-1.5">
+                          <XCircle className="w-3.5 h-3.5" />All Absent
+                        </Button>
+                      </div>
+                    )}
+
                     <CardContent className="p-0">
                       <div className="divide-y">
                         {students.map(s => (
-                          <div key={s.id} className="flex items-center justify-between p-3 hover:bg-muted/20 transition-colors">
+                          <div key={s.id}
+                            className={`flex items-center justify-between p-3 transition-colors ${sessionStatus !== "finalized" ? "cursor-pointer hover:bg-muted/20 active:bg-muted/30" : ""}`}
+                            onClick={() => cycleStatus(s.id)}>
                             <span className="text-sm font-medium">{s.name}</span>
-                            <div className="flex gap-1.5">
-                              {STATUS_OPTIONS.map(st => (
-                                <button key={st} onClick={() => setStatus(s.id, st)} disabled={sessionStatus === "finalized"}
-                                  className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-all
-                                    ${s.status === st ? statusStyles[st] : "bg-background text-muted-foreground border-border hover:bg-muted/50"}
-                                    ${sessionStatus === "finalized" ? "opacity-60 cursor-default" : "cursor-pointer"}`}>
-                                  {st.charAt(0).toUpperCase() + st.slice(1)}
-                                </button>
-                              ))}
-                            </div>
+                            <Badge className={`${statusStyles[s.status]} border text-xs font-medium pointer-events-none`}>
+                              {s.status.charAt(0).toUpperCase() + s.status.slice(1)}
+                            </Badge>
                           </div>
                         ))}
                       </div>

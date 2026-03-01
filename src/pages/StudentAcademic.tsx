@@ -5,9 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, BookOpen, Calendar, Clock, BarChart3, GraduationCap } from "lucide-react";
+import { ArrowLeft, BookOpen, Calendar, Clock, BarChart3, GraduationCap, Timer } from "lucide-react";
 import { isLightColor, DAY_LABELS } from "@/lib/academic-utils";
-import { isDevUser } from "@/lib/dev-badge";
 import FloatingChatButton from "@/components/student/FloatingChatButton";
 import { format } from "date-fns";
 
@@ -22,17 +21,23 @@ const StudentAcademic = () => {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [slots, setSlots] = useState<Slot[]>([]);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
-  const [attendance, setAttendance] = useState<{ subject: string; subjectColor: string; total: number; present: number }[]>([]);
+  const [attendance, setAttendance] = useState<{ subject: string; subjectId: string; subjectColor: string; total: number; present: number }[]>([]);
   const [records, setRecords] = useState<any[]>([]);
   const [hasDev, setHasDev] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [now, setNow] = useState(new Date());
+
+  // Tick every 30s for countdown
+  useEffect(() => {
+    const interval = setInterval(() => setNow(new Date()), 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     const load = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Check Dev badge — redirect non-dev users
       const { data: devBadge } = await (supabase as any).from("user_badges").select("id").eq("user_id", user.id).eq("badge_name", "Dev").maybeSingle();
       if (!devBadge) { navigate("/student"); return; }
       setHasDev(true);
@@ -44,7 +49,6 @@ const StudentAcademic = () => {
       setPeriods(p.data || []);
       setSubjects(s.data || []);
 
-      // Get student's class group
       const { data: membership } = await (supabase as any).from("class_group_members").select("class_group_id").eq("student_id", user.id);
       const groupIds = membership?.map((m: any) => m.class_group_id) || [];
 
@@ -87,7 +91,7 @@ const StudentAcademic = () => {
           }
           setAttendance(Object.entries(subjectMap).map(([sid, v]) => {
             const sub = (s.data || []).find((ss: any) => ss.id === sid);
-            return { subject: sub?.name || "?", subjectColor: sub?.color || "#6366f1", ...v };
+            return { subject: sub?.name || "?", subjectId: sid, subjectColor: sub?.color || "#6366f1", ...v };
           }));
         }
       }
@@ -99,14 +103,56 @@ const StudentAcademic = () => {
   const getSub = (id: string) => subjects.find(s => s.id === id);
   const getTeacher = (id: string | null) => id ? teachers.find(t => t.id === id) : null;
 
-  // Upcoming classes: today's remaining + tomorrow's
+  // Today's schedule
+  const todayDow = now.getDay();
+  const todayNum = todayDow === 0 || todayDow > 5 ? null : todayDow;
+  const currentTimeStr = format(now, "HH:mm");
+
+  const todaySchedule = useMemo(() => {
+    if (!todayNum) return [];
+    return slots
+      .filter(s => s.day_of_week === todayNum)
+      .map(slot => {
+        const period = periods.find(p => p.sort_order === slot.period_number);
+        const sub = getSub(slot.subject_id);
+        const teacher = getTeacher(slot.teacher_id);
+        return { slot, period: period!, subject: sub!, teacher };
+      })
+      .filter(x => x.period && x.subject && !x.period.is_break)
+      .sort((a, b) => a.period.sort_order - b.period.sort_order);
+  }, [slots, periods, subjects, teachers, todayNum]);
+
+  // Current period & next class
+  const { currentClass, nextClass, countdown } = useMemo(() => {
+    let current: typeof todaySchedule[0] | null = null;
+    let next: typeof todaySchedule[0] | null = null;
+
+    for (const cls of todaySchedule) {
+      const start = cls.period.start_time?.slice(0, 5);
+      const end = cls.period.end_time?.slice(0, 5);
+      if (start && end) {
+        if (currentTimeStr >= start && currentTimeStr < end) current = cls;
+        if (!next && start > currentTimeStr) next = cls;
+      }
+    }
+
+    let countdownStr = "";
+    if (next?.period.start_time) {
+      const [h, m] = next.period.start_time.split(":").map(Number);
+      const targetMin = h * 60 + m;
+      const nowMin = now.getHours() * 60 + now.getMinutes();
+      const diff = targetMin - nowMin;
+      if (diff > 0 && diff <= 120) {
+        countdownStr = diff >= 60 ? `${Math.floor(diff / 60)}h ${diff % 60}min` : `${diff} min`;
+      }
+    }
+
+    return { currentClass: current, nextClass: next, countdown: countdownStr };
+  }, [todaySchedule, currentTimeStr, now]);
+
+  // Upcoming classes (today remaining + tomorrow)
   const upcomingClasses = useMemo(() => {
-    const now = new Date();
-    const todayDow = now.getDay(); // 0=Sun
-    const currentTime = format(now, "HH:mm");
-
     const results: { slot: Slot; period: Period; subject: Subject; teacher: Teacher | null; isToday: boolean }[] = [];
-
     for (const day of [todayDow, todayDow + 1]) {
       const mappedDay = day === 0 || day > 5 ? null : day;
       if (!mappedDay) continue;
@@ -116,7 +162,7 @@ const StudentAcademic = () => {
         const sub = getSub(slot.subject_id);
         if (!period || !sub || period.is_break) continue;
         const isToday = day === todayDow;
-        if (isToday && period.start_time && period.start_time.slice(0, 5) < currentTime) continue;
+        if (isToday && period.start_time && period.start_time.slice(0, 5) < currentTimeStr) continue;
         results.push({ slot, period, subject: sub, teacher: getTeacher(slot.teacher_id) || null, isToday });
       }
     }
@@ -124,9 +170,8 @@ const StudentAcademic = () => {
       if (a.isToday !== b.isToday) return a.isToday ? -1 : 1;
       return a.period.sort_order - b.period.sort_order;
     }).slice(0, 6);
-  }, [slots, periods, subjects, teachers]);
+  }, [slots, periods, subjects, teachers, todayDow, currentTimeStr]);
 
-  // Unique subjects the student takes
   const mySubjects = useMemo(() => {
     const subjectIds = [...new Set(slots.map(s => s.subject_id))];
     return subjectIds.map(id => getSub(id)).filter(Boolean) as Subject[];
@@ -151,7 +196,6 @@ const StudentAcademic = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <header className="relative overflow-hidden border-b bg-gradient-to-r from-primary/8 via-background to-accent/8">
         <div className="absolute top-0 right-0 w-72 h-72 bg-primary/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
         <div className="container relative mx-auto px-4 py-5">
@@ -175,15 +219,30 @@ const StudentAcademic = () => {
             )}
           </div>
 
-          {/* Quick stats bar */}
-          <div className="flex gap-4 mt-4 flex-wrap">
+          {/* Quick stats bar with live status */}
+          <div className="flex gap-3 mt-4 flex-wrap">
+            {currentClass ? (
+              <div className="flex items-center gap-2 bg-green-50 dark:bg-green-900/20 backdrop-blur rounded-xl px-4 py-2 border border-green-200 dark:border-green-800 shadow-sm">
+                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                <span className="text-sm font-medium text-green-800 dark:text-green-400">
+                  In: {currentClass.period.label} — {currentClass.subject.name}
+                </span>
+              </div>
+            ) : todayNum ? (
+              <div className="flex items-center gap-2 bg-card/80 backdrop-blur rounded-xl px-4 py-2 border shadow-sm">
+                <Clock className="w-4 h-4 text-muted-foreground" />
+                <span className="text-sm font-medium text-muted-foreground">No class right now</span>
+              </div>
+            ) : null}
+            {countdown && nextClass && (
+              <div className="flex items-center gap-2 bg-card/80 backdrop-blur rounded-xl px-4 py-2 border shadow-sm">
+                <Timer className="w-4 h-4 text-primary" />
+                <span className="text-sm font-medium">{nextClass.subject.name} in {countdown}</span>
+              </div>
+            )}
             <div className="flex items-center gap-2 bg-card/80 backdrop-blur rounded-xl px-4 py-2 border shadow-sm">
               <BookOpen className="w-4 h-4 text-primary" />
               <span className="text-sm font-medium">{mySubjects.length} subjects</span>
-            </div>
-            <div className="flex items-center gap-2 bg-card/80 backdrop-blur rounded-xl px-4 py-2 border shadow-sm">
-              <Calendar className="w-4 h-4 text-primary" />
-              <span className="text-sm font-medium">{slots.length} classes/week</span>
             </div>
             {overallAttendance !== null && (
               <div className="flex items-center gap-2 bg-card/80 backdrop-blur rounded-xl px-4 py-2 border shadow-sm">
@@ -196,21 +255,99 @@ const StudentAcademic = () => {
       </header>
 
       <main className="container mx-auto px-4 py-6 max-w-5xl">
-        <Tabs defaultValue="upcoming" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 max-w-lg mx-auto h-11 bg-muted/60 p-1 rounded-xl">
+        <Tabs defaultValue="today" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-5 max-w-xl mx-auto h-11 bg-muted/60 p-1 rounded-xl">
+            <TabsTrigger value="today" className="rounded-lg text-xs sm:text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm">
+              Today
+            </TabsTrigger>
             <TabsTrigger value="upcoming" className="rounded-lg text-xs sm:text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm">
-              <Clock className="w-3.5 h-3.5 mr-1 hidden sm:inline" />Upcoming
+              Upcoming
             </TabsTrigger>
             <TabsTrigger value="timetable" className="rounded-lg text-xs sm:text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm">
-              <Calendar className="w-3.5 h-3.5 mr-1 hidden sm:inline" />Timetable
+              Full
             </TabsTrigger>
             <TabsTrigger value="subjects" className="rounded-lg text-xs sm:text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm">
-              <BookOpen className="w-3.5 h-3.5 mr-1 hidden sm:inline" />Subjects
+              Subjects
             </TabsTrigger>
             <TabsTrigger value="attendance" className="rounded-lg text-xs sm:text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm">
-              <BarChart3 className="w-3.5 h-3.5 mr-1 hidden sm:inline" />Attendance
+              Stats
             </TabsTrigger>
           </TabsList>
+
+          {/* TODAY VIEW */}
+          <TabsContent value="today" className="space-y-4">
+            {!todayNum ? (
+              <Card className="border-dashed">
+                <CardContent className="py-12 text-center">
+                  <Calendar className="w-12 h-12 mx-auto text-muted-foreground/40 mb-3" />
+                  <p className="text-muted-foreground font-medium">No classes on weekends 🎉</p>
+                </CardContent>
+              </Card>
+            ) : todaySchedule.length === 0 ? (
+              <Card className="border-dashed">
+                <CardContent className="py-12 text-center">
+                  <Clock className="w-12 h-12 mx-auto text-muted-foreground/40 mb-3" />
+                  <p className="text-muted-foreground font-medium">No classes today</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="relative">
+                {/* Timeline line */}
+                <div className="absolute left-[23px] top-4 bottom-4 w-0.5 bg-border" />
+                <div className="space-y-1">
+                  {todaySchedule.map((cls, i) => {
+                    const startTime = cls.period.start_time?.slice(0, 5);
+                    const endTime = cls.period.end_time?.slice(0, 5);
+                    const isPast = endTime && currentTimeStr >= endTime;
+                    const isCurrent = startTime && endTime && currentTimeStr >= startTime && currentTimeStr < endTime;
+
+                    return (
+                      <div key={i} className={`relative flex items-stretch gap-4 pl-12 ${isPast ? "opacity-50" : ""}`}>
+                        {/* Timeline dot */}
+                        <div className={`absolute left-4 top-5 w-4 h-4 rounded-full border-2 z-10 ${
+                          isCurrent
+                            ? "bg-primary border-primary shadow-lg shadow-primary/40 animate-pulse"
+                            : isPast
+                              ? "bg-muted border-muted-foreground/30"
+                              : "bg-background border-border"
+                        }`} />
+
+                        <Card className={`flex-1 overflow-hidden transition-all ${isCurrent ? "ring-2 ring-primary shadow-lg shadow-primary/10" : "hover:shadow-md"}`}>
+                          <div className="flex">
+                            <div className="w-1.5 shrink-0" style={{ backgroundColor: cls.subject.color }} />
+                            <CardContent className="flex-1 p-4 flex items-center justify-between gap-4">
+                              <div className="flex items-center gap-3 min-w-0">
+                                <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 font-bold text-sm"
+                                  style={{ backgroundColor: cls.subject.color + "20", color: cls.subject.color }}>
+                                  {cls.subject.code || cls.subject.name.slice(0, 2)}
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="font-semibold text-sm truncate">{cls.subject.name}</p>
+                                  <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                                    {cls.teacher && <span>{cls.teacher.full_name}</span>}
+                                    {cls.slot.room && <span>• {cls.slot.room}</span>}
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="text-right shrink-0">
+                                {isCurrent && (
+                                  <Badge className="bg-primary text-primary-foreground text-[10px] mb-1">NOW</Badge>
+                                )}
+                                {isPast && (
+                                  <Badge variant="secondary" className="text-[10px] mb-1">Done</Badge>
+                                )}
+                                <p className="text-xs text-muted-foreground">{startTime} – {endTime}</p>
+                              </div>
+                            </CardContent>
+                          </div>
+                        </Card>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </TabsContent>
 
           {/* UPCOMING CLASSES */}
           <TabsContent value="upcoming" className="space-y-4">
@@ -332,7 +469,7 @@ const StudentAcademic = () => {
                   const subSlots = slots.filter(s => s.subject_id === sub.id);
                   const subTeacherIds = [...new Set(subSlots.map(s => s.teacher_id).filter(Boolean))];
                   const subTeachers = subTeacherIds.map(id => getTeacher(id)).filter(Boolean);
-                  const att = attendance.find(a => a.subject === sub.name);
+                  const att = attendance.find(a => a.subjectId === sub.id);
                   const pct = att && att.total > 0 ? Math.round((att.present / att.total) * 100) : null;
 
                   return (
@@ -345,7 +482,14 @@ const StudentAcademic = () => {
                             {sub.code && <p className="text-xs text-muted-foreground">{sub.code}</p>}
                           </div>
                           {pct !== null && (
-                            <Badge variant={pct >= 80 ? "default" : pct >= 60 ? "secondary" : "destructive"} className="text-[10px] shrink-0">
+                            <Badge
+                              className={`text-[10px] shrink-0 border ${
+                                pct >= 90
+                                  ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border-green-300 dark:border-green-700"
+                                  : pct >= 75
+                                    ? "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border-amber-300 dark:border-amber-700"
+                                    : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 border-red-300 dark:border-red-700"
+                              }`}>
                               {pct}%
                             </Badge>
                           )}
@@ -368,7 +512,6 @@ const StudentAcademic = () => {
 
           {/* ATTENDANCE */}
           <TabsContent value="attendance" className="space-y-6">
-            {/* Overall summary */}
             {overallAttendance !== null && (
               <Card className="bg-gradient-to-r from-primary/5 via-background to-primary/5 border-primary/20">
                 <CardContent className="py-6 text-center">
@@ -383,7 +526,6 @@ const StudentAcademic = () => {
               </Card>
             )}
 
-            {/* Per-subject breakdown */}
             {attendance.length > 0 ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                 {attendance.map(a => {
@@ -397,7 +539,6 @@ const StudentAcademic = () => {
                           {pct}%
                         </p>
                         <p className="text-[10px] text-muted-foreground mt-1">{a.present}/{a.total} present</p>
-                        {/* Mini progress bar */}
                         <div className="w-full h-1.5 rounded-full bg-muted mt-3 overflow-hidden">
                           <div className="h-full rounded-full transition-all duration-500"
                             style={{ width: `${pct}%`, backgroundColor: a.subjectColor }} />
@@ -417,7 +558,6 @@ const StudentAcademic = () => {
               </Card>
             )}
 
-            {/* Summary stats */}
             {records.length > 0 && (
               <Card>
                 <CardHeader><CardTitle className="text-sm">Breakdown</CardTitle></CardHeader>

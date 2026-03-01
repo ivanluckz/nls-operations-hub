@@ -7,26 +7,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, X, Search, Users } from "lucide-react";
+import { Plus, Pencil, Trash2, X, Search, Users, Download, UserPlus } from "lucide-react";
 import FloatingChatButton from "@/components/student/FloatingChatButton";
 
-interface ClassGroup {
-  id: string;
-  name: string;
-  year_level: string | null;
-}
-
-interface Member {
-  id: string;
-  student_id: string;
-  full_name: string;
-  email: string;
-}
+interface ClassGroup { id: string; name: string; year_level: string | null; }
+interface Member { id: string; student_id: string; full_name: string; email: string; }
 
 const AcademicClasses = () => {
   const { toast } = useToast();
   const [classes, setClasses] = useState<ClassGroup[]>([]);
+  const [memberCounts, setMemberCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<ClassGroup | null>(null);
@@ -35,10 +27,18 @@ const AcademicClasses = () => {
   const [members, setMembers] = useState<Member[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<{ id: string; full_name: string; email: string }[]>([]);
+  const [bulkYear, setBulkYear] = useState("");
+  const [bulkLoading, setBulkLoading] = useState(false);
 
   const fetchClasses = async () => {
-    const { data } = await (supabase as any).from("class_groups").select("*").order("name");
-    setClasses(data || []);
+    const [{ data: classData }, { data: memberData }] = await Promise.all([
+      (supabase as any).from("class_groups").select("*").order("name"),
+      (supabase as any).from("class_group_members").select("class_group_id"),
+    ]);
+    setClasses(classData || []);
+    const counts: Record<string, number> = {};
+    for (const m of (memberData || [])) counts[m.class_group_id] = (counts[m.class_group_id] || 0) + 1;
+    setMemberCounts(counts);
     setLoading(false);
   };
 
@@ -52,7 +52,7 @@ const AcademicClasses = () => {
     setMembers(memberData.map((m: any) => {
       const p = profiles?.find((p: any) => p.id === m.student_id);
       return { id: m.id, student_id: m.student_id, full_name: p?.full_name || "?", email: p?.email || "" };
-    }));
+    }).sort((a: Member, b: Member) => a.full_name.localeCompare(b.full_name)));
   };
 
   const handleSelectClass = (c: ClassGroup) => {
@@ -105,13 +105,63 @@ const AcademicClasses = () => {
       return;
     }
     fetchMembers(selectedClass.id);
+    fetchClasses();
     setSearchQuery("");
     setSearchResults([]);
   };
 
   const removeMember = async (memberId: string) => {
     await (supabase as any).from("class_group_members").delete().eq("id", memberId);
-    if (selectedClass) fetchMembers(selectedClass.id);
+    if (selectedClass) {
+      fetchMembers(selectedClass.id);
+      fetchClasses();
+    }
+  };
+
+  const handleBulkAdd = async () => {
+    if (!selectedClass || !bulkYear.trim()) return;
+    setBulkLoading(true);
+    try {
+      // Get all students with matching email pattern (year level in email)
+      const { data: studentRoles } = await supabase.from("user_roles").select("user_id").eq("role", "student");
+      if (!studentRoles?.length) { toast({ title: "No students found" }); setBulkLoading(false); return; }
+
+      const { data: profiles } = await supabase.from("profiles").select("id, full_name, email").in("id", studentRoles.map(r => r.user_id));
+      // Filter by email containing the year pattern (e.g. "30@" for year level "30")
+      const matchingStudents = (profiles || []).filter(p => p.email.includes(bulkYear));
+
+      if (!matchingStudents.length) { toast({ title: "No matching students found" }); setBulkLoading(false); return; }
+
+      const existingIds = new Set(members.map(m => m.student_id));
+      const toAdd = matchingStudents.filter(s => !existingIds.has(s.id));
+
+      if (!toAdd.length) { toast({ title: "All matching students already in class" }); setBulkLoading(false); return; }
+
+      const { error } = await (supabase as any).from("class_group_members").insert(
+        toAdd.map(s => ({ class_group_id: selectedClass.id, student_id: s.id }))
+      );
+      if (error) throw error;
+
+      toast({ title: `Added ${toAdd.length} students` });
+      fetchMembers(selectedClass.id);
+      fetchClasses();
+      setBulkYear("");
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Error", description: error.message });
+    }
+    setBulkLoading(false);
+  };
+
+  const exportCSV = () => {
+    if (!selectedClass || !members.length) return;
+    const csv = "Name,Email\n" + members.map(m => `"${m.full_name}","${m.email}"`).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${selectedClass.name.replace(/\s+/g, "_")}_roster.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -141,7 +191,12 @@ const AcademicClasses = () => {
               <Card key={c.id} className={`cursor-pointer transition-all hover:shadow-md ${selectedClass?.id === c.id ? "border-primary ring-1 ring-primary" : ""}`} onClick={() => handleSelectClass(c)}>
                 <CardHeader className="p-4 pb-2">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-base">{c.name}</CardTitle>
+                    <div className="flex items-center gap-2">
+                      <CardTitle className="text-base">{c.name}</CardTitle>
+                      <Badge variant="secondary" className="text-[10px]">
+                        <Users className="w-3 h-3 mr-1" />{memberCounts[c.id] || 0}
+                      </Badge>
+                    </div>
                     <div className="flex gap-1">
                       <Button size="icon" variant="ghost" className="h-7 w-7" onClick={e => { e.stopPropagation(); setEditing(c); setForm({ name: c.name, year_level: c.year_level || "" }); setDialogOpen(true); }}><Pencil className="w-3 h-3" /></Button>
                       <Button size="icon" variant="ghost" className="h-7 w-7" onClick={e => { e.stopPropagation(); handleDeleteClass(c.id); }}><Trash2 className="w-3 h-3 text-destructive" /></Button>
@@ -159,7 +214,16 @@ const AcademicClasses = () => {
             {selectedClass ? (
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2"><Users className="w-5 h-5" />{selectedClass.name} — Members</CardTitle>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center gap-2"><Users className="w-5 h-5" />{selectedClass.name} — {members.length} Members</CardTitle>
+                    {members.length > 0 && (
+                      <Button variant="outline" size="sm" onClick={exportCSV} className="gap-1.5">
+                        <Download className="w-3.5 h-3.5" />CSV
+                      </Button>
+                    )}
+                  </div>
+
+                  {/* Search to add */}
                   <div className="relative mt-2">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <Input placeholder="Search students to add…" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-9" />
@@ -172,6 +236,14 @@ const AcademicClasses = () => {
                         ))}
                       </div>
                     )}
+                  </div>
+
+                  {/* Bulk add by year */}
+                  <div className="flex gap-2 mt-3">
+                    <Input placeholder="Email pattern (e.g. 30)" value={bulkYear} onChange={e => setBulkYear(e.target.value)} className="flex-1" />
+                    <Button variant="outline" size="sm" onClick={handleBulkAdd} disabled={bulkLoading || !bulkYear.trim()} className="gap-1.5 shrink-0">
+                      <UserPlus className="w-3.5 h-3.5" />Bulk Add
+                    </Button>
                   </div>
                 </CardHeader>
                 <CardContent>
