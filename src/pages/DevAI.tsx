@@ -55,9 +55,12 @@ const executeAction = async (action: ParsedAction): Promise<string> => {
   const s = supabase as any;
   switch (action.type) {
     case "move_student": {
-      const { error } = await s.from("allocations").update({ activity_id: action.activity_id }).eq("student_id", action.student_id);
+      let q = s.from("allocations").update({ activity_id: action.activity_id }).eq("student_id", action.student_id);
+      if (action.day_of_week) q = q.eq("day_of_week", action.day_of_week);
+      if (action.from_activity_id) q = q.eq("activity_id", action.from_activity_id);
+      const { error } = await q;
       if (error) throw error;
-      return `Moved student to activity ${action.activity_id}`;
+      return `Moved student ${action.student_id} to activity ${action.activity_id}${action.day_of_week ? ` on ${action.day_of_week}` : ""}`;
     }
     case "remove_allocation": {
       let q = s.from("allocations").delete().eq("student_id", action.student_id);
@@ -246,7 +249,7 @@ Emit one per action at the end of your message:
 
 | Type | Required | Optional |
 |------|----------|---------|
-| move_student | student_id, activity_id | — |
+| move_student | student_id, activity_id | day_of_week, from_activity_id |
 | add_allocation | student_id, activity_id, day_of_week | slot_number |
 | remove_allocation | student_id | activity_id, day_of_week |
 | update_activity | activity_id | capacity, title, teacher_in_charge, description, is_active |
