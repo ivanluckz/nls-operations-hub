@@ -381,29 +381,44 @@ const buildSystemPrompt = async (): Promise<{ prompt: string; stats: DbStats }> 
   const allocatedStudentIds = new Set(studentAllocMap.keys());
   const unallocatedIds = allStudentIds.filter((id: string) => !allocatedStudentIds.has(id));
 
-  const actList = (activities || []).map((a: any) =>
-    `- [${a.id}] **${a.title}** (${a.category}) — ${a.current_enrollment}/${a.capacity} enrolled | Days: ${(a.days_of_week || []).join(", ")} | Teacher: ${a.teacher_in_charge} | Active: ${a.is_active}`
-  ).join("\n") || "None";
+  const actHeader = "| Title | Category | Enrolled | Capacity | Days | Teacher | Active | UUID |\n|-------|----------|----------|----------|------|---------|--------|------|\n";
+  const actList = (activities || []).length > 0
+    ? actHeader + (activities || []).map((a: any) =>
+        `| ${a.title} | ${a.category} | ${a.current_enrollment} | ${a.capacity} | ${(a.days_of_week || []).join(", ")} | ${a.teacher_in_charge} | ${a.is_active ? "✅" : "❌"} | ${a.id} |`
+      ).join("\n")
+    : "None";
 
-  const allocatedList = Array.from(studentAllocMap.entries()).map(([sid, acts]) => {
-    const p = profileMap.get(sid);
-    return `- [${sid}] ${p?.full_name || "Unknown"} (${p?.email || "?"}) → ${acts.join(" | ")}`;
-  }).join("\n") || "None";
+  const allocHeader = "| Name | Email | UUID | Allocations |\n|------|-------|------|-------------|\n";
+  const allocatedList = studentAllocMap.size > 0
+    ? allocHeader + Array.from(studentAllocMap.entries()).map(([sid, acts]) => {
+        const p = profileMap.get(sid);
+        return `| ${p?.full_name || "Unknown"} | ${p?.email || "?"} | ${sid} | ${acts.join(", ")} |`;
+      }).join("\n")
+    : "None";
 
-  const unallocatedList = unallocatedIds.slice(0, 300).map((id: string) => {
-    const p = profileMap.get(id);
-    return `- [${id}] ${p?.full_name || "Unknown"} (${p?.email || "?"})`;
-  }).join("\n") || "All students allocated";
+  const unallocHeader = "| Name | Email | UUID |\n|------|-------|------|\n";
+  const unallocatedList = unallocatedIds.length > 0
+    ? unallocHeader + unallocatedIds.slice(0, 300).map((id: string) => {
+        const p = profileMap.get(id);
+        return `| ${p?.full_name || "Unknown"} | ${p?.email || "?"} | ${id} |`;
+      }).join("\n")
+    : "All students allocated";
 
-  const staffList = (staffRoles || []).map((r: any) => {
-    const p = profileMap.get(r.user_id);
-    return `- [${r.user_id}] ${p?.full_name || "Unknown"} (${p?.email || "?"}) — ${r.role}`;
-  }).join("\n") || "None";
+  const staffHeader = "| Name | Email | Role | UUID |\n|------|-------|------|------|\n";
+  const staffListStr = (staffRoles || []).length > 0
+    ? staffHeader + (staffRoles || []).map((r: any) => {
+        const p = profileMap.get(r.user_id);
+        return `| ${p?.full_name || "Unknown"} | ${p?.email || "?"} | ${r.role} | ${r.user_id} |`;
+      }).join("\n")
+    : "None";
 
-  const badgeList = (badges || []).map((b: any) => {
-    const p = profileMap.get(b.user_id);
-    return `- [${b.user_id}] ${p?.full_name || "Unknown"}: ${b.badge_name}`;
-  }).join("\n") || "No badges";
+  const badgeHeader = "| Name | Email | Badge | UUID |\n|------|-------|-------|------|\n";
+  const badgeList = (badges || []).length > 0
+    ? badgeHeader + (badges || []).map((b: any) => {
+        const p = profileMap.get(b.user_id);
+        return `| ${p?.full_name || "Unknown"} | ${p?.email || "?"} | ${b.badge_name} | ${b.user_id} |`;
+      }).join("\n")
+    : "No badges";
 
   const stats: DbStats = {
     students: studentCount || 0,
@@ -547,7 +562,7 @@ Storage buckets: avatars, themes
 ${actList}
 
 ### Staff — Teachers / Admins / Mods (${(staffRoles || []).length})
-${staffList}
+${staffListStr}
 
 ### Allocated Students (${studentAllocMap.size} / ${stats.students})
 ${allocatedList}
