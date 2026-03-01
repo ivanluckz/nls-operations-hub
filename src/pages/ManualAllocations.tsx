@@ -181,9 +181,14 @@ const ManualAllocations = () => {
       a => a.day_of_week === day && a.slot_number === slot
     );
     
-    // If not replacing an existing allocation in this activity, check capacity
+    // If not replacing an existing allocation in this activity, check live capacity
     if (!existingAllocation || existingAllocation.activity_id !== activityId) {
-      if (activity.current_enrollment >= activity.capacity) {
+      const { count: liveCount } = await supabase
+        .from("allocations")
+        .select("*", { count: "exact", head: true })
+        .eq("activity_id", activityId)
+        .eq("day_of_week", day);
+      if (liveCount !== null && liveCount >= activity.capacity) {
         toast({
           variant: "destructive",
           title: "Activity Full",
