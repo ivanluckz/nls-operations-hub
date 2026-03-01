@@ -49,9 +49,6 @@ const TeacherAcademic = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data: devBadge } = await (supabase as any).from("user_badges").select("id").eq("user_id", user.id).eq("badge_name", "Dev").maybeSingle();
-      if (!devBadge) { navigate("/teacher"); return; }
-
       setUserId(user.id);
       const [p, s, sl, cg] = await Promise.all([
         (supabase as any).from("academic_periods").select("*").order("sort_order"),

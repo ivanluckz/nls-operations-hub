@@ -64,8 +64,7 @@ const StudentAcademic = () => {
       if (!user) return;
 
       const { data: devBadge } = await (supabase as any).from("user_badges").select("id").eq("user_id", user.id).eq("badge_name", "Dev").maybeSingle();
-      if (!devBadge) { navigate("/student"); return; }
-      setHasDev(true);
+      setHasDev(!!devBadge);
       setUserId(user.id);
 
       const [p, s] = await Promise.all([
