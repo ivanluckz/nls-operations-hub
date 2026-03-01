@@ -12,7 +12,7 @@ import FloatingChatButton from "@/components/student/FloatingChatButton";
 import MessagesCard from "@/components/student/MessagesCard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { GraduationCap, Activity, ArrowRight, KeyRound, Terminal } from "lucide-react";
+import { GraduationCap, Activity, ArrowRight, KeyRound, Terminal, CalendarDays } from "lucide-react";
 
 interface Profile {
   full_name: string;
@@ -190,6 +190,19 @@ const StudentDashboard = () => {
                 </CardContent>
               </Card>
             </div>
+
+            {/* Unified Calendar */}
+            <button onClick={() => navigate("/student/calendar")}
+              className="w-full max-w-md flex items-center justify-between rounded-2xl border bg-card px-5 py-4 shadow-sm hover:border-primary/40 hover:bg-primary/5 transition-colors text-left group">
+              <div className="flex items-center gap-3">
+                <CalendarDays className="w-6 h-6 text-primary" />
+                <div>
+                  <p className="font-semibold text-sm">Unified Calendar</p>
+                  <p className="text-xs text-muted-foreground">Academic + Co-curricular in one view</p>
+                </div>
+              </div>
+              <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
+            </button>
 
             {/* Dev Mode */}
             {hasDev && (

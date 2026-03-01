@@ -47,6 +47,7 @@ import AcademicAttendanceReports from "./pages/AcademicAttendanceReports";
 import AcademicPreExcuse from "./pages/AcademicPreExcuse";
 import AcademicWeeklySummary from "./pages/AcademicWeeklySummary";
 import AcademicLeaderboard from "./pages/AcademicLeaderboard";
+import UnifiedCalendar from "./pages/UnifiedCalendar";
 import SetPassword from "./pages/SetPassword";
 import DevAI from "./pages/DevAI";
 
@@ -78,6 +79,7 @@ const AppContent = () => {
           <Route path="/student/leaderboard" element={<ProtectedRoute requiredRole="student"><Leaderboard /></ProtectedRoute>} />
           <Route path="/student/dms" element={<ProtectedRoute requiredRole="student"><DirectMessages /></ProtectedRoute>} />
           <Route path="/student/academic" element={<ProtectedRoute requiredRole="student"><Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" /></div>}><StudentAcademicLazy /></Suspense></ProtectedRoute>} />
+          <Route path="/student/calendar" element={<ProtectedRoute requiredRole="student"><UnifiedCalendar /></ProtectedRoute>} />
 
           {/* Moderator */}
           <Route path="/moderator" element={<ProtectedRoute requiredRole="moderator"><ModeratorDashboard /></ProtectedRoute>} />
