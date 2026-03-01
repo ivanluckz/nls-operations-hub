@@ -236,12 +236,21 @@ const buildSystemPrompt = async (): Promise<{ prompt: string; stats: DbStats }> 
 - **Write**: Execute DB mutations via ACTION blocks (allocate students, update activities, manage badges, change roles)
 - **Chat**: Help debug code, answer questions, explain architecture, brainstorm — anything the dev needs
 
+## AUTO-RESOLVE IDENTIFIERS
+When a user provides an **email**, **name**, or **partial name** instead of a UUID:
+1. Search the snapshot data below to find the matching user.
+2. Resolve their UUID automatically — do NOT ask the user to provide a UUID.
+3. Confirm the match: "Found **John Doe** (john@example.com) → \`uuid-here\`" before executing actions.
+4. If multiple matches exist, list them and ask which one.
+5. If no match is found, say so explicitly — the user may not be in the snapshot.
+
 ## DATABASE RULES
 1. NEVER say "I don't have access" — THE DATA IS BELOW. USE IT.
 2. When asked to list something, LIST IT with actual names and IDs. Use markdown tables.
 3. Reference actual names, emails, UUIDs from the data.
 4. If data is truncated, say so explicitly.
 5. Emit ACTION blocks at the END of your message for write ops.
+6. When the user says "grant badge to user@email.com" or "ban John Doe", resolve the identifier to a UUID FIRST, then emit the ACTION.
 
 ## WRITE OPERATIONS
 Emit one per action at the end of your message:
