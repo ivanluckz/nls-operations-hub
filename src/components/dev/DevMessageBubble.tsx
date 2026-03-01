@@ -18,16 +18,8 @@ interface ChatMessage {
   actions?: ParsedAction[];
 }
 
-const ACTION_REGEX = /<ACTION>(.*?)<\/ACTION>/gs;
-
 const getDisplayContent = (msg: ChatMessage) => {
-  let c = msg.content;
-  let match;
-  while ((match = ACTION_REGEX.exec(c)) !== null) {
-    c = c.replace(match[0], "");
-  }
-  ACTION_REGEX.lastIndex = 0;
-  return c.trim();
+  return msg.content.replace(/<ACTION>.*?<\/ACTION>/gs, "").trim();
 };
 
 interface DevMessageBubbleProps {
