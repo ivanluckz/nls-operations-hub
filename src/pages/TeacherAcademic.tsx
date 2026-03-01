@@ -31,7 +31,7 @@ const TeacherAcademic = () => {
   const [userId, setUserId] = useState<string | null>(null);
   const [myClassGroups, setMyClassGroups] = useState<ClassGroup[]>([]);
 
-  const { totalUnread, markGroupAsRead } = useUnreadAcademicMessages(
+  const { totalUnread, unreadCounts, markGroupAsRead } = useUnreadAcademicMessages(
     myClassGroups.map(g => g.id),
     userId || ""
   );
@@ -407,7 +407,7 @@ const TeacherAcademic = () => {
 
           {/* CHAT */}
           <TabsContent value="chat">
-            <AcademicMessaging classGroups={myClassGroups} userId={userId || ""} isTeacher={true} onGroupViewed={markGroupAsRead} />
+            <AcademicMessaging classGroups={myClassGroups} userId={userId || ""} isTeacher={true} onGroupViewed={markGroupAsRead} unreadCounts={unreadCounts} />
           </TabsContent>
         </Tabs>
       </main>
