@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, BookOpen, Calendar, Clock, BarChart3, GraduationCap, Timer } from "lucide-react";
 import { isLightColor, DAY_LABELS } from "@/lib/academic-utils";
 import FloatingChatButton from "@/components/student/FloatingChatButton";
+import AcademicCalendarSyncCard from "@/components/student/AcademicCalendarSyncCard";
 import { format } from "date-fns";
 
 interface Period { id: number; label: string; start_time: string; end_time: string; is_break: boolean; sort_order: number; }
@@ -16,6 +18,7 @@ interface Slot { id: string; subject_id: string; teacher_id: string | null; day_
 interface Teacher { id: string; full_name: string; }
 
 const StudentAcademic = () => {
+  const { toast } = useToast();
   const navigate = useNavigate();
   const [periods, setPeriods] = useState<Period[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
@@ -26,6 +29,19 @@ const StudentAcademic = () => {
   const [hasDev, setHasDev] = useState(false);
   const [loading, setLoading] = useState(true);
   const [now, setNow] = useState(new Date());
+
+  // Handle Google Calendar callback redirect
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const calendarStatus = params.get("calendar");
+    if (calendarStatus === "connected") {
+      toast({ title: "Google Calendar Connected!", description: "You can now sync your timetable." });
+      window.history.replaceState({}, "", window.location.pathname);
+    } else if (calendarStatus === "error") {
+      toast({ variant: "destructive", title: "Connection Failed", description: "Could not connect Google Calendar." });
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, []);
 
   // Tick every 30s for countdown
   useEffect(() => {
@@ -452,6 +468,9 @@ const StudentAcademic = () => {
                 </table>
               </CardContent>
             </Card>
+            <div className="mt-4">
+              <AcademicCalendarSyncCard />
+            </div>
           </TabsContent>
 
           {/* SUBJECTS */}
