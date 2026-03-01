@@ -1,4 +1,5 @@
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { atomDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { Zap, Loader2, ChevronDown } from "lucide-react";
@@ -43,19 +44,52 @@ const DevMessageBubble = ({ msg, msgIdx, executingIdx, onExecute }: DevMessageBu
     setOpenActions((prev) => ({ ...prev, [idx]: !prev[idx] }));
   };
 
+  const displayContent = getDisplayContent(msg);
+  const hasTable = displayContent.includes('|---') || displayContent.includes('| ---');
+
   return (
     <div className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
       <div
-        className={`max-w-[85%] md:max-w-[70%] ${
+        className={`${hasTable && msg.role === "assistant" ? "max-w-[95%] md:max-w-[90%]" : "max-w-[85%] md:max-w-[70%]"} ${
           msg.role === "user"
             ? "bg-emerald-600/20 border border-emerald-500/30 text-emerald-100 rounded-lg px-4 py-2.5 font-mono text-sm"
             : "bg-zinc-900/80 border border-zinc-700/50 rounded-lg px-4 py-3"
         }`}
       >
         {msg.role === "assistant" ? (
-          <div className="prose prose-sm prose-invert max-w-none font-mono text-sm leading-relaxed [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1 [&_li]:my-0.5 [&_table]:border-collapse [&_th]:border [&_th]:border-zinc-700 [&_th]:px-3 [&_th]:py-1.5 [&_th]:bg-zinc-800/80 [&_th]:text-cyan-300 [&_th]:text-xs [&_td]:border [&_td]:border-zinc-700/60 [&_td]:px-3 [&_td]:py-1.5 [&_td]:text-xs">
+          <div className="prose prose-sm prose-invert max-w-none font-mono text-sm leading-relaxed [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1 [&_li]:my-0.5">
             <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
               components={{
+                table({ children }) {
+                  return (
+                    <div className="overflow-x-auto my-3 rounded-lg border border-zinc-700/60">
+                      <table className="w-full border-collapse text-xs font-mono">
+                        {children}
+                      </table>
+                    </div>
+                  );
+                },
+                thead({ children }) {
+                  return <thead className="bg-zinc-800/90">{children}</thead>;
+                },
+                th({ children }) {
+                  return (
+                    <th className="border border-zinc-700 px-3 py-2 text-left text-cyan-300 font-bold text-xs whitespace-nowrap">
+                      {children}
+                    </th>
+                  );
+                },
+                td({ children }) {
+                  return (
+                    <td className="border border-zinc-700/50 px-3 py-1.5 text-xs text-zinc-300 whitespace-nowrap">
+                      {children}
+                    </td>
+                  );
+                },
+                tr({ children }) {
+                  return <tr className="hover:bg-zinc-800/40 transition-colors">{children}</tr>;
+                },
                 code({ className, children, ...props }) {
                   const match = /language-(\w+)/.exec(className || "");
                   const inline = !match;
@@ -84,7 +118,7 @@ const DevMessageBubble = ({ msg, msgIdx, executingIdx, onExecute }: DevMessageBu
                 },
               }}
             >
-              {getDisplayContent(msg)}
+              {displayContent}
             </ReactMarkdown>
           </div>
         ) : (
