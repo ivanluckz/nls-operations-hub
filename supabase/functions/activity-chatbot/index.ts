@@ -17,8 +17,9 @@ const getCorsHeaders = (req: Request) => ({
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 });
 
-const MAX_MESSAGE_LENGTH = 2000;
+const MAX_MESSAGE_LENGTH = 8000;
 const MAX_MESSAGES = 50;
+const MAX_TOTAL_CHARS = 60000;
 const RATE_LIMIT_RETRY_SECONDS = 60;
 
 serve(async (req) => {
@@ -64,7 +65,15 @@ serve(async (req) => {
     // Check if the client provided a system prompt (DevAI sends one)
     const clientSystemPrompt = messages.find(m => m.role === 'system')?.content;
     const nonSystemMessages = messages.filter(m => m.role !== 'system');
-    const limitedMessages = nonSystemMessages.slice(-MAX_MESSAGES);
+    
+    // Trim conversation to fit within token budget
+    let trimmed = nonSystemMessages.slice(-MAX_MESSAGES);
+    let totalChars = trimmed.reduce((sum, m) => sum + (typeof m.content === 'string' ? m.content.length : 0), 0);
+    while (totalChars > MAX_TOTAL_CHARS && trimmed.length > 2) {
+      totalChars -= (typeof trimmed[0].content === 'string' ? trimmed[0].content.length : 0);
+      trimmed = trimmed.slice(1);
+    }
+    const limitedMessages = trimmed;
 
     for (const msg of limitedMessages) {
       if (msg.role === 'system') continue;
