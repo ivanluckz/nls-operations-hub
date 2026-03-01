@@ -6,10 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, BookOpen, Calendar, Clock, BarChart3, GraduationCap, Timer } from "lucide-react";
+import { ArrowLeft, BookOpen, Calendar, Clock, BarChart3, GraduationCap, Timer, MessageCircle } from "lucide-react";
 import { isLightColor, DAY_LABELS } from "@/lib/academic-utils";
 import FloatingChatButton from "@/components/student/FloatingChatButton";
 import AcademicCalendarSyncCard from "@/components/student/AcademicCalendarSyncCard";
+import AcademicMessaging from "@/components/academic/AcademicMessaging";
 import { format } from "date-fns";
 
 interface Period { id: number; label: string; start_time: string; end_time: string; is_break: boolean; sort_order: number; }
@@ -29,6 +30,8 @@ const StudentAcademic = () => {
   const [hasDev, setHasDev] = useState(false);
   const [loading, setLoading] = useState(true);
   const [now, setNow] = useState(new Date());
+  const [myClassGroups, setMyClassGroups] = useState<{ id: string; name: string }[]>([]);
+  const [userId, setUserId] = useState<string>("");
 
   // Handle Google Calendar callback redirect
   useEffect(() => {
@@ -57,6 +60,7 @@ const StudentAcademic = () => {
       const { data: devBadge } = await (supabase as any).from("user_badges").select("id").eq("user_id", user.id).eq("badge_name", "Dev").maybeSingle();
       if (!devBadge) { navigate("/student"); return; }
       setHasDev(true);
+      setUserId(user.id);
 
       const [p, s] = await Promise.all([
         (supabase as any).from("academic_periods").select("*").order("sort_order"),
@@ -67,6 +71,12 @@ const StudentAcademic = () => {
 
       const { data: membership } = await (supabase as any).from("class_group_members").select("class_group_id").eq("student_id", user.id);
       const groupIds = membership?.map((m: any) => m.class_group_id) || [];
+
+      // Fetch class group names for messaging
+      if (groupIds.length) {
+        const { data: groups } = await (supabase as any).from("class_groups").select("id, name").in("id", groupIds);
+        setMyClassGroups(groups || []);
+      }
 
       let allSlots: Slot[] = [];
       if (groupIds.length) {
@@ -272,7 +282,7 @@ const StudentAcademic = () => {
 
       <main className="container mx-auto px-4 py-6 max-w-5xl">
         <Tabs defaultValue="today" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 max-w-xl mx-auto h-11 bg-muted/60 p-1 rounded-xl">
+          <TabsList className="grid w-full grid-cols-6 max-w-2xl mx-auto h-11 bg-muted/60 p-1 rounded-xl">
             <TabsTrigger value="today" className="rounded-lg text-xs sm:text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm">
               Today
             </TabsTrigger>
@@ -287,6 +297,9 @@ const StudentAcademic = () => {
             </TabsTrigger>
             <TabsTrigger value="attendance" className="rounded-lg text-xs sm:text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm">
               Stats
+            </TabsTrigger>
+            <TabsTrigger value="chat" className="rounded-lg text-xs sm:text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm">
+              <MessageCircle className="w-3.5 h-3.5 mr-1 hidden sm:inline" />Chat
             </TabsTrigger>
           </TabsList>
 
@@ -598,6 +611,11 @@ const StudentAcademic = () => {
                 </CardContent>
               </Card>
             )}
+          </TabsContent>
+
+          {/* CHAT */}
+          <TabsContent value="chat">
+            <AcademicMessaging classGroups={myClassGroups} userId={userId || ""} isTeacher={false} />
           </TabsContent>
         </Tabs>
       </main>

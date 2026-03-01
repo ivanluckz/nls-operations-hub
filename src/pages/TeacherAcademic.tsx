@@ -9,10 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Save, CheckCircle, GraduationCap, Calendar as CalendarIcon, ClipboardList, CheckCheck, XCircle, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Save, CheckCircle, GraduationCap, Calendar as CalendarIcon, ClipboardList, CheckCheck, XCircle, AlertTriangle, MessageCircle } from "lucide-react";
 import { isLightColor, DAY_LABELS } from "@/lib/academic-utils";
 import { format } from "date-fns";
 import FloatingChatButton from "@/components/student/FloatingChatButton";
+import AcademicMessaging from "@/components/academic/AcademicMessaging";
 
 interface Period { id: number; label: string; start_time: string; end_time: string; is_break: boolean; sort_order: number; }
 interface Slot { id: string; subject_id: string; class_group_id: string | null; day_of_week: number; period_number: number; room: string | null; is_elective: boolean; }
@@ -27,6 +28,7 @@ const TeacherAcademic = () => {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [classGroups, setClassGroups] = useState<ClassGroup[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
+  const [myClassGroups, setMyClassGroups] = useState<ClassGroup[]>([]);
 
   // Attendance state
   const [selectedSlot, setSelectedSlot] = useState<string>("");
@@ -55,6 +57,13 @@ const TeacherAcademic = () => {
       setSubjects(s.data || []);
       setSlots(sl.data || []);
       setClassGroups(cg.data || []);
+
+      // Get unique class groups this teacher teaches
+      const teacherClassGroupIds = [...new Set((sl.data || []).map((slot: any) => slot.class_group_id).filter(Boolean))];
+      if (teacherClassGroupIds.length) {
+        const teacherGroups = (cg.data || []).filter((g: any) => teacherClassGroupIds.includes(g.id));
+        setMyClassGroups(teacherGroups);
+      }
     };
     load();
   }, []);
@@ -200,12 +209,15 @@ const TeacherAcademic = () => {
 
       <main className="container mx-auto px-4 py-6 space-y-6 max-w-5xl">
         <Tabs defaultValue="timetable" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 max-w-sm mx-auto h-11 bg-muted/60 p-1 rounded-xl">
+          <TabsList className="grid w-full grid-cols-3 max-w-md mx-auto h-11 bg-muted/60 p-1 rounded-xl">
             <TabsTrigger value="timetable" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm">
               <CalendarIcon className="w-4 h-4 mr-2" />My Timetable
             </TabsTrigger>
             <TabsTrigger value="attendance" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm">
-              <ClipboardList className="w-4 h-4 mr-2" />Take Attendance
+              <ClipboardList className="w-4 h-4 mr-2" />Attendance
+            </TabsTrigger>
+            <TabsTrigger value="chat" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm">
+              <MessageCircle className="w-4 h-4 mr-2" />Messages
             </TabsTrigger>
           </TabsList>
 
@@ -383,6 +395,11 @@ const TeacherAcademic = () => {
                 )}
               </>
             )}
+          </TabsContent>
+
+          {/* CHAT */}
+          <TabsContent value="chat">
+            <AcademicMessaging classGroups={myClassGroups} userId={userId || ""} isTeacher={true} />
           </TabsContent>
         </Tabs>
       </main>
