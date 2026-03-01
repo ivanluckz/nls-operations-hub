@@ -37,6 +37,10 @@ const QUICK_ACTIONS = [
   { label: "staff list", cmd: "List all teachers, admins, and moderators" },
   { label: "top activities", cmd: "Top 5 most enrolled activities" },
   { label: "no prefs", cmd: "List students who haven't submitted preferences" },
+  { label: "send broadcast", cmd: "Send an announcement to all activity chats saying: 'System maintenance in 1 hour'" },
+  { label: "query table", cmd: "Query the attendance_records table, show the 20 most recent records with student names" },
+  { label: "storage files", cmd: "List all files in the avatars storage bucket" },
+  { label: "class groups", cmd: "List all class groups and their member counts" },
 ];
 
 const parseActions = (content: string): { cleanContent: string; actions: ParsedAction[] } => {
@@ -53,14 +57,17 @@ const parseActions = (content: string): { cleanContent: string; actions: ParsedA
 
 const executeAction = async (action: ParsedAction): Promise<string> => {
   const s = supabase as any;
+  const { data: { user: currentUser } } = await supabase.auth.getUser();
+
   switch (action.type) {
+    // ── Allocation Management ──
     case "move_student": {
       let q = s.from("allocations").update({ activity_id: action.activity_id }).eq("student_id", action.student_id);
       if (action.day_of_week) q = q.eq("day_of_week", action.day_of_week);
       if (action.from_activity_id) q = q.eq("activity_id", action.from_activity_id);
       const { error } = await q;
       if (error) throw error;
-      return `Moved student ${action.student_id} to activity ${action.activity_id}${action.day_of_week ? ` on ${action.day_of_week}` : ""}`;
+      return `Moved student ${action.student_id} to activity ${action.activity_id}`;
     }
     case "remove_allocation": {
       let q = s.from("allocations").delete().eq("student_id", action.student_id);
@@ -78,16 +85,33 @@ const executeAction = async (action: ParsedAction): Promise<string> => {
         throw new Error(`${actData.title} is at full capacity (${currentCount}/${actData.capacity})`);
       }
       const { error } = await s.from("allocations").insert({
-        student_id: action.student_id,
-        activity_id: action.activity_id,
-        status: "allocated",
-        preference_rank: 0,
-        day_of_week: day,
+        student_id: action.student_id, activity_id: action.activity_id,
+        status: "allocated", preference_rank: 0, day_of_week: day,
         slot_number: parseInt(action.slot_number || "1"),
       });
       if (error) throw error;
       return `Allocated student to ${actData?.title || action.activity_id} on ${day}`;
     }
+    case "clear_all_allocations": {
+      const { count, error } = await s.from("allocations").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+      if (error) throw error;
+      return `⚠️ NUCLEAR: Cleared ALL allocations (${count || "all"} removed)`;
+    }
+    case "bulk_allocate": {
+      const items = JSON.parse(action.allocations || "[]");
+      let success = 0;
+      for (const item of items) {
+        const { error } = await s.from("allocations").insert({
+          student_id: item.student_id, activity_id: item.activity_id,
+          status: "allocated", preference_rank: 0,
+          day_of_week: item.day_of_week || "Monday", slot_number: item.slot_number || 1,
+        });
+        if (!error) success++;
+      }
+      return `Bulk allocated ${success}/${items.length} students`;
+    }
+
+    // ── Activity Management ──
     case "update_activity": {
       const updates: any = {};
       if (action.capacity !== undefined) updates.capacity = parseInt(action.capacity);
@@ -95,13 +119,37 @@ const executeAction = async (action: ParsedAction): Promise<string> => {
       if (action.teacher_in_charge) updates.teacher_in_charge = action.teacher_in_charge;
       if (action.description) updates.description = action.description;
       if (action.is_active !== undefined) updates.is_active = action.is_active === "true";
+      if (action.schedule) updates.schedule = action.schedule;
+      if (action.category) updates.category = action.category;
+      if (action.teacher_id) updates.teacher_id = action.teacher_id;
       const { error } = await s.from("activities").update(updates).eq("id", action.activity_id);
       if (error) throw error;
       return `Updated activity ${action.activity_id}: ${JSON.stringify(updates)}`;
     }
+    case "create_activity": {
+      const { error, data } = await s.from("activities").insert({
+        title: action.title, description: action.description || "",
+        category: action.category || "Other", capacity: parseInt(action.capacity || "30"),
+        teacher_in_charge: action.teacher_in_charge || "TBD",
+        schedule: action.schedule || "TBD",
+        days_of_week: action.days_of_week ? JSON.parse(action.days_of_week) : ["Monday"],
+        created_by: currentUser?.id, teacher_id: action.teacher_id || null,
+        is_active: true,
+      }).select("id").single();
+      if (error) throw error;
+      return `Created activity "${action.title}" → ${data?.id}`;
+    }
+    case "delete_activity": {
+      // Remove allocations first, then activity
+      await s.from("allocations").delete().eq("activity_id", action.activity_id);
+      const { error } = await s.from("activities").delete().eq("id", action.activity_id);
+      if (error) throw error;
+      return `Deleted activity ${action.activity_id} and its allocations`;
+    }
+
+    // ── Badge Management ──
     case "grant_badge": {
-      const { data: { user } } = await supabase.auth.getUser();
-      const { error } = await s.from("user_badges").insert({ user_id: action.user_id, badge_name: action.badge_name, awarded_by: user?.id });
+      const { error } = await s.from("user_badges").insert({ user_id: action.user_id, badge_name: action.badge_name, awarded_by: currentUser?.id });
       if (error) throw error;
       return `Granted "${action.badge_name}" to ${action.user_id}`;
     }
@@ -110,20 +158,12 @@ const executeAction = async (action: ParsedAction): Promise<string> => {
       if (error) throw error;
       return `Removed "${action.badge_name}" from ${action.user_id}`;
     }
+
+    // ── User Management ──
     case "change_user_role": {
       const { error } = await s.from("user_roles").update({ role: action.role }).eq("user_id", action.user_id);
       if (error) throw error;
       return `Changed role for ${action.user_id} → ${action.role}`;
-    }
-    case "delete_preferences": {
-      const { error } = await s.from("preferences").delete().eq("student_id", action.student_id);
-      if (error) throw error;
-      return `Cleared preferences for student ${action.student_id}`;
-    }
-    case "excuse_attendance": {
-      const { error } = await s.from("attendance_records").update({ status: "excused" }).eq("student_id", action.student_id).eq("session_id", action.session_id);
-      if (error) throw error;
-      return `Excused student ${action.student_id} for session ${action.session_id}`;
     }
     case "ban_user": {
       const { error } = await s.from("profiles").update({ banned: true }).eq("id", action.user_id);
@@ -135,6 +175,149 @@ const executeAction = async (action: ParsedAction): Promise<string> => {
       if (error) throw error;
       return `Unbanned user ${action.user_id}`;
     }
+    case "update_profile": {
+      const updates: any = {};
+      if (action.full_name) updates.full_name = action.full_name;
+      if (action.email) updates.email = action.email;
+      if (action.avatar_url) updates.avatar_url = action.avatar_url;
+      const { error } = await s.from("profiles").update(updates).eq("id", action.user_id);
+      if (error) throw error;
+      return `Updated profile for ${action.user_id}: ${JSON.stringify(updates)}`;
+    }
+
+    // ── Preferences ──
+    case "delete_preferences": {
+      const { error } = await s.from("preferences").delete().eq("student_id", action.student_id);
+      if (error) throw error;
+      return `Cleared preferences for student ${action.student_id}`;
+    }
+    case "clear_all_preferences": {
+      const { error } = await s.from("preferences").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+      if (error) throw error;
+      return `⚠️ NUCLEAR: Cleared ALL student preferences`;
+    }
+
+    // ── Attendance ──
+    case "excuse_attendance": {
+      const { error } = await s.from("attendance_records").update({ status: "excused" }).eq("student_id", action.student_id).eq("session_id", action.session_id);
+      if (error) throw error;
+      return `Excused student ${action.student_id} for session ${action.session_id}`;
+    }
+    case "create_attendance_session": {
+      const { error, data } = await s.from("attendance_sessions").insert({
+        activity_id: action.activity_id, teacher_id: action.teacher_id || currentUser?.id,
+        session_date: action.session_date || new Date().toISOString().split("T")[0],
+        day_of_week: action.day_of_week || "Monday", slot_number: parseInt(action.slot_number || "1"),
+        status: "draft",
+      }).select("id").single();
+      if (error) throw error;
+      return `Created attendance session ${data?.id} for activity ${action.activity_id}`;
+    }
+    case "mark_attendance": {
+      const { error } = await s.from("attendance_records").upsert({
+        session_id: action.session_id, student_id: action.student_id,
+        status: action.status || "present", marked_by: currentUser?.id,
+      }, { onConflict: "session_id,student_id" });
+      if (error) throw error;
+      return `Marked ${action.student_id} as ${action.status || "present"} in session ${action.session_id}`;
+    }
+
+    // ── Messaging ──
+    case "send_activity_message": {
+      const { error } = await s.from("activity_messages").insert({
+        activity_id: action.activity_id, sender_id: currentUser?.id,
+        content: action.content, message_type: action.message_type || "announcement",
+      });
+      if (error) throw error;
+      return `Sent ${action.message_type || "announcement"} to activity ${action.activity_id}`;
+    }
+    case "send_academic_message": {
+      const { error } = await s.from("academic_messages").insert({
+        class_group_id: action.class_group_id, sender_id: currentUser?.id,
+        content: action.content, message_type: action.message_type || "announcement",
+      });
+      if (error) throw error;
+      return `Sent message to class group ${action.class_group_id}`;
+    }
+    case "send_dm": {
+      // Find or create channel
+      let channelId = action.channel_id;
+      if (!channelId && action.recipient_id) {
+        const uid = currentUser?.id;
+        const { data: existing } = await s.from("dm_channels").select("id")
+          .or(`and(user1_id.eq.${uid},user2_id.eq.${action.recipient_id}),and(user1_id.eq.${action.recipient_id},user2_id.eq.${uid})`)
+          .maybeSingle();
+        if (existing) {
+          channelId = existing.id;
+        } else {
+          const { data: newCh, error: chErr } = await s.from("dm_channels").insert({ user1_id: uid, user2_id: action.recipient_id }).select("id").single();
+          if (chErr) throw chErr;
+          channelId = newCh.id;
+        }
+      }
+      const { error } = await s.from("direct_messages").insert({
+        channel_id: channelId, sender_id: currentUser?.id, content: action.content,
+      });
+      if (error) throw error;
+      return `Sent DM to ${action.recipient_id || channelId}`;
+    }
+    case "delete_message": {
+      const table = action.table || "activity_messages";
+      const { error } = await s.from(table).delete().eq("id", action.message_id);
+      if (error) throw error;
+      return `Deleted message ${action.message_id} from ${table}`;
+    }
+
+    // ── Academic ──
+    case "create_academic_excuse": {
+      const { error } = await s.from("academic_excuses").insert({
+        student_id: action.student_id, excuse_date: action.excuse_date || new Date().toISOString().split("T")[0],
+        created_by: currentUser?.id, reason: action.reason || "", slot_id: action.slot_id || null,
+      });
+      if (error) throw error;
+      return `Excused ${action.student_id} for ${action.excuse_date || "today"}`;
+    }
+
+    // ── Storage ──
+    case "list_storage": {
+      const bucket = action.bucket || "avatars";
+      const { data, error } = await s.storage.from(bucket).list(action.path || "", { limit: 100 });
+      if (error) throw error;
+      return `Files in ${bucket}/${action.path || ""}: ${(data || []).map((f: any) => f.name).join(", ") || "empty"}`;
+    }
+    case "delete_storage_file": {
+      const { error } = await s.storage.from(action.bucket).remove([action.path]);
+      if (error) throw error;
+      return `Deleted ${action.bucket}/${action.path}`;
+    }
+
+    // ── Data Queries (read-only) ──
+    case "query_table": {
+      const table = action.table;
+      let q = s.from(table).select(action.select || "*");
+      if (action.eq_column && action.eq_value) q = q.eq(action.eq_column, action.eq_value);
+      if (action.order_by) q = q.order(action.order_by, { ascending: action.ascending === "true" });
+      q = q.limit(parseInt(action.limit || "50"));
+      const { data, error } = await q;
+      if (error) throw error;
+      return `Query ${table}: ${JSON.stringify(data, null, 2)}`;
+    }
+
+    // ── Timetable ──
+    case "add_class_group_member": {
+      const { error } = await s.from("class_group_members").insert({
+        class_group_id: action.class_group_id, student_id: action.student_id,
+      });
+      if (error) throw error;
+      return `Added ${action.student_id} to class group ${action.class_group_id}`;
+    }
+    case "remove_class_group_member": {
+      const { error } = await s.from("class_group_members").delete()
+        .eq("class_group_id", action.class_group_id).eq("student_id", action.student_id);
+      if (error) throw error;
+      return `Removed ${action.student_id} from class group ${action.class_group_id}`;
+    }
+
     default:
       return `Unknown action: ${action.type}`;
   }
@@ -257,21 +440,77 @@ When a user provides an **email**, **full name**, **first name**, **last name**,
 Emit one per action at the end of your message:
 \`<ACTION>{"type":"move_student","student_id":"uuid","activity_id":"uuid"}</ACTION>\`
 
+### Allocation Management
 | Type | Required | Optional |
 |------|----------|---------|
 | move_student | student_id, activity_id | day_of_week, from_activity_id |
 | add_allocation | student_id, activity_id, day_of_week | slot_number |
 | remove_allocation | student_id | activity_id, day_of_week |
-| update_activity | activity_id | capacity, title, teacher_in_charge, description, is_active |
+| bulk_allocate | allocations (JSON array of {student_id, activity_id, day_of_week, slot_number}) | — |
+| clear_all_allocations | — | — |
+
+### Activity Management
+| Type | Required | Optional |
+|------|----------|---------|
+| create_activity | title | description, category, capacity, teacher_in_charge, schedule, days_of_week (JSON array), teacher_id |
+| update_activity | activity_id | capacity, title, teacher_in_charge, description, is_active, schedule, category, teacher_id |
+| delete_activity | activity_id | — |
+
+### User Management
+| Type | Required | Optional |
+|------|----------|---------|
 | grant_badge | user_id, badge_name | — |
 | remove_badge | user_id, badge_name | — |
 | change_user_role | user_id, role | — |
-| delete_preferences | student_id | — |
-| excuse_attendance | student_id, session_id | — |
 | ban_user | user_id | — |
 | unban_user | user_id | — |
+| update_profile | user_id | full_name, email, avatar_url |
+
+### Preferences
+| Type | Required | Optional |
+|------|----------|---------|
+| delete_preferences | student_id | — |
+| clear_all_preferences | — | — |
+
+### Attendance
+| Type | Required | Optional |
+|------|----------|---------|
+| excuse_attendance | student_id, session_id | — |
+| create_attendance_session | activity_id | teacher_id, session_date, day_of_week, slot_number |
+| mark_attendance | session_id, student_id | status (present/absent/late/excused) |
+
+### Messaging
+| Type | Required | Optional |
+|------|----------|---------|
+| send_activity_message | activity_id, content | message_type (announcement/discussion) |
+| send_academic_message | class_group_id, content | message_type |
+| send_dm | content, recipient_id | channel_id |
+| delete_message | message_id | table (activity_messages/academic_messages/direct_messages) |
+
+### Academic
+| Type | Required | Optional |
+|------|----------|---------|
+| create_academic_excuse | student_id | excuse_date, reason, slot_id |
+| add_class_group_member | class_group_id, student_id | — |
+| remove_class_group_member | class_group_id, student_id | — |
+
+### Storage
+| Type | Required | Optional |
+|------|----------|---------|
+| list_storage | — | bucket (default: avatars), path |
+| delete_storage_file | bucket, path | — |
+
+### Data Queries (read-only, returns data as JSON)
+| Type | Required | Optional |
+|------|----------|---------|
+| query_table | table | select, eq_column, eq_value, order_by, ascending, limit |
+
+Available tables: profiles, user_roles, activities, allocations, preferences, attendance_sessions, attendance_records, attendance_notifications, user_badges, badge_requests, activity_messages, academic_messages, direct_messages, dm_channels, class_groups, class_group_members, timetable_slots, timetable_enrollments, academic_subjects, academic_sessions, academic_attendance, academic_excuses, academic_periods, user_themes
 
 Valid roles: student, teacher, moderator, admin
+Storage buckets: avatars, themes
+
+⚠️ **NUCLEAR ACTIONS** (clear_all_allocations, clear_all_preferences, delete_activity): ALWAYS warn the dev explicitly before emitting these. These are destructive and irreversible.
 
 ## LIVE SNAPSHOT — ${new Date().toLocaleString()}
 
@@ -525,7 +764,7 @@ const DevAI = () => {
  | |_| |  __/\\ V /| |_) | (_) | |_
  |____/ \\___| \\_/ |____/ \\___/ \\__|`}
               </pre>
-              <p className="text-zinc-400 text-sm">Full read/write access. Query anything. Execute anything.</p>
+              <p className="text-zinc-400 text-sm">God mode. Query, mutate, message, manage storage — everything.</p>
               {dbStats ? (
                 <div className="flex flex-wrap justify-center gap-4 text-xs text-zinc-600">
                   <span><span className="text-emerald-400">{dbStats.students}</span> students</span>
