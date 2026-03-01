@@ -123,7 +123,27 @@ const AcademicAttendanceReports = () => {
               <div><Label>From</Label><Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} /></div>
               <div><Label>To</Label><Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} /></div>
             </div>
-            <Button className="mt-4" onClick={fetchRecords} disabled={loading}>{loading ? "Loading…" : "Generate Report"}</Button>
+            <div className="flex gap-2 mt-4">
+              <Button onClick={fetchRecords} disabled={loading}>{loading ? "Loading…" : "Generate Report"}</Button>
+              <Button variant="outline" disabled={loading || records.length === 0} onClick={async () => {
+                try {
+                  const { data, error } = await supabase.functions.invoke("generate-academic-pdf-report", {
+                    body: { classGroupId: selectedClass, subjectId: selectedSubject, startDate, endDate },
+                  });
+                  if (error) throw error;
+                  if (data.error) throw new Error(data.error);
+                  const link = document.createElement("a");
+                  link.href = `data:application/pdf;base64,${data.pdf}`;
+                  link.download = data.filename;
+                  link.click();
+                  toast({ title: "PDF Downloaded" });
+                } catch (err: any) {
+                  toast({ variant: "destructive", title: "PDF Error", description: err.message });
+                }
+              }}>
+                <Download className="w-4 h-4 mr-2" />PDF
+              </Button>
+            </div>
           </CardContent>
         </Card>
 

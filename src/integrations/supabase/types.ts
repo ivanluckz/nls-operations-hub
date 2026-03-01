@@ -46,6 +46,79 @@ export type Database = {
           },
         ]
       }
+      academic_excuses: {
+        Row: {
+          created_at: string
+          created_by: string
+          excuse_date: string
+          id: string
+          reason: string
+          slot_id: string | null
+          student_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          excuse_date: string
+          id?: string
+          reason?: string
+          slot_id?: string | null
+          student_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          excuse_date?: string
+          id?: string
+          reason?: string
+          slot_id?: string | null
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "academic_excuses_slot_id_fkey"
+            columns: ["slot_id"]
+            isOneToOne: false
+            referencedRelation: "timetable_slots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      academic_messages: {
+        Row: {
+          class_group_id: string
+          content: string
+          created_at: string
+          id: string
+          message_type: string
+          sender_id: string
+        }
+        Insert: {
+          class_group_id: string
+          content: string
+          created_at?: string
+          id?: string
+          message_type?: string
+          sender_id: string
+        }
+        Update: {
+          class_group_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          message_type?: string
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "academic_messages_class_group_id_fkey"
+            columns: ["class_group_id"]
+            isOneToOne: false
+            referencedRelation: "class_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       academic_periods: {
         Row: {
           end_time: string
