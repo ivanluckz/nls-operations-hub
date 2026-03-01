@@ -44,6 +44,7 @@ import {
   BarChart3,
   ArrowLeft,
 } from "lucide-react";
+
 import nlsLogo from "@/assets/nls-logo.png";
 
 const coCurricularItems = [
@@ -69,6 +70,8 @@ const academicItems = [
   { title: "Subjects", url: "/admin/academic/subjects", icon: BookOpen, description: "Manage subjects" },
   { title: "Classes", url: "/admin/academic/classes", icon: Users, description: "Manage class groups" },
   { title: "Attendance", url: "/admin/academic/attendance", icon: BarChart3, description: "Academic attendance" },
+  { title: "Pre-Excuse", url: "/admin/academic/pre-excuse", icon: UserCheck, description: "Excuse students" },
+  { title: "AI Summary", url: "/admin/academic/weekly-summary", icon: Sparkles, description: "AI weekly insights", highlight: true },
 ];
 
 interface UserProfile {

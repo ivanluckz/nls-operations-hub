@@ -44,6 +44,9 @@ import AcademicSubjects from "./pages/AcademicSubjects";
 import AcademicClasses from "./pages/AcademicClasses";
 import AcademicTimetable from "./pages/AcademicTimetable";
 import AcademicAttendanceReports from "./pages/AcademicAttendanceReports";
+import AcademicPreExcuse from "./pages/AcademicPreExcuse";
+import AcademicWeeklySummary from "./pages/AcademicWeeklySummary";
+import AcademicLeaderboard from "./pages/AcademicLeaderboard";
 import SetPassword from "./pages/SetPassword";
 import DevAI from "./pages/DevAI";
 
@@ -112,6 +115,11 @@ const AppContent = () => {
           <Route path="/admin/academic/classes" element={<ProtectedRoute requiredRole="admin"><AcademicClasses /></ProtectedRoute>} />
           <Route path="/admin/academic/timetable" element={<ProtectedRoute requiredRole="admin"><AcademicTimetable /></ProtectedRoute>} />
           <Route path="/admin/academic/attendance" element={<ProtectedRoute requiredRole="admin"><AcademicAttendanceReports /></ProtectedRoute>} />
+          <Route path="/admin/academic/pre-excuse" element={<ProtectedRoute requiredRole="admin"><AcademicPreExcuse /></ProtectedRoute>} />
+          <Route path="/admin/academic/weekly-summary" element={<ProtectedRoute requiredRole="admin"><AcademicWeeklySummary /></ProtectedRoute>} />
+
+          {/* Student academic leaderboard */}
+          <Route path="/student/academic/leaderboard" element={<ProtectedRoute requiredRole="student"><AcademicLeaderboard /></ProtectedRoute>} />
 
           {/* Teacher */}
           <Route path="/teacher" element={<ProtectedRoute requiredRole="teacher"><TeacherDashboard /></ProtectedRoute>} />
