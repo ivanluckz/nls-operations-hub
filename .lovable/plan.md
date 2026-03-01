@@ -1,28 +1,64 @@
 
 
-## Plan: Lock Dev badge from being granted + restrict Academic testing to Dev holders only
+# Academic System Customization Plan
 
-### What the user wants
-1. **Dev badge cannot be granted by anyone** — not admins, not other Dev holders, nobody. It's permanently locked.
-2. **Only Dev badge holders can access/test the Academic section** — this is already partially in place but needs confirmation.
+This is a big scope covering all four areas. I'll break it into focused, impactful improvements for each.
 
-### Changes needed
+---
 
-#### 1. Block Dev badge granting in UI (`src/components/chat/UserProfileCard.tsx`)
-- Filter out "Dev" from the `BADGE_OPTIONS` list shown in the admin grant panel, so it never appears as a grantable option.
-- This prevents the UI from even showing the Dev badge button.
+## 1. Timetable Builder UI Improvements (Admin)
 
-#### 2. Block Dev badge granting in database (SQL migration)
-- Add a database trigger on `user_badges` that prevents INSERT of any row where `badge_name = 'Dev'`. This is the server-side enforcement — even if someone bypasses the UI, the database rejects it.
+**Current state**: Basic HTML table with click-to-edit dialog. Functional but plain.
 
-#### 3. Block Dev badge in badge request system (`src/pages/AdminBadgeRequests.tsx`)
-- The `BADGE_OPTIONS` list here already excludes "Dev" (line 11-18), so students can't request it. No change needed.
+**Changes**:
+- Add a **"Copy slot"** feature: right-click or hold a slot to copy it, then click an empty cell to paste (same subject/teacher/room)
+- Add a **"Clear all"** button with confirmation to reset a class's entire timetable
+- Add **conflict warnings** inline — highlight cells red if a teacher is double-booked across classes
+- Add **slot count summary** below the grid showing how many periods each subject has per week
+- Improve cell rendering with better color fills (full background with opacity instead of just left border)
 
-#### 4. Verify Academic access is Dev-only
-- `ProtectedRoute.tsx` already checks `hasDevBadge` and `userRole === "student"` before allowing access to `/admin/academic/*` pages. Admin/moderator/teacher roles access these via their own admin role. This is already correct.
-- `StudentDashboard.tsx` already checks for Dev badge before showing the clickable Academic card. Already correct.
+## 2. Student Timetable View
 
-### Files to edit
-- `src/components/chat/UserProfileCard.tsx` — hide "Dev" from grant panel
-- New SQL migration — trigger to block Dev badge inserts
+**Current state**: Full timetable grid + upcoming classes + subjects + attendance tabs. Already quite good.
+
+**Changes**:
+- Add a **"Today" view** as the default tab — shows only today's schedule as a vertical timeline with current period highlighted
+- Add a **countdown timer** to next class ("Math starts in 23 min")
+- Show **attendance percentage badge** per subject in the Subjects tab (color-coded: green >90%, amber >75%, red <75%)
+- Add **"No class right now"** or **"In: Period 3 — Math"** live status in the header stats bar
+
+## 3. Attendance Marking Flow (Teacher)
+
+**Current state**: Select today's class from dropdown → mark each student individually. Basic but works.
+
+**Changes**:
+- Add **"Mark All Present"** and **"Mark All Absent"** bulk buttons at the top of the student list
+- Add **quick-tap toggle**: single tap cycles through present → absent → late → excused instead of showing 4 buttons per row (saves space on mobile)
+- Add **attendance summary bar** showing counts (12 present, 2 absent, 1 late) that updates live as you mark
+- Add **past date picker** so teachers can mark attendance for previous days, not just today
+- Show a **"Session already finalized"** warning more prominently with option to reopen (admin only)
+
+## 4. Subjects & Classes Management (Admin)
+
+**Current state**: Simple CRUD table for subjects, card-based class list with member badges.
+
+**Changes**:
+- **Subjects page**: Add a usage column showing how many timetable slots use each subject. Add a search/filter bar. Add bulk color presets (material design palette).
+- **Classes page**: Show member count on each class card. Add **"Bulk add by year level"** — auto-add all students from profiles matching a year pattern. Add CSV export of class roster.
+
+---
+
+## Technical Approach
+
+- All changes are frontend-only (existing DB schema supports everything)
+- No new tables or migrations needed
+- Edit existing page files directly rather than creating new components (keep it contained)
+- Use existing UI components (Badge, Button, Select, etc.)
+
+## Implementation Order
+
+1. Timetable Builder improvements
+2. Teacher attendance flow
+3. Student timetable "Today" view
+4. Subjects & classes management polish
 
