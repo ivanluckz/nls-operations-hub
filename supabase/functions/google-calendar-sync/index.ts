@@ -317,6 +317,162 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Academic timetable sync
+    if (action === "academic-sync") {
+      const serviceClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+
+      // Get stored tokens
+      const { data: tokenRow, error: tokenError } = await supabase
+        .from("google_calendar_tokens")
+        .select("*")
+        .eq("user_id", userId)
+        .single();
+
+      if (tokenError || !tokenRow) {
+        return new Response(JSON.stringify({ error: "not_connected", message: "Google Calendar not connected" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      let accessToken: string;
+      let refreshToken: string;
+      try {
+        [accessToken, refreshToken] = await Promise.all([
+          decryptToken(tokenRow.access_token),
+          decryptToken(tokenRow.refresh_token),
+        ]);
+      } catch {
+        await supabase.from("google_calendar_tokens").delete().eq("user_id", userId);
+        return new Response(JSON.stringify({ error: "not_connected", message: "Please reconnect Google Calendar" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Refresh token if expired
+      if (new Date(tokenRow.token_expiry) <= new Date()) {
+        const refreshRes = await fetch("https://oauth2.googleapis.com/token", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({
+            client_id: GOOGLE_CLIENT_ID,
+            client_secret: GOOGLE_CLIENT_SECRET,
+            refresh_token: refreshToken,
+            grant_type: "refresh_token",
+          }),
+        });
+        const refreshData = await refreshRes.json();
+        if (!refreshRes.ok) {
+          return new Response(JSON.stringify({ error: "token_expired", message: "Please reconnect Google Calendar" }), {
+            status: 401,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        accessToken = refreshData.access_token;
+        const newExpiry = new Date(Date.now() + refreshData.expires_in * 1000).toISOString();
+        const encNewAccess = await encryptToken(accessToken);
+        await supabase.from("google_calendar_tokens").update({ access_token: encNewAccess, token_expiry: newExpiry }).eq("user_id", userId);
+      }
+
+      // Get student's class group memberships
+      const { data: memberships } = await serviceClient.from("class_group_members").select("class_group_id").eq("student_id", userId);
+      const groupIds = memberships?.map((m: any) => m.class_group_id) || [];
+
+      let allSlots: any[] = [];
+      if (groupIds.length) {
+        const { data: classSlots } = await serviceClient.from("timetable_slots").select("*, academic_subjects(name, code, color)").in("class_group_id", groupIds).eq("is_elective", false);
+        allSlots = classSlots || [];
+      }
+      const { data: enrollments } = await serviceClient.from("timetable_enrollments").select("slot_id").eq("student_id", userId);
+      if (enrollments?.length) {
+        const { data: electiveSlots } = await serviceClient.from("timetable_slots").select("*, academic_subjects(name, code, color)").in("id", enrollments.map((e: any) => e.slot_id));
+        allSlots = [...allSlots, ...(electiveSlots || [])];
+      }
+
+      if (!allSlots.length) {
+        return new Response(JSON.stringify({ message: "No timetable slots to sync", synced: 0 }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Get periods for time mapping
+      const { data: periods } = await serviceClient.from("academic_periods").select("*").order("sort_order");
+      const periodMap = new Map((periods || []).map((p: any) => [p.sort_order, p]));
+
+      // Get teacher names
+      const teacherIds = [...new Set(allSlots.map(s => s.teacher_id).filter(Boolean))];
+      let teacherMap = new Map<string, string>();
+      if (teacherIds.length) {
+        const { data: teachers } = await serviceClient.from("profiles").select("id, full_name").in("id", teacherIds);
+        teacherMap = new Map((teachers || []).map((t: any) => [t.id, t.full_name]));
+      }
+
+      const dayNames = ["", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+      const dayAbbrev: Record<number, string> = { 1: "MO", 2: "TU", 3: "WE", 4: "TH", 5: "FR" };
+
+      const getNextDay = (dayNum: number): Date => {
+        const today = new Date();
+        const diff = (dayNum - today.getDay() + 7) % 7 || 7;
+        const next = new Date(today);
+        next.setDate(today.getDate() + diff);
+        return next;
+      };
+
+      let synced = 0;
+      const errors: string[] = [];
+
+      for (const slot of allSlots) {
+        const subject = slot.academic_subjects as any;
+        if (!subject) continue;
+        const period = periodMap.get(slot.period_number);
+        if (!period || period.is_break) continue;
+
+        const eventDate = getNextDay(slot.day_of_week);
+        const [startH, startM] = (period.start_time as string).split(":").map(Number);
+        const [endH, endM] = (period.end_time as string).split(":").map(Number);
+
+        const startTime = new Date(eventDate);
+        startTime.setHours(startH, startM, 0, 0);
+        const endTime = new Date(eventDate);
+        endTime.setHours(endH, endM, 0, 0);
+
+        const teacherName = slot.teacher_id ? teacherMap.get(slot.teacher_id) || "TBA" : "TBA";
+
+        const event = {
+          summary: `📚 ${subject.name}`,
+          description: `Academic Class\nTeacher: ${teacherName}${slot.room ? `\nRoom: ${slot.room}` : ""}\nPeriod: ${period.label}\nDay: ${dayNames[slot.day_of_week] || ""}`,
+          start: { dateTime: startTime.toISOString(), timeZone: "Europe/Berlin" },
+          end: { dateTime: endTime.toISOString(), timeZone: "Europe/Berlin" },
+          recurrence: [`RRULE:FREQ=WEEKLY;BYDAY=${dayAbbrev[slot.day_of_week] || "MO"}`],
+          colorId: "1",
+        };
+
+        const calRes = await fetch("https://www.googleapis.com/calendar/v3/calendars/primary/events", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+          body: JSON.stringify(event),
+        });
+
+        if (calRes.ok) {
+          synced++;
+        } else {
+          const errData = await calRes.json();
+          console.error(`Failed to create event for ${subject.name}:`, errData);
+          errors.push(subject.name);
+        }
+      }
+
+      return new Response(JSON.stringify({
+        message: `Synced ${synced} of ${allSlots.length} classes`,
+        synced,
+        total: allSlots.length,
+        errors,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Step 4: Check connection status
     if (action === "status") {
       const { data, error } = await supabase
