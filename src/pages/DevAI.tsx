@@ -174,9 +174,9 @@ const buildSystemPrompt = async (): Promise<{ prompt: string; stats: DbStats }> 
       : Promise.resolve({ data: [] }),
   ]);
 
-  const profileMap = new Map([
-    ...(studentProfiles || []).map((p: any) => [p.id, p]),
-    ...(staffProfiles || []).map((p: any) => [p.id, p]),
+  const profileMap = new Map<string, any>([
+    ...(studentProfiles || []).map((p: any) => [p.id, p] as [string, any]),
+    ...(staffProfiles || []).map((p: any) => [p.id, p] as [string, any]),
   ]);
   const activityMap = new Map<string, any>((activities || []).map((a: any) => [a.id, a]));
 
