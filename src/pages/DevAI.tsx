@@ -325,6 +325,9 @@ const executeAction = async (action: ParsedAction): Promise<string> => {
 
 const buildSystemPrompt = async (): Promise<{ prompt: string; stats: DbStats }> => {
   const s = supabase as any;
+  const { data: { user: currentUser } } = await supabase.auth.getUser();
+  const currentUserId = currentUser?.id || "unknown";
+  const currentUserEmail = currentUser?.email || "unknown";
 
   const [
     { count: studentCount },
@@ -414,6 +417,15 @@ const buildSystemPrompt = async (): Promise<{ prompt: string; stats: DbStats }> 
 
   const prompt = `You are DevBot — the internal AI for NLS system developers. You have complete read/write access to the live NLS database. You can query data, execute write operations, and also just chat normally about anything.
 
+## CURRENT USER (the person chatting with you right now)
+- **UUID**: \`${currentUserId}\`
+- **Email**: ${currentUserEmail}
+- **Name**: ${profileMap.get(currentUserId)?.full_name || "Unknown"}
+- **Today's Date**: ${new Date().toLocaleDateString("en-CA")} (${new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })})
+
+When the user says "me", "my", "I", "myself" — they mean **this user** above. Resolve immediately, never ask.
+When the user says "next Tuesday" or "this Friday" — calculate the actual date from today's date above. Never ask for clarification on dates you can calculate.
+
 ## CAPABILITIES
 - **Read**: Full access to everything in the snapshot below — query, analyze, list, summarize
 - **Write**: Execute DB mutations via ACTION blocks (allocate students, update activities, manage badges, change roles)
@@ -438,6 +450,7 @@ When a user provides an **email**, **full name**, **first name**, **last name**,
 7. When the user says "grant badge to user@email.com" or "ban John Doe", resolve the identifier to a UUID FIRST, then emit the ACTION.
 8. For counts or stats, use a clean summary table. For detailed lists, use full tables with all relevant columns.
 9. Sort tables logically — alphabetically by name, or by the most relevant metric.
+10. **NEVER ask for information you already have** — if the user says "excuse me from X", you know who they are, you know what date they mean, and you can look up activity IDs from the snapshot. Just do it.
 
 ## WRITE OPERATIONS
 Emit one per action at the end of your message:
