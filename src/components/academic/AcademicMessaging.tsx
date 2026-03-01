@@ -34,6 +34,7 @@ interface AcademicMessagingProps {
   classGroups: ClassGroup[];
   userId: string;
   isTeacher?: boolean;
+  onGroupViewed?: (groupId: string) => void;
 }
 
 const AVATAR_COLORS = [
@@ -77,7 +78,7 @@ function formatTime(dateStr: string): string {
   return new Date(dateStr).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
-const AcademicMessaging = ({ classGroups, userId, isTeacher = false }: AcademicMessagingProps) => {
+const AcademicMessaging = ({ classGroups, userId, isTeacher = false, onGroupViewed }: AcademicMessagingProps) => {
   const { toast } = useToast();
   const [selectedGroup, setSelectedGroup] = useState<string>(classGroups[0]?.id || "");
   const [messages, setMessages] = useState<Message[]>([]);
@@ -90,6 +91,7 @@ const AcademicMessaging = ({ classGroups, userId, isTeacher = false }: AcademicM
   useEffect(() => {
     if (!selectedGroup) return;
     fetchMessages();
+    onGroupViewed?.(selectedGroup);
 
     const channel = supabase
       .channel(`academic-msg-${selectedGroup}`)

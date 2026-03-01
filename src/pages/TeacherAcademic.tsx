@@ -14,6 +14,7 @@ import { isLightColor, DAY_LABELS } from "@/lib/academic-utils";
 import { format } from "date-fns";
 import FloatingChatButton from "@/components/student/FloatingChatButton";
 import AcademicMessaging from "@/components/academic/AcademicMessaging";
+import { useUnreadAcademicMessages } from "@/hooks/use-unread-academic-messages";
 
 interface Period { id: number; label: string; start_time: string; end_time: string; is_break: boolean; sort_order: number; }
 interface Slot { id: string; subject_id: string; class_group_id: string | null; day_of_week: number; period_number: number; room: string | null; is_elective: boolean; }
@@ -29,6 +30,11 @@ const TeacherAcademic = () => {
   const [classGroups, setClassGroups] = useState<ClassGroup[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
   const [myClassGroups, setMyClassGroups] = useState<ClassGroup[]>([]);
+
+  const { totalUnread, markGroupAsRead } = useUnreadAcademicMessages(
+    myClassGroups.map(g => g.id),
+    userId || ""
+  );
 
   // Attendance state
   const [selectedSlot, setSelectedSlot] = useState<string>("");
@@ -216,8 +222,13 @@ const TeacherAcademic = () => {
             <TabsTrigger value="attendance" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm">
               <ClipboardList className="w-4 h-4 mr-2" />Attendance
             </TabsTrigger>
-            <TabsTrigger value="chat" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm">
+            <TabsTrigger value="chat" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm relative">
               <MessageCircle className="w-4 h-4 mr-2" />Messages
+              {totalUnread > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center px-1">
+                  {totalUnread > 99 ? "99+" : totalUnread}
+                </span>
+              )}
             </TabsTrigger>
           </TabsList>
 
@@ -399,7 +410,7 @@ const TeacherAcademic = () => {
 
           {/* CHAT */}
           <TabsContent value="chat">
-            <AcademicMessaging classGroups={myClassGroups} userId={userId || ""} isTeacher={true} />
+            <AcademicMessaging classGroups={myClassGroups} userId={userId || ""} isTeacher={true} onGroupViewed={markGroupAsRead} />
           </TabsContent>
         </Tabs>
       </main>

@@ -11,6 +11,7 @@ import { isLightColor, DAY_LABELS } from "@/lib/academic-utils";
 import FloatingChatButton from "@/components/student/FloatingChatButton";
 import AcademicCalendarSyncCard from "@/components/student/AcademicCalendarSyncCard";
 import AcademicMessaging from "@/components/academic/AcademicMessaging";
+import { useUnreadAcademicMessages } from "@/hooks/use-unread-academic-messages";
 import { format } from "date-fns";
 
 interface Period { id: number; label: string; start_time: string; end_time: string; is_break: boolean; sort_order: number; }
@@ -32,6 +33,11 @@ const StudentAcademic = () => {
   const [now, setNow] = useState(new Date());
   const [myClassGroups, setMyClassGroups] = useState<{ id: string; name: string }[]>([]);
   const [userId, setUserId] = useState<string>("");
+
+  const { totalUnread, markGroupAsRead } = useUnreadAcademicMessages(
+    myClassGroups.map(g => g.id),
+    userId
+  );
 
   // Handle Google Calendar callback redirect
   useEffect(() => {
@@ -298,8 +304,13 @@ const StudentAcademic = () => {
             <TabsTrigger value="attendance" className="rounded-lg text-xs sm:text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm">
               Stats
             </TabsTrigger>
-            <TabsTrigger value="chat" className="rounded-lg text-xs sm:text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm">
+            <TabsTrigger value="chat" className="rounded-lg text-xs sm:text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm relative">
               <MessageCircle className="w-3.5 h-3.5 mr-1 hidden sm:inline" />Chat
+              {totalUnread > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center px-1">
+                  {totalUnread > 99 ? "99+" : totalUnread}
+                </span>
+              )}
             </TabsTrigger>
           </TabsList>
 
@@ -615,7 +626,7 @@ const StudentAcademic = () => {
 
           {/* CHAT */}
           <TabsContent value="chat">
-            <AcademicMessaging classGroups={myClassGroups} userId={userId || ""} isTeacher={false} />
+            <AcademicMessaging classGroups={myClassGroups} userId={userId || ""} isTeacher={false} onGroupViewed={markGroupAsRead} />
           </TabsContent>
         </Tabs>
       </main>
