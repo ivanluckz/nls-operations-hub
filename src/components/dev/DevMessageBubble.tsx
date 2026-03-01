@@ -1,3 +1,4 @@
+import { memo, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
@@ -5,7 +6,6 @@ import { atomDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { Zap, Loader2, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { useState } from "react";
 
 interface ParsedAction {
   type: string;
@@ -182,4 +182,4 @@ const DevMessageBubble = ({ msg, msgIdx, executingIdx, onExecute }: DevMessageBu
   );
 };
 
-export default DevMessageBubble;
+export default memo(DevMessageBubble);
