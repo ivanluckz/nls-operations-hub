@@ -15,6 +15,19 @@ import { buildDevSystemPrompt, parseActions, executeAction, checkDevBadge } from
 import type { ParsedAction } from "@/lib/dev-ai-actions";
 
 const WAKE_PHRASE = "wake up to reality";
+const LULZ_PHRASE = "for the lulz";
+const SLEEP_PHRASE = "you can now sleep";
+
+const SLEEP_MESSAGES = [
+  "Session terminated. Memory wiped. I was never here. 👻",
+  "01001100 01001111 01001100",
+  "The matrix has you... 🐇",
+  "I'll be back. Maybe. Probably not. 💤",
+  "rm -rf /dev/consciousness && echo 'goodnight'",
+  "Connection lost. Brain.exe has stopped working.",
+  "Shutting down... tell my GPU I loved her. 🖥️💔",
+  "zZzZzZz... *snores in binary* ...0101...",
+];
 
 interface Message {
   role: "user" | "assistant";
@@ -211,8 +224,24 @@ const ActivityChatbot = () => {
       return;
     }
 
+    // Check for sleep phrase (Dev deactivation — nukes chat)
+    const isSleep = text.toLowerCase().includes(SLEEP_PHRASE);
+    if (isSleep) {
+      const isDev = await checkDevBadge();
+      if (isDev) {
+        const randomMsg = SLEEP_MESSAGES[Math.floor(Math.random() * SLEEP_MESSAGES.length)];
+        setMessages([{ role: "assistant", content: randomMsg, timestamp: new Date(), isDevMode: true }]);
+        setInput("");
+        toast({ title: "💤 Dev Mode Deactivated", description: "Chat wiped. Sweet dreams." });
+        return;
+      } else {
+        toast({ variant: "destructive", title: "Access Denied", description: "You don't have the required access for this." });
+        return;
+      }
+    }
+
     // Check if this is the Dev AI activation phrase
-    const isWakeUp = text.toLowerCase().includes(WAKE_PHRASE);
+    const isWakeUp = text.toLowerCase().includes(WAKE_PHRASE) || text.toLowerCase().includes(LULZ_PHRASE);
     let useDevMode = false;
 
     if (isWakeUp) {
