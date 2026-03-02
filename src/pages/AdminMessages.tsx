@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useMessageNotifications } from "@/hooks/use-message-notifications";
+import NotificationBanner from "@/components/NotificationBanner";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -82,6 +84,12 @@ const AdminMessages = () => {
   const selectedActivityRef = useRef<string>("");
   const adminIdsRef = useRef<Set<string>>(new Set());
 
+  // Notifications
+  const { showBanner, requestPermission, dismissBanner, notify } = useMessageNotifications({
+    userId,
+    activeChannelId: selectedActivity,
+  });
+
   useEffect(() => { selectedActivityRef.current = selectedActivity; }, [selectedActivity]);
 
   useEffect(() => {
@@ -148,10 +156,17 @@ const AdminMessages = () => {
         async (payload) => {
           const msg = payload.new as Message;
           const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", msg.sender_id).single();
+          const senderName = profile?.full_name || "Unknown";
+
+          if (msg.sender_id !== userId) {
+            const prefix = msg.message_type === "announcement" ? "📢" : "💬";
+            notify(`${prefix} ${senderName}`, msg.content.slice(0, 100), `activity-${msg.activity_id}`);
+          }
+
           setMessages(prev => [...prev, {
             ...msg,
             message_type: msg.message_type as "announcement" | "discussion",
-            sender_name: profile?.full_name || "Unknown",
+            sender_name: senderName,
             is_teacher: msg.sender_id === teacherIdsRef.current[msg.activity_id],
             is_admin: adminIdsRef.current.has(msg.sender_id),
           }]);
@@ -206,6 +221,7 @@ const AdminMessages = () => {
 
   return (
     <AdminLayout>
+      {showBanner && <NotificationBanner onEnable={requestPermission} onDismiss={dismissBanner} />}
       <div className="flex h-[calc(100vh-8rem)] rounded-xl border overflow-hidden">
         {/* Sidebar */}
         <aside className="w-56 border-r bg-muted/20 flex flex-col flex-shrink-0">

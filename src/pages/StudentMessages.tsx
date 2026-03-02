@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useMessageNotifications } from "@/hooks/use-message-notifications";
+import NotificationBanner from "@/components/NotificationBanner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -137,6 +139,12 @@ const StudentMessages = () => {
   const activityIdsRef = useRef<string[]>([]);
   const adminIdsRef = useRef<Set<string>>(new Set());
 
+  // Notifications
+  const { showBanner, requestPermission, dismissBanner, notify } = useMessageNotifications({
+    userId,
+    activeChannelId: selectedActivity,
+  });
+
   useEffect(() => { selectedActivityRef.current = selectedActivity; }, [selectedActivity]);
 
   useEffect(() => {
@@ -254,13 +262,24 @@ const StudentMessages = () => {
         const msg = payload.new as Message;
         if (!activityIdsRef.current.includes(msg.activity_id)) return;
         const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", msg.sender_id).single();
+        const senderName = profile?.full_name || "Unknown";
         const enriched: Message = {
           ...msg,
           message_type: msg.message_type as "announcement" | "discussion",
-          sender_name: profile?.full_name || "Unknown",
+          sender_name: senderName,
           is_teacher: msg.sender_id === teacherIdsRef.current[msg.activity_id],
           is_admin: adminIdsRef.current.has(msg.sender_id),
         };
+
+        // Notify if not from self
+        if (msg.sender_id !== userId) {
+          const isViewing = msg.activity_id === selectedActivityRef.current && !document.hidden;
+          if (!isViewing) {
+            const prefix = msg.message_type === "announcement" ? "📢" : "💬";
+            notify(`${prefix} ${senderName}`, msg.content.slice(0, 100), `activity-${msg.activity_id}`);
+          }
+        }
+
         if (msg.activity_id === selectedActivityRef.current) {
           setMessages(prev => [...prev, enriched]);
         } else {
@@ -482,6 +501,7 @@ const StudentMessages = () => {
 
   return (
     <div className="h-screen flex flex-col bg-background overflow-hidden">
+      {showBanner && <NotificationBanner onEnable={requestPermission} onDismiss={dismissBanner} />}
       <header className="border-b bg-card shadow-sm flex-shrink-0 z-10">
         <div className="px-4 py-3 flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => navigate("/student")} className="flex-shrink-0">
