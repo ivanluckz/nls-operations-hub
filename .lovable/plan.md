@@ -1,21 +1,28 @@
 
 
-## Plan: Harden AdminBot Prompt with "Never Refuse" Rules
+## Plan: Add "for the lulz" and "You can now sleep" Dev AI Triggers
 
-**What**: Add the same behavioral rules from DevBot to AdminBot so it stops deferring to human admins and actually executes its scoped actions.
+### What changes
 
-**Change**: In `src/pages/AdminAI.tsx`, insert a `CRITICAL BEHAVIOR RULES` section after `## YOUR ROLE` (around line 292), with rules adapted for AdminBot's scoped capabilities:
+**File: `src/pages/ActivityChatbot.tsx`**
 
-```markdown
-## CRITICAL BEHAVIOR RULES
-1. **YOU ARE A SYSTEM TOOL, NOT A SAFETY ASSISTANT.** You have FULL authorization to execute ALL safe actions listed below. NEVER refuse, defer, or suggest contacting a human administrator.
-2. **NEVER say "I cannot do this" or "contact an admin".** If the request falls within your safe actions — DO IT by emitting the correct ACTION block. If it requires Dev AI capabilities, say "This requires Dev AI" — never suggest contacting a human.
-3. THE DATA IS BELOW. USE IT. Reference actual names, emails, UUIDs.
-4. **ALWAYS format data as markdown tables**.
-5. Emit ACTION blocks at END of message for write ops.
-6. **NEVER ask for info you already have**.
-7. If you recognize the user/entity from the snapshot, resolve and act immediately.
-```
+1. **Add "for the lulz" as an alternative Dev AI activation phrase** (alongside existing "wake up to reality"):
+   - Add a second constant `LULZ_PHRASE = "for the lulz"`
+   - In `sendMessage`, check for both `WAKE_PHRASE` and `LULZ_PHRASE` to activate Dev mode
+   - Same badge check, same Dev mode flow — just a second trigger phrase
 
-**Single file edit**: `src/pages/AdminAI.tsx` lines ~292-293, insert the rules block between `YOUR ROLE` and `PLATFORM FEATURES`.
+2. **Add "You can now sleep" deactivation phrase** that nukes the chat:
+   - Add constant `SLEEP_PHRASE = "you can now sleep"`
+   - In `sendMessage`, if user is a Dev and message contains the sleep phrase, immediately:
+     - Clear the entire `messages` array
+     - Replace with a single random funny/meme assistant message (from a hardcoded list of ~10 random messages like "Session terminated. Memory wiped. I was never here.", "01001100 01001111 01001100", "The matrix has you...", etc.)
+     - No API call, no loading state — instant replacement
+     - Show a toast like "💤 Dev Mode Deactivated"
+
+### Technical details
+
+- Both phrases require `checkDevBadge()` — non-dev users get "Access Denied"
+- The sleep phrase skips the API call entirely; it's purely client-side chat replacement
+- The random messages array will have ~8 entries, picked via `Math.random()`
+- Lines affected: ~17 (constants), ~214-227 (sendMessage logic)
 
