@@ -1,6 +1,7 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
+import { Badge } from "@/components/ui/badge";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import {
   Sidebar,
@@ -76,6 +77,7 @@ export function AdminSidebar() {
   const collapsed = state === "collapsed";
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [pendingCount, setPendingCount] = useState(0);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -90,6 +92,26 @@ export function AdminSidebar() {
       }
     };
     fetchProfile();
+  }, []);
+
+  useEffect(() => {
+    const fetchPending = async () => {
+      const { count } = await supabase
+        .from("student_requests")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "pending");
+      setPendingCount(count || 0);
+    };
+    fetchPending();
+
+    const channel = supabase
+      .channel("pending-requests-count")
+      .on("postgres_changes", { event: "*", schema: "public", table: "student_requests" }, () => {
+        fetchPending();
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, []);
 
   const handleLogout = async () => {
@@ -155,7 +177,12 @@ export function AdminSidebar() {
                         className="w-full flex items-center gap-3"
                       >
                         <item.icon className={`h-4 w-4 ${isHighlighted ? "text-primary" : ""}`} />
-                        <span>{item.title}</span>
+                        <span className="flex-1">{item.title}</span>
+                        {item.title === "Admin AI" && pendingCount > 0 && (
+                          <Badge variant="destructive" className="ml-auto h-5 min-w-5 px-1.5 text-xs font-bold">
+                            {pendingCount}
+                          </Badge>
+                        )}
                       </button>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
