@@ -1,24 +1,11 @@
 import { useNavigate } from "react-router-dom";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Shield, UserCog, ClipboardCheck, AlertTriangle, UserCheck, Sparkles, BookOpen, Activity, ArrowRight, Terminal, Zap } from "lucide-react";
+import { Users, Shield, UserCog, ClipboardCheck, AlertTriangle, UserCheck, Sparkles, BookOpen, Activity, Zap } from "lucide-react";
 import FloatingChatButton from "@/components/student/FloatingChatButton";
-import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
-  const [hasDev, setHasDev] = useState(false);
-
-  useEffect(() => {
-    const checkDev = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      const { data } = await (supabase as any).from("user_badges").select("id").eq("user_id", user.id).eq("badge_name", "Dev").maybeSingle();
-      setHasDev(!!data);
-    };
-    checkDev();
-  }, []);
   const quickActions = [
     { title: "User Management", description: "Manage users and roles", icon: UserCog, url: "/admin/user-management", color: "bg-secondary/10 text-secondary" },
     { title: "Manage Activities", description: "Add, edit, or remove activities", icon: Shield, url: "/admin/co-curricular/activities", color: "bg-primary/10 text-primary" },
@@ -36,24 +23,14 @@ const AdminDashboard = () => {
   return (
     <AdminLayout>
       <div className="space-y-8">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center">
-              <Activity className="h-5 w-5 text-secondary" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight">Co-curricular</h1>
-              <p className="text-sm text-muted-foreground">After-school activities management</p>
-            </div>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center">
+            <Activity className="h-5 w-5 text-secondary" />
           </div>
-          {hasDev && (
-            <button onClick={() => navigate("/dev/ai")}
-              className="flex items-center gap-2 rounded-xl border border-dashed border-cyan-400/50 bg-gradient-to-r from-cyan-500/5 to-cyan-500/5 px-4 py-2 hover:border-cyan-400 transition-all text-left group dev-msg-glow">
-              <Terminal className="w-4 h-4 text-cyan-400" />
-              <span className="text-sm font-medium dev-name-glow">Dev AI</span>
-              <ArrowRight className="w-3 h-3 text-muted-foreground group-hover:text-cyan-400 transition-colors" />
-            </button>
-          )}
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Co-curricular</h1>
+            <p className="text-sm text-muted-foreground">After-school activities management</p>
+          </div>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">

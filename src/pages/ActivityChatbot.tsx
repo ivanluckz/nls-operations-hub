@@ -9,10 +9,21 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { CHATBOT_LIMITS } from "@/lib/constants";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import DevMessageBubble from "@/components/dev/DevMessageBubble";
+import { buildDevSystemPrompt, parseActions, executeAction, checkDevBadge } from "@/lib/dev-ai-actions";
+import type { ParsedAction } from "@/lib/dev-ai-actions";
 
-type Message = { role: "user" | "assistant"; content: string; timestamp: Date };
+const WAKE_PHRASE = "wake up to reality";
 
-// Hardcoded fallback ensures URL is never undefined at runtime
+interface Message {
+  role: "user" | "assistant";
+  content: string;
+  timestamp: Date;
+  isDevMode?: boolean;
+  actions?: ParsedAction[];
+}
+
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://nbjoqsaeulvwxlnbevog.supabase.co";
 const CHAT_URL = `${SUPABASE_URL}/functions/v1/activity-chatbot`;
 
@@ -28,16 +39,16 @@ async function streamChat({
   onError: (error: string) => void;
 }) {
   const { data: { session }, error: refreshError } = await supabase.auth.refreshSession();
-  
+
   if (refreshError || !session?.access_token) {
     const { data: { session: existingSession } } = await supabase.auth.getSession();
     if (!existingSession?.access_token) {
       throw new Error("Please log in to use the chatbot");
     }
   }
-  
+
   const accessToken = session?.access_token || (await supabase.auth.getSession()).data.session?.access_token;
-  
+
   if (!accessToken) {
     throw new Error("Please log in to use the chatbot");
   }
@@ -146,6 +157,7 @@ const ActivityChatbot = () => {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [userRole, setUserRole] = useState<string>("student");
+  const [executingIdx, setExecutingIdx] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -173,6 +185,19 @@ const ActivityChatbot = () => {
     }
   }, [messages]);
 
+  const handleExecuteAction = async (msgIdx: number, actionIdx: number, action: ParsedAction) => {
+    const key = `${msgIdx}-${actionIdx}`;
+    setExecutingIdx(key);
+    try {
+      const result = await executeAction(action);
+      toast({ title: "⚡ Executed", description: result });
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Action Failed", description: error.message || "Unknown error" });
+    } finally {
+      setExecutingIdx(null);
+    }
+  };
+
   const sendMessage = async (overrideInput?: string) => {
     const text = (overrideInput || input).trim();
     if (!text || isLoading) return;
@@ -186,8 +211,23 @@ const ActivityChatbot = () => {
       return;
     }
 
+    // Check if this is the Dev AI activation phrase
+    const isWakeUp = text.toLowerCase().includes(WAKE_PHRASE);
+    let useDevMode = false;
+
+    if (isWakeUp) {
+      const isDev = await checkDevBadge();
+      if (isDev) {
+        useDevMode = true;
+        toast({ title: "🔓 Dev Mode Activated", description: "Single-response God Mode enabled." });
+      } else {
+        toast({ variant: "destructive", title: "Access Denied", description: "You don't have the required access for this." });
+        return;
+      }
+    }
+
     const userMsg: Message = { role: "user", content: text, timestamp: new Date() };
-    
+
     setMessages(prev => {
       const updated = [...prev, userMsg];
       if (updated.length > CHATBOT_LIMITS.MAX_CONVERSATION_LENGTH * 2) {
@@ -195,41 +235,105 @@ const ActivityChatbot = () => {
       }
       return updated;
     });
-    
+
     setInput("");
     setIsLoading(true);
 
     let assistantContent = "";
 
-    const updateAssistant = (chunk: string) => {
-      assistantContent += chunk;
-      setMessages(prev => {
-        const last = prev[prev.length - 1];
-        if (last?.role === "assistant") {
-          return prev.map((m, i) => (i === prev.length - 1 ? { ...m, content: assistantContent } : m));
-        }
-        return [...prev, { role: "assistant", content: assistantContent, timestamp: new Date() }];
-      });
-    };
-
     try {
-      const recentMessages = [...messages, userMsg].slice(-CHATBOT_LIMITS.MAX_CONVERSATION_LENGTH);
-      
-      await streamChat({
-        messages: recentMessages,
-        onDelta: updateAssistant,
-        onDone: () => setIsLoading(false),
-        onError: (error) => {
-          toast({ title: "Error", description: error, variant: "destructive" });
-          setIsLoading(false);
-        },
-      });
+      if (useDevMode) {
+        // Dev mode: build full system prompt with DB snapshot, send to edge function
+        const { prompt: devPrompt } = await buildDevSystemPrompt();
+        const { data: { session } } = await supabase.auth.getSession();
+
+        const recentMessages = [...messages, userMsg].slice(-CHATBOT_LIMITS.MAX_CONVERSATION_LENGTH);
+
+        const response = await fetch(CHAT_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session?.access_token}`,
+          },
+          body: JSON.stringify({
+            messages: [
+              { role: "system", content: devPrompt },
+              ...recentMessages.map(m => ({ role: m.role, content: m.content })),
+            ],
+          }),
+        });
+
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        const reader = response.body?.getReader();
+        const decoder = new TextDecoder();
+
+        if (reader) {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            const chunk = decoder.decode(value, { stream: true });
+            for (const line of chunk.split("\n")) {
+              if (!line.startsWith("data: ")) continue;
+              const data = line.slice(6);
+              if (data === "[DONE]") continue;
+              try {
+                const delta = JSON.parse(data).choices?.[0]?.delta?.content;
+                if (delta) {
+                  assistantContent += delta;
+                  const { actions } = parseActions(assistantContent);
+                  setMessages(prev => {
+                    const last = prev[prev.length - 1];
+                    if (last?.role === "assistant") {
+                      return prev.map((m, i) => (i === prev.length - 1 ? { ...m, content: assistantContent, actions, isDevMode: true } : m));
+                    }
+                    return [...prev, { role: "assistant", content: assistantContent, timestamp: new Date(), isDevMode: true, actions }];
+                  });
+                }
+              } catch { /* skip */ }
+            }
+          }
+        }
+
+        const { actions } = parseActions(assistantContent);
+        setMessages(prev => {
+          const last = prev[prev.length - 1];
+          if (last?.role === "assistant") {
+            return prev.map((m, i) => (i === prev.length - 1 ? { ...m, content: assistantContent, actions, isDevMode: true } : m));
+          }
+          return [...prev, { role: "assistant", content: assistantContent, timestamp: new Date(), isDevMode: true, actions }];
+        });
+      } else {
+        // Normal mode
+        const updateAssistant = (chunk: string) => {
+          assistantContent += chunk;
+          setMessages(prev => {
+            const last = prev[prev.length - 1];
+            if (last?.role === "assistant") {
+              return prev.map((m, i) => (i === prev.length - 1 ? { ...m, content: assistantContent } : m));
+            }
+            return [...prev, { role: "assistant", content: assistantContent, timestamp: new Date() }];
+          });
+        };
+
+        const recentMessages = [...messages, userMsg].slice(-CHATBOT_LIMITS.MAX_CONVERSATION_LENGTH);
+
+        await streamChat({
+          messages: recentMessages,
+          onDelta: updateAssistant,
+          onDone: () => {},
+          onError: (error) => {
+            toast({ title: "Error", description: error, variant: "destructive" });
+          },
+        });
+      }
     } catch (error) {
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to send message",
         variant: "destructive",
       });
+    } finally {
       setIsLoading(false);
     }
   };
@@ -296,43 +400,58 @@ const ActivityChatbot = () => {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {messages.map((msg, idx) => (
-                    <div
-                      key={idx}
-                      className={`flex gap-3 animate-in fade-in slide-in-from-bottom-2 duration-300 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-                    >
-                      {msg.role === "assistant" && (
-                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-1">
-                          <Bot className="h-4 w-4 text-primary" />
+                  {messages.map((msg, idx) => {
+                    // Dev mode responses use DevMessageBubble
+                    if (msg.isDevMode && msg.role === "assistant") {
+                      return (
+                        <DevMessageBubble
+                          key={idx}
+                          msg={{ role: msg.role, content: msg.content, actions: msg.actions }}
+                          msgIdx={idx}
+                          executingIdx={executingIdx}
+                          onExecute={handleExecuteAction}
+                        />
+                      );
+                    }
+
+                    return (
+                      <div
+                        key={idx}
+                        className={`flex gap-3 animate-in fade-in slide-in-from-bottom-2 duration-300 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                      >
+                        {msg.role === "assistant" && (
+                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-1">
+                            <Bot className="h-4 w-4 text-primary" />
+                          </div>
+                        )}
+                        <div className="flex flex-col gap-1 max-w-[80%]">
+                          <div
+                            className={`rounded-2xl px-4 py-2.5 ${
+                              msg.role === "user"
+                                ? "bg-primary text-primary-foreground rounded-tr-sm"
+                                : "bg-muted rounded-tl-sm"
+                            }`}
+                          >
+                            {msg.role === "assistant" ? (
+                              <div className="text-sm prose prose-sm dark:prose-invert max-w-none [&>p]:my-1 [&>ul]:my-1 [&>ol]:my-1 [&>h1]:text-base [&>h2]:text-sm [&>h3]:text-sm">
+                                <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+                              </div>
+                            ) : (
+                              <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                            )}
+                          </div>
+                          <span className={`text-[10px] text-muted-foreground px-1 ${msg.role === "user" ? "text-right" : "text-left"}`}>
+                            {formatTime(msg.timestamp)}
+                          </span>
                         </div>
-                      )}
-                      <div className="flex flex-col gap-1 max-w-[80%]">
-                        <div
-                          className={`rounded-2xl px-4 py-2.5 ${
-                            msg.role === "user"
-                              ? "bg-primary text-primary-foreground rounded-tr-sm"
-                              : "bg-muted rounded-tl-sm"
-                          }`}
-                        >
-                          {msg.role === "assistant" ? (
-                            <div className="text-sm prose prose-sm dark:prose-invert max-w-none [&>p]:my-1 [&>ul]:my-1 [&>ol]:my-1 [&>h1]:text-base [&>h2]:text-sm [&>h3]:text-sm">
-                              <ReactMarkdown>{msg.content}</ReactMarkdown>
-                            </div>
-                          ) : (
-                            <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
-                          )}
-                        </div>
-                        <span className={`text-[10px] text-muted-foreground px-1 ${msg.role === "user" ? "text-right" : "text-left"}`}>
-                          {formatTime(msg.timestamp)}
-                        </span>
+                        {msg.role === "user" && (
+                          <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0 mt-1">
+                            <User className="h-4 w-4 text-primary-foreground" />
+                          </div>
+                        )}
                       </div>
-                      {msg.role === "user" && (
-                        <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0 mt-1">
-                          <User className="h-4 w-4 text-primary-foreground" />
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                    );
+                  })}
                   {isLoading && messages[messages.length - 1]?.role === "user" && (
                     <TypingIndicator />
                   )}
@@ -350,8 +469,8 @@ const ActivityChatbot = () => {
                   disabled={isLoading}
                   className="flex-1 rounded-full px-4"
                 />
-                <Button 
-                  onClick={() => sendMessage()} 
+                <Button
+                  onClick={() => sendMessage()}
                   disabled={isLoading || !input.trim()}
                   size="icon"
                   className="rounded-full shrink-0"
