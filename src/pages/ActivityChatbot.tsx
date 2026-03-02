@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { flushSync } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -189,15 +190,18 @@ const ActivityChatbot = () => {
     fetchRole();
   }, []);
 
+  const scrollToBottom = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    // ScrollArea renders a [data-radix-scroll-area-viewport] child
+    const viewport = el.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement | null;
+    const target = viewport || el;
+    target.scrollTop = target.scrollHeight;
+  }, []);
+
   useEffect(() => {
-    if (scrollRef.current) {
-      requestAnimationFrame(() => {
-        if (scrollRef.current) {
-          scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-        }
-      });
-    }
-  }, [messages]);
+    scrollToBottom();
+  }, [messages, scrollToBottom]);
 
   const handleExecuteAction = async (msgIdx: number, actionIdx: number, action: ParsedAction) => {
     const key = `${msgIdx}-${actionIdx}`;
@@ -314,13 +318,16 @@ const ActivityChatbot = () => {
                 if (delta) {
                   assistantContent += delta;
                   const { actions } = parseActions(assistantContent);
-                  setMessages(prev => {
-                    const last = prev[prev.length - 1];
-                    if (last?.role === "assistant") {
-                      return prev.map((m, i) => (i === prev.length - 1 ? { ...m, content: assistantContent, actions, isDevMode: true } : m));
-                    }
-                    return [...prev, { role: "assistant", content: assistantContent, timestamp: new Date(), isDevMode: true, actions }];
+                  flushSync(() => {
+                    setMessages(prev => {
+                      const last = prev[prev.length - 1];
+                      if (last?.role === "assistant") {
+                        return prev.map((m, i) => (i === prev.length - 1 ? { ...m, content: assistantContent, actions, isDevMode: true } : m));
+                      }
+                      return [...prev, { role: "assistant", content: assistantContent, timestamp: new Date(), isDevMode: true, actions }];
+                    });
                   });
+                  scrollToBottom();
                 }
               } catch { /* skip */ }
             }
@@ -339,13 +346,16 @@ const ActivityChatbot = () => {
         // Normal mode
         const updateAssistant = (chunk: string) => {
           assistantContent += chunk;
-          setMessages(prev => {
-            const last = prev[prev.length - 1];
-            if (last?.role === "assistant") {
-              return prev.map((m, i) => (i === prev.length - 1 ? { ...m, content: assistantContent } : m));
-            }
-            return [...prev, { role: "assistant", content: assistantContent, timestamp: new Date() }];
+          flushSync(() => {
+            setMessages(prev => {
+              const last = prev[prev.length - 1];
+              if (last?.role === "assistant") {
+                return prev.map((m, i) => (i === prev.length - 1 ? { ...m, content: assistantContent } : m));
+              }
+              return [...prev, { role: "assistant", content: assistantContent, timestamp: new Date() }];
+            });
           });
+          scrollToBottom();
         };
 
         const recentMessages = [...messages, userMsg].slice(-CHATBOT_LIMITS.MAX_CONVERSATION_LENGTH);
