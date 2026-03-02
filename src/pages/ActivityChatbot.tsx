@@ -174,6 +174,7 @@ const ActivityChatbot = () => {
   const [executingIdx, setExecutingIdx] = useState<string | null>(null);
   const [devModeActive, setDevModeActive] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const devPromptRef = useRef<string | null>(null);
 
   useEffect(() => {
     const fetchRole = async () => {
@@ -238,6 +239,7 @@ const ActivityChatbot = () => {
         setMessages([{ role: "assistant", content: randomMsg, timestamp: new Date(), isDevMode: true }]);
         setInput("");
         setDevModeActive(false);
+        devPromptRef.current = null;
         toast({ title: "💤 Dev Mode Deactivated", description: "Chat wiped. Sweet dreams." });
         return;
       } else {
@@ -279,61 +281,43 @@ const ActivityChatbot = () => {
 
     try {
       if (useDevMode) {
-        // Dev mode: build full system prompt with DB snapshot, send to edge function
-        const { prompt: devPrompt } = await buildDevSystemPrompt();
-        const { data: { session } } = await supabase.auth.getSession();
+        // Dev mode: build full system prompt once per active dev session
+        if (!devPromptRef.current) {
+          const { prompt } = await buildDevSystemPrompt();
+          devPromptRef.current = prompt;
+        }
+        const devPrompt = devPromptRef.current;
+        if (!devPrompt) throw new Error("Failed to initialize Dev prompt");
 
         const recentMessages = [...messages, userMsg].slice(-CHATBOT_LIMITS.MAX_CONVERSATION_LENGTH);
 
-        const response = await fetch(CHAT_URL, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session?.access_token}`,
+        const updateDevAssistant = (chunk: string) => {
+          assistantContent += chunk;
+          flushSync(() => {
+            setMessages(prev => {
+              const last = prev[prev.length - 1];
+              if (last?.role === "assistant") {
+                return prev.map((m, i) => (i === prev.length - 1 ? { ...m, content: assistantContent, isDevMode: true } : m));
+              }
+              return [...prev, { role: "assistant", content: assistantContent, timestamp: new Date(), isDevMode: true }];
+            });
+          });
+          scrollToBottom();
+        };
+
+        await streamChat({
+          messages: [
+            { role: "system", content: devPrompt },
+            ...recentMessages.map(m => ({ role: m.role, content: m.content })),
+          ],
+          onDelta: updateDevAssistant,
+          onDone: () => {},
+          onError: (error) => {
+            toast({ title: "Error", description: error, variant: "destructive" });
           },
-          body: JSON.stringify({
-            messages: [
-              { role: "system", content: devPrompt },
-              ...recentMessages.map(m => ({ role: m.role, content: m.content })),
-            ],
-          }),
         });
 
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-        const reader = response.body?.getReader();
-        const decoder = new TextDecoder();
-
-        if (reader) {
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            const chunk = decoder.decode(value, { stream: true });
-            for (const line of chunk.split("\n")) {
-              if (!line.startsWith("data: ")) continue;
-              const data = line.slice(6);
-              if (data === "[DONE]") continue;
-              try {
-                const delta = JSON.parse(data).choices?.[0]?.delta?.content;
-                if (delta) {
-                  assistantContent += delta;
-                  const { actions } = parseActions(assistantContent);
-                  flushSync(() => {
-                    setMessages(prev => {
-                      const last = prev[prev.length - 1];
-                      if (last?.role === "assistant") {
-                        return prev.map((m, i) => (i === prev.length - 1 ? { ...m, content: assistantContent, actions, isDevMode: true } : m));
-                      }
-                      return [...prev, { role: "assistant", content: assistantContent, timestamp: new Date(), isDevMode: true, actions }];
-                    });
-                  });
-                  scrollToBottom();
-                }
-              } catch { /* skip */ }
-            }
-          }
-        }
-
+        // Parse actions once at the end for better streaming performance
         const { actions } = parseActions(assistantContent);
         setMessages(prev => {
           const last = prev[prev.length - 1];
