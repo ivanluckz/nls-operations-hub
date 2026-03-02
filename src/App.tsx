@@ -39,6 +39,8 @@ import DirectMessages from "./pages/DirectMessages";
 import UnifiedCalendar from "./pages/UnifiedCalendar";
 import SetPassword from "./pages/SetPassword";
 import DevAI from "./pages/DevAI";
+import StudentRequests from "./pages/StudentRequests";
+import AdminAI from "./pages/AdminAI";
 
 const queryClient = new QueryClient();
 
@@ -68,6 +70,7 @@ const AppContent = () => {
           <Route path="/student/leaderboard" element={<ProtectedRoute requiredRole="student"><Leaderboard /></ProtectedRoute>} />
           <Route path="/student/dms" element={<ProtectedRoute requiredRole="student"><DirectMessages /></ProtectedRoute>} />
           <Route path="/student/calendar" element={<ProtectedRoute requiredRole="student"><UnifiedCalendar /></ProtectedRoute>} />
+          <Route path="/student/request" element={<ProtectedRoute requiredRole="student"><StudentRequests /></ProtectedRoute>} />
 
           {/* Moderator */}
           <Route path="/moderator" element={<ProtectedRoute requiredRole="moderator"><ModeratorDashboard /></ProtectedRoute>} />
@@ -97,6 +100,7 @@ const AppContent = () => {
           <Route path="/admin/co-curricular/badge-requests" element={<ProtectedRoute requiredRole="admin"><AdminBadgeRequests /></ProtectedRoute>} />
           <Route path="/admin/dms" element={<ProtectedRoute requiredRole="admin"><DirectMessages /></ProtectedRoute>} />
           <Route path="/admin/profile" element={<ProtectedRoute requiredRole="admin"><AdminProfile /></ProtectedRoute>} />
+          <Route path="/admin/admin-ai" element={<ProtectedRoute requiredRole="admin"><AdminAI /></ProtectedRoute>} />
 
           {/* Teacher */}
           <Route path="/teacher" element={<ProtectedRoute requiredRole="teacher"><TeacherDashboard /></ProtectedRoute>} />

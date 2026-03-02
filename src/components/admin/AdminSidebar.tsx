@@ -39,6 +39,7 @@ import {
   LayoutDashboard,
   MessageSquare,
   Award,
+  Zap,
 } from "lucide-react";
 
 import nlsLogo from "@/assets/nls-logo.png";
@@ -57,6 +58,7 @@ const coCurricularItems = [
   { title: "AI Weekly Summary", url: "/admin/co-curricular/weekly-summary", icon: Sparkles, description: "AI reports", highlight: true },
   { title: "All Chats", url: "/admin/co-curricular/messages", icon: MessageSquare, description: "View all activity chats" },
   { title: "Badge Requests", url: "/admin/co-curricular/badge-requests", icon: Award, description: "Approve student badges" },
+  { title: "Admin AI", url: "/admin/admin-ai", icon: Zap, description: "AI-powered request processing", highlight: true },
   { title: "Direct Messages", url: "/admin/dms", icon: MessageSquare, description: "Message anyone directly" },
 ];
 

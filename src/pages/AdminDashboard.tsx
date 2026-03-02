@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Shield, UserCog, ClipboardCheck, AlertTriangle, UserCheck, Sparkles, BookOpen, Activity, ArrowRight, Terminal } from "lucide-react";
+import { Users, Shield, UserCog, ClipboardCheck, AlertTriangle, UserCheck, Sparkles, BookOpen, Activity, ArrowRight, Terminal, Zap } from "lucide-react";
 import FloatingChatButton from "@/components/student/FloatingChatButton";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -30,6 +30,7 @@ const AdminDashboard = () => {
     { title: "Attendance Reports", description: "View absent & late students", icon: AlertTriangle, url: "/admin/co-curricular/attendance-reports", color: "bg-destructive/10 text-destructive" },
     { title: "Pre-Excuse Students", description: "Excuse students ahead of time", icon: UserCheck, url: "/admin/co-curricular/pre-excuse", color: "bg-accent/10 text-accent-foreground" },
     { title: "AI Weekly Summary", description: "AI-powered trend reports", icon: Sparkles, url: "/admin/co-curricular/weekly-summary", color: "bg-primary/10 text-primary", highlight: true },
+    { title: "Admin AI", description: "Process student requests with AI", icon: Zap, url: "/admin/admin-ai", color: "bg-primary/10 text-primary", highlight: true },
   ];
 
   return (
