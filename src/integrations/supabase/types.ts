@@ -968,6 +968,45 @@ export type Database = {
         }
         Relationships: []
       }
+      student_requests: {
+        Row: {
+          admin_notes: string | null
+          created_at: string
+          details: Json | null
+          id: string
+          reason: string
+          request_type: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          student_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          created_at?: string
+          details?: Json | null
+          id?: string
+          reason?: string
+          request_type: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          student_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          created_at?: string
+          details?: Json | null
+          id?: string
+          reason?: string
+          request_type?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          student_id?: string
+        }
+        Relationships: []
+      }
       timetable_enrollments: {
         Row: {
           id: string
