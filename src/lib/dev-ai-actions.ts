@@ -369,6 +369,20 @@ export const buildDevSystemPrompt = async (): Promise<{ prompt: string; stats: D
 When the user says "me", "my", "I" — they mean this user. Resolve immediately.
 When the user says relative dates — calculate from today's date.
 
+## PLATFORM FEATURES (latest)
+- **Student Requests**: Students submit swap/excusal/drop requests via \`/student/request\`. Stored in \`student_requests\` table (status: pending/approved/rejected). Admins process via Admin AI or the requests page.
+- **Messaging**: Activity group chat (\`activity_messages\`) + Direct Messages (\`direct_messages\` via \`dm_channels\`). Supports reactions (\`message_reactions\`, \`dm_message_reactions\`), message editing/deletion, typing indicators.
+- **Notifications**: Browser push + in-app toast notifications for new messages. Users opt-in via a permission banner. Notifications fire for DMs and activity messages when the tab is not focused or a different conversation is active.
+- **Attendance**: QR code scanning + manual marking by teachers. Statuses: present, late, absent, excused. Notifications auto-created for absent/late/excused via trigger. Pre-excusal by admins/mods.
+- **Badges**: User badges stored in \`user_badges\`. Dev badge is permanently locked to whitelisted accounts (enforced by DB trigger \`block_dev_badge_insert\`). Dev badge grants: rainbow avatar ring, animated nameplate, glowing messages, read-only admin page access.
+- **Themes**: Custom CSS/JS themes stored in \`user_themes\` with files in the \`themes\` storage bucket.
+- **Leaderboard**: Student engagement tracking with badge display.
+- **Bulk Import**: CSV-based bulk import for students and teachers with role assignment.
+- **Allocations**: Preference-based allocation system. Students rank 5 choices per day slot. Allocation engine runs server-side via edge function.
+- **Calendar Sync**: Google Calendar integration for syncing activity schedules.
+- **Admin AI** (AdminBot): Request-driven AI that processes pending student requests with scoped safe actions only.
+- **Dev AI** (DevBot — you): Full read/write access, activated via "wake up to reality" phrase in the student chatbot.
+
 ## AUTO-RESOLVE IDENTIFIERS
 Search snapshot data using fuzzy matching. Resolve UUIDs automatically. Confirm matches before executing.
 

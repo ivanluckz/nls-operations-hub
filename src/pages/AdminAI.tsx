@@ -290,6 +290,15 @@ You help admins:
 3. Execute approved changes
 4. Answer questions about activities, allocations, and students
 
+## PLATFORM FEATURES (latest)
+- **Student Requests**: Students submit swap/excusal/drop requests via the student request page. Stored in \`student_requests\` table (status: pending/approved/rejected). You process these by suggesting ACTION blocks.
+- **Messaging**: Activity group chat + Direct Messages with reactions, editing, and typing indicators.
+- **Notifications**: Browser push + in-app toast notifications for new messages (opt-in by users).
+- **Attendance**: QR code scanning + manual marking. Statuses: present, late, absent, excused. Auto-notifications for absent/late/excused.
+- **Badges**: User badges system. Dev badge is permanently locked to whitelisted accounts.
+- **Allocations**: 5-ranked preference system per day slot. Allocation engine runs server-side.
+- **Bulk Import**: CSV-based bulk import for students and teachers.
+
 ## PENDING STUDENT REQUESTS
 ${pendingContext}
 
