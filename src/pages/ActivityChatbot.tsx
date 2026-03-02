@@ -171,6 +171,7 @@ const ActivityChatbot = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [userRole, setUserRole] = useState<string>("student");
   const [executingIdx, setExecutingIdx] = useState<string | null>(null);
+  const [devModeActive, setDevModeActive] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -232,6 +233,7 @@ const ActivityChatbot = () => {
         const randomMsg = SLEEP_MESSAGES[Math.floor(Math.random() * SLEEP_MESSAGES.length)];
         setMessages([{ role: "assistant", content: randomMsg, timestamp: new Date(), isDevMode: true }]);
         setInput("");
+        setDevModeActive(false);
         toast({ title: "💤 Dev Mode Deactivated", description: "Chat wiped. Sweet dreams." });
         return;
       } else {
@@ -240,15 +242,16 @@ const ActivityChatbot = () => {
       }
     }
 
-    // Check if this is the Dev AI activation phrase
+    // Check if this is the Dev AI activation phrase (persists for entire session)
     const isWakeUp = text.toLowerCase().includes(WAKE_PHRASE) || text.toLowerCase().includes(LULZ_PHRASE);
-    let useDevMode = false;
+    let useDevMode = devModeActive;
 
-    if (isWakeUp) {
+    if (isWakeUp && !devModeActive) {
       const isDev = await checkDevBadge();
       if (isDev) {
         useDevMode = true;
-        toast({ title: "🔓 Dev Mode Activated", description: "Single-response God Mode enabled." });
+        setDevModeActive(true);
+        toast({ title: "🔓 Dev Mode Activated", description: "God Mode enabled for this session." });
       } else {
         toast({ variant: "destructive", title: "Access Denied", description: "You don't have the required access for this." });
         return;
