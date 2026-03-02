@@ -72,15 +72,39 @@ const StudentDashboard = () => {
 
       setHasPreferences(!!preferenceData);
 
-      const [{ data: allocationsData }, { data: allBadges }] = await Promise.all([
+      const [{ data: allocationsData }, { data: allBadges }, { data: reviewedRequests }] = await Promise.all([
         supabase.from("allocations").select("*, activities(*)").eq("student_id", user.id),
         (supabase as any).from("user_badges").select("badge_name").eq("user_id", user.id).limit(20),
+        supabase
+          .from("student_requests")
+          .select("id, request_type, status, admin_notes, reviewed_at")
+          .eq("student_id", user.id)
+          .in("status", ["approved", "denied"])
+          .order("reviewed_at", { ascending: false })
+          .limit(5),
       ]);
 
       const badgeNames = (allBadges || []).map((b: any) => b.badge_name);
       setAllocations((allocationsData as Allocation[] || []).filter(a => a.activities != null));
       setHasDev(badgeNames.includes("Dev"));
       setUserBadges(badgeNames);
+
+      // Show toast for recently reviewed requests not yet seen
+      const seenKey = "seen_request_reviews";
+      const seen: string[] = JSON.parse(localStorage.getItem(seenKey) || "[]");
+      (reviewedRequests || []).forEach((req: any) => {
+        if (!seen.includes(req.id)) {
+          const isApproved = req.status === "approved";
+          const typeLabel = (req.request_type || "").replace(/_/g, " ");
+          toast({
+            variant: isApproved ? "default" : "destructive",
+            title: isApproved ? "Request Approved ✅" : "Request Denied ❌",
+            description: `Your ${typeLabel} request was ${req.status}.${req.admin_notes ? ` Note: ${req.admin_notes}` : ""}`,
+          });
+          seen.push(req.id);
+        }
+      });
+      localStorage.setItem(seenKey, JSON.stringify(seen.slice(-50)));
     } catch (error) {
       console.error("Error fetching data:", error);
       toast({
