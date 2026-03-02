@@ -175,6 +175,9 @@ const AdminAI = () => {
   const [panelOpen, setPanelOpen] = useState(true);
   const [denyingId, setDenyingId] = useState<string | null>(null);
   const [denyNotes, setDenyNotes] = useState("");
+  const [newRequestIds, setNewRequestIds] = useState<Set<string>>(new Set());
+  const prevRequestIdsRef = useRef<Set<string>>(new Set());
+  const initialLoadRef = useRef(true);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const systemPromptRef = useRef<string>("");
@@ -201,6 +204,21 @@ const AdminAI = () => {
       .limit(100);
 
     if (!reqData) { setRequests([]); return; }
+
+    // Detect newly arrived requests
+    const currentIds = new Set<string>(reqData.map((r: any) => r.id));
+    if (!initialLoadRef.current) {
+      const freshIds = new Set<string>();
+      currentIds.forEach(id => {
+        if (!prevRequestIdsRef.current.has(id)) freshIds.add(id);
+      });
+      if (freshIds.size > 0) {
+        setNewRequestIds(freshIds);
+        setTimeout(() => setNewRequestIds(new Set()), 2000);
+      }
+    }
+    initialLoadRef.current = false;
+    prevRequestIdsRef.current = currentIds;
 
     // Fetch student profiles
     const studentIds = reqData.map((r: any) => String(r.student_id));
@@ -462,7 +480,7 @@ ${allocatedList}`;
               const typeCfg = TYPE_CONFIG[req.request_type] || TYPE_CONFIG.other;
               const TypeIcon = typeCfg.icon;
               return (
-                <Card key={req.id} className="border-primary/20">
+                <Card key={req.id} className={`border-primary/20 transition-all duration-500 ${newRequestIds.has(req.id) ? "animate-fade-in ring-2 ring-primary/40 shadow-lg shadow-primary/10" : ""}`}>
                   <CardContent className="p-3 space-y-2">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
