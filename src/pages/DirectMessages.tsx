@@ -2,6 +2,8 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useMessageNotifications } from "@/hooks/use-message-notifications";
+import NotificationBanner from "@/components/NotificationBanner";
 import { RoleAvatar } from "@/components/ui/RoleAvatar";
 import { devNameClass, devMsgClass, isDevUser } from "@/lib/dev-badge";
 import devBadgeImg from "@/assets/dev.png";
@@ -165,6 +167,12 @@ const DirectMessages = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const selectedConvRef = useRef<Conversation | null>(null);
 
+  // Notifications
+  const { showBanner, requestPermission, dismissBanner, notify } = useMessageNotifications({
+    userId,
+    activeChannelId: selectedConv?.channelId,
+  });
+
   const isAdmin = location.pathname.startsWith("/admin");
   const backPath = isAdmin ? "/admin" : "/student";
 
@@ -204,16 +212,23 @@ const DirectMessages = () => {
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "direct_messages" }, async (payload) => {
         const msg = payload.new as DM;
         const conv = selectedConvRef.current;
+
+        // Notify for messages from others
+        if (msg.sender_id !== userId) {
+          const { data: p } = await supabase.from("profiles").select("full_name").eq("id", msg.sender_id).single();
+          const senderName = p?.full_name || "Someone";
+          const isActiveConv = conv && msg.channel_id === conv.channelId;
+          if (!isActiveConv || document.hidden) {
+            notify(`💬 ${senderName}`, msg.content.slice(0, 100), `dm-${msg.channel_id}`);
+          }
+        }
+
         if (conv && msg.channel_id === conv.channelId) {
-          // Skip if we already have this message (optimistic or duplicate)
           setMessages(prev => {
             if (prev.some(m => m.id === msg.id)) return prev;
-            // Also remove any optimistic message from same sender with same content
             const filtered = prev.filter(m => !(m.id.startsWith("optimistic-") && m.sender_id === msg.sender_id && m.content === msg.content));
-            const { data: p } = { data: null } as any; // profile fetched below
             return [...filtered, { ...msg, senderName: "..." }];
           });
-          // Fetch sender name async and update
           const { data: p } = await supabase.from("profiles").select("full_name").eq("id", msg.sender_id).single();
           setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, senderName: p?.full_name || "Unknown" } : m));
         }
@@ -535,7 +550,9 @@ const DirectMessages = () => {
   }
 
   return (
-    <div className="flex h-screen bg-background overflow-hidden">
+    <div className="flex flex-col h-screen bg-background overflow-hidden">
+      {showBanner && <NotificationBanner onEnable={requestPermission} onDismiss={dismissBanner} />}
+      <div className="flex flex-1 overflow-hidden">
       {/* Desktop sidebar */}
       <aside className="hidden md:flex w-60 flex-col border-r bg-card/50">
         <ConvList
@@ -869,6 +886,7 @@ const DirectMessages = () => {
           }}
         />
       )}
+      </div>
     </div>
   );
 };
