@@ -11,7 +11,7 @@ import CalendarSyncCard from "@/components/student/CalendarSyncCard";
 import FloatingChatButton from "@/components/student/FloatingChatButton";
 import MessagesCard from "@/components/student/MessagesCard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Activity, ArrowRight, KeyRound, Terminal, CalendarDays, FileText } from "lucide-react";
+import { Activity, ArrowRight, KeyRound, FileText } from "lucide-react";
 
 interface Profile {
   full_name: string;
@@ -187,19 +187,6 @@ const StudentDashboard = () => {
               </Card>
             </div>
 
-            {/* Unified Calendar */}
-            <button onClick={() => navigate("/student/calendar")}
-              className="w-full max-w-md flex items-center justify-between rounded-2xl border bg-card px-5 py-4 shadow-sm hover:border-primary/40 hover:bg-primary/5 transition-colors text-left group">
-              <div className="flex items-center gap-3">
-                <CalendarDays className="w-6 h-6 text-primary" />
-                <div>
-                  <p className="font-semibold text-sm">Unified Calendar</p>
-                  <p className="text-xs text-muted-foreground">Academic + Co-curricular in one view</p>
-                </div>
-              </div>
-              <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
-            </button>
-
             {/* Request Change */}
             <button onClick={() => navigate("/student/request")}
               className="w-full max-w-md flex items-center justify-between rounded-2xl border bg-card px-5 py-4 shadow-sm hover:border-secondary/40 hover:bg-secondary/5 transition-colors text-left group">
@@ -212,36 +199,6 @@ const StudentDashboard = () => {
               </div>
               <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-secondary group-hover:translate-x-0.5 transition-all" />
             </button>
-
-            {/* Dev Mode */}
-            {hasDev && (
-              <button onClick={() => navigate("/admin")}
-                className="w-full max-w-md flex items-center justify-between rounded-2xl border border-dashed border-purple-400/50 bg-gradient-to-r from-purple-500/5 via-background to-purple-500/5 px-5 py-4 shadow-sm hover:border-purple-400 hover:shadow-purple-500/10 transition-all text-left group dev-msg-glow">
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl">⚡</span>
-                  <div>
-                    <p className="font-semibold text-sm dev-name-glow">Dev Mode</p>
-                    <p className="text-xs text-muted-foreground">View admin dashboard (read-only)</p>
-                  </div>
-                </div>
-                <span className="text-muted-foreground group-hover:text-purple-400 transition-colors text-sm">Enter →</span>
-              </button>
-            )}
-
-            {/* Dev AI Console */}
-            {hasDev && (
-              <button onClick={() => navigate("/dev/ai")}
-                className="w-full max-w-md flex items-center justify-between rounded-2xl border border-dashed border-cyan-400/50 bg-gradient-to-r from-cyan-500/5 via-background to-cyan-500/5 px-5 py-4 shadow-sm hover:border-cyan-400 hover:shadow-cyan-500/10 transition-all text-left group dev-msg-glow">
-                <div className="flex items-center gap-3">
-                  <Terminal className="w-6 h-6 text-cyan-400" />
-                  <div>
-                    <p className="font-semibold text-sm dev-name-glow">Dev AI Console</p>
-                    <p className="text-xs text-muted-foreground">AI assistant with full DB access</p>
-                  </div>
-                </div>
-                <span className="text-muted-foreground group-hover:text-cyan-400 transition-colors text-sm">Open →</span>
-              </button>
-            )}
 
             {/* Set Password */}
             <button onClick={() => navigate("/set-password")}

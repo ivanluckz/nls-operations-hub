@@ -36,9 +36,7 @@ import StudentMessages from "./pages/StudentMessages";
 import ThemeManagement from "./pages/ThemeManagement";
 import Leaderboard from "./pages/Leaderboard";
 import DirectMessages from "./pages/DirectMessages";
-import UnifiedCalendar from "./pages/UnifiedCalendar";
 import SetPassword from "./pages/SetPassword";
-import DevAI from "./pages/DevAI";
 import StudentRequests from "./pages/StudentRequests";
 import AdminAI from "./pages/AdminAI";
 
@@ -69,7 +67,6 @@ const AppContent = () => {
           <Route path="/student/messages" element={<ProtectedRoute requiredRole="student"><StudentMessages /></ProtectedRoute>} />
           <Route path="/student/leaderboard" element={<ProtectedRoute requiredRole="student"><Leaderboard /></ProtectedRoute>} />
           <Route path="/student/dms" element={<ProtectedRoute requiredRole="student"><DirectMessages /></ProtectedRoute>} />
-          <Route path="/student/calendar" element={<ProtectedRoute requiredRole="student"><UnifiedCalendar /></ProtectedRoute>} />
           <Route path="/student/request" element={<ProtectedRoute requiredRole="student"><StudentRequests /></ProtectedRoute>} />
 
           {/* Moderator */}
@@ -106,9 +103,6 @@ const AppContent = () => {
           <Route path="/teacher" element={<ProtectedRoute requiredRole="teacher"><TeacherDashboard /></ProtectedRoute>} />
           <Route path="/teacher/attendance" element={<ProtectedRoute requiredRole="teacher"><TeacherAttendance /></ProtectedRoute>} />
           <Route path="/teacher/attendance-reports" element={<ProtectedRoute requiredRole="teacher"><AttendanceReports /></ProtectedRoute>} />
-
-          {/* Dev */}
-          <Route path="/dev/ai" element={<DevAI />} />
 
           {/* Public */}
           <Route path="/chatbot" element={<ActivityChatbot />} />
