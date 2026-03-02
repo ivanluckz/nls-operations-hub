@@ -11,8 +11,7 @@ import CalendarSyncCard from "@/components/student/CalendarSyncCard";
 import FloatingChatButton from "@/components/student/FloatingChatButton";
 import MessagesCard from "@/components/student/MessagesCard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { GraduationCap, Activity, ArrowRight, KeyRound, Terminal, CalendarDays } from "lucide-react";
+import { Activity, ArrowRight, KeyRound, Terminal, CalendarDays } from "lucide-react";
 
 interface Profile {
   full_name: string;
@@ -139,34 +138,7 @@ const StudentDashboard = () => {
               <p className="text-muted-foreground text-sm">Choose a section to explore</p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 w-full">
-              {/* Academic */}
-              <Card
-                className={`h-full border-2 border-transparent transition-all duration-300 group bg-gradient-to-br from-primary/5 via-background to-primary/5 ${hasDev ? "hover:border-primary/40 cursor-pointer hover:shadow-xl hover:-translate-y-1" : "opacity-75"}`}
-                onClick={() => hasDev && navigate("/student/academic")}
-              >
-                <CardHeader className="pb-4 text-center">
-                  <div className="mx-auto w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                    <GraduationCap className="h-7 w-7 text-primary" />
-                  </div>
-                  <CardTitle className="text-lg group-hover:text-primary transition-colors">Academic</CardTitle>
-                  <CardDescription className="text-xs">
-                    Your timetable & attendance
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="pt-0 text-center">
-                  {hasDev ? (
-                    <span className="inline-flex items-center gap-1 text-sm font-medium dev-name-glow">
-                      ⚡ DEV Respect <ArrowRight className="w-4 h-4" />
-                    </span>
-                  ) : (
-                    <Badge variant="outline" className="text-xs border-amber-500/40 text-amber-600 dark:text-amber-400 bg-amber-500/10">
-                      In Development
-                    </Badge>
-                  )}
-                </CardContent>
-              </Card>
-
+            <div className="grid grid-cols-1 gap-5 w-full max-w-sm mx-auto">
               {/* Co-curricular */}
               <Card
                 className="h-full border-2 border-transparent hover:border-secondary/40 cursor-pointer hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group bg-gradient-to-br from-secondary/5 via-background to-secondary/5"

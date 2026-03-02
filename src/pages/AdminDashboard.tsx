@@ -1,15 +1,13 @@
 import { useNavigate } from "react-router-dom";
 import { AdminLayout } from "@/components/admin/AdminLayout";
-import { Card, CardDescription, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Users, Shield, UserCog, ClipboardCheck, AlertTriangle, UserCheck, Sparkles, BookOpen, GraduationCap, Activity, ArrowRight, FlaskConical, Zap, Terminal } from "lucide-react";
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Users, Shield, UserCog, ClipboardCheck, AlertTriangle, UserCheck, Sparkles, BookOpen, Activity, ArrowRight, Terminal } from "lucide-react";
 import FloatingChatButton from "@/components/student/FloatingChatButton";
 import { useState, useEffect } from "react";
-import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
-  const [section, setSection] = useState<"choose" | "cocurricular">("choose");
   const [hasDev, setHasDev] = useState(false);
 
   useEffect(() => {
@@ -34,124 +32,27 @@ const AdminDashboard = () => {
     { title: "AI Weekly Summary", description: "AI-powered trend reports", icon: Sparkles, url: "/admin/co-curricular/weekly-summary", color: "bg-primary/10 text-primary", highlight: true },
   ];
 
-  if (section === "choose") {
-    return (
-      <AdminLayout>
-        <div className="flex flex-col items-center justify-center min-h-[70vh] space-y-8">
-          <div className="text-center space-y-2">
-            <h1 className="text-3xl font-bold tracking-tight">Welcome back!</h1>
-            <p className="text-muted-foreground">What would you like to manage?</p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-2xl">
-            {hasDev ? (
-              <Card
-                className="h-full border-2 border-transparent hover:border-primary/40 cursor-pointer hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group bg-gradient-to-br from-primary/5 via-background to-primary/5"
-                onClick={() => navigate("/admin/academic")}
-              >
-                <CardHeader className="pb-4 text-center">
-                  <div className="mx-auto w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                    <GraduationCap className="h-8 w-8 text-primary" />
-                  </div>
-                  <CardTitle className="text-xl group-hover:text-primary transition-colors">Academic</CardTitle>
-                  <CardDescription className="text-sm">
-                    Timetable, subjects, class groups & academic attendance
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="pt-0 text-center">
-                  <span className="inline-flex items-center gap-1 text-sm font-medium text-primary group-hover:gap-2 transition-all">
-                    <Zap className="w-4 h-4" /> DEV Access <ArrowRight className="w-4 h-4" />
-                  </span>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="relative group">
-                <Card className="h-full border-2 border-dashed border-primary/20 bg-gradient-to-br from-primary/5 via-background to-primary/5 opacity-80 cursor-default">
-                  <CardHeader className="pb-4 text-center">
-                    <div className="mx-auto w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
-                      <GraduationCap className="h-8 w-8 text-primary" />
-                    </div>
-                    <CardTitle className="text-xl">Academic</CardTitle>
-                    <CardDescription className="text-sm">
-                      Timetable, subjects, class groups & academic attendance
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="pt-0 text-center">
-                    <Badge variant="outline" className="text-xs px-3 py-1 border-amber-500/40 text-amber-600 dark:text-amber-400 bg-amber-500/10">
-                      <FlaskConical className="w-3 h-3 mr-1" />
-                      In Testing — Request Access from Dev
-                    </Badge>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
-
-            {/* Co-curricular Card */}
-            <Card
-              className="h-full border-2 border-transparent hover:border-secondary/40 cursor-pointer hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group bg-gradient-to-br from-secondary/5 via-background to-secondary/5"
-              onClick={() => setSection("cocurricular")}
-            >
-              <CardHeader className="pb-4 text-center">
-                <div className="mx-auto w-16 h-16 rounded-2xl bg-secondary/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                  <Activity className="h-8 w-8 text-secondary" />
-                </div>
-                <CardTitle className="text-xl group-hover:text-secondary transition-colors">
-                  Co-curricular
-                </CardTitle>
-                <CardDescription className="text-sm">
-                  Activities, allocations, attendance & student preferences
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="pt-0 text-center">
-                <span className="inline-flex items-center gap-1 text-sm font-medium text-secondary group-hover:gap-2 transition-all">
-                  Enter <ArrowRight className="w-4 h-4" />
-                </span>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Dev AI Console */}
-          {hasDev && (
-            <button onClick={() => navigate("/dev/ai")}
-              className="w-full max-w-2xl flex items-center justify-between rounded-2xl border border-dashed border-cyan-400/50 bg-gradient-to-r from-cyan-500/5 via-background to-cyan-500/5 px-5 py-4 shadow-sm hover:border-cyan-400 hover:shadow-cyan-500/10 transition-all text-left group dev-msg-glow">
-              <div className="flex items-center gap-3">
-                <Terminal className="w-6 h-6 text-cyan-400" />
-                <div>
-                  <p className="font-semibold text-sm dev-name-glow">Dev AI Console</p>
-                  <p className="text-xs text-muted-foreground">AI assistant with full DB access</p>
-                </div>
-              </div>
-              <span className="text-muted-foreground group-hover:text-cyan-400 transition-colors text-sm">Open →</span>
-            </button>
-          )}
-        </div>
-        <FloatingChatButton />
-      </AdminLayout>
-    );
-  }
-
   return (
     <AdminLayout>
       <div className="space-y-8">
         <div className="flex items-center justify-between">
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center">
-                <Activity className="h-5 w-5 text-secondary" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold tracking-tight">Co-curricular</h1>
-                <p className="text-sm text-muted-foreground">After-school activities management</p>
-              </div>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center">
+              <Activity className="h-5 w-5 text-secondary" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight">Co-curricular</h1>
+              <p className="text-sm text-muted-foreground">After-school activities management</p>
             </div>
           </div>
-          <button
-            onClick={() => setSection("choose")}
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5 bg-muted/50 hover:bg-muted px-3 py-1.5 rounded-lg"
-          >
-            <ArrowRight className="w-4 h-4 rotate-180" />
-            Back
-          </button>
+          {hasDev && (
+            <button onClick={() => navigate("/dev/ai")}
+              className="flex items-center gap-2 rounded-xl border border-dashed border-cyan-400/50 bg-gradient-to-r from-cyan-500/5 to-cyan-500/5 px-4 py-2 hover:border-cyan-400 transition-all text-left group dev-msg-glow">
+              <Terminal className="w-4 h-4 text-cyan-400" />
+              <span className="text-sm font-medium dev-name-glow">Dev AI</span>
+              <ArrowRight className="w-3 h-3 text-muted-foreground group-hover:text-cyan-400 transition-colors" />
+            </button>
+          )}
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">

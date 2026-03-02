@@ -39,10 +39,6 @@ import {
   LayoutDashboard,
   MessageSquare,
   Award,
-  GraduationCap,
-  Calendar,
-  BarChart3,
-  ArrowLeft,
 } from "lucide-react";
 
 import nlsLogo from "@/assets/nls-logo.png";
@@ -62,16 +58,6 @@ const coCurricularItems = [
   { title: "All Chats", url: "/admin/co-curricular/messages", icon: MessageSquare, description: "View all activity chats" },
   { title: "Badge Requests", url: "/admin/co-curricular/badge-requests", icon: Award, description: "Approve student badges" },
   { title: "Direct Messages", url: "/admin/dms", icon: MessageSquare, description: "Message anyone directly" },
-];
-
-const academicItems = [
-  { title: "Dashboard", url: "/admin/academic", icon: GraduationCap, description: "Academic overview" },
-  { title: "Timetable", url: "/admin/academic/timetable", icon: Calendar, description: "Build class timetables" },
-  { title: "Subjects", url: "/admin/academic/subjects", icon: BookOpen, description: "Manage subjects" },
-  { title: "Classes", url: "/admin/academic/classes", icon: Users, description: "Manage class groups" },
-  { title: "Attendance", url: "/admin/academic/attendance", icon: BarChart3, description: "Academic attendance" },
-  { title: "Pre-Excuse", url: "/admin/academic/pre-excuse", icon: UserCheck, description: "Excuse students" },
-  { title: "AI Summary", url: "/admin/academic/weekly-summary", icon: Sparkles, description: "AI weekly insights", highlight: true },
 ];
 
 interface UserProfile {
@@ -125,9 +111,8 @@ export function AdminSidebar() {
       .slice(0, 2);
   };
 
-  const isAcademicSection = location.pathname.startsWith("/admin/academic");
-  const menuItems = isAcademicSection ? academicItems : coCurricularItems;
-  const sectionLabel = isAcademicSection ? "Academic" : "Co-curricular";
+  const menuItems = coCurricularItems;
+  const sectionLabel = "Co-curricular";
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
@@ -148,27 +133,8 @@ export function AdminSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
-        {isAcademicSection && (
-          <SidebarGroup>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="Back to Dashboard">
-                    <button onClick={() => navigate("/admin")} className="w-full flex items-center gap-3 text-muted-foreground">
-                      <ArrowLeft className="h-4 w-4" />
-                      <span>Back to Dashboard</span>
-                    </button>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
         <SidebarGroup>
-          <SidebarGroupLabel className="flex items-center gap-2">
-            {isAcademicSection && <GraduationCap className="h-4 w-4 text-primary" />}
-            {sectionLabel}
-          </SidebarGroupLabel>
+          <SidebarGroupLabel>{sectionLabel}</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {menuItems.map((item) => {

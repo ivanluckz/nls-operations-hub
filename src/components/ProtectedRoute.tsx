@@ -17,10 +17,6 @@ const DEV_ALLOWED_ADMIN_PAGES = [
   "/admin/co-curricular/weekly-summary",
   "/admin/co-curricular/messages",
   "/admin/co-curricular/badge-requests",
-  "/admin/academic/subjects",
-  "/admin/academic/classes",
-  "/admin/academic/timetable",
-  "/admin/academic/attendance",
 ];
 
 const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {

@@ -9,8 +9,6 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { useTheme } from "@/hooks/use-custom-theme";
 
 const SandboxedAnimation = lazy(() => import("./components/SandboxedAnimation"));
-const StudentAcademicLazy = lazy(() => import("./pages/StudentAcademic"));
-import TeacherAcademic from "./pages/TeacherAcademic";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import StudentDashboard from "./pages/StudentDashboard";
@@ -38,15 +36,6 @@ import StudentMessages from "./pages/StudentMessages";
 import ThemeManagement from "./pages/ThemeManagement";
 import Leaderboard from "./pages/Leaderboard";
 import DirectMessages from "./pages/DirectMessages";
-import AcademicComingSoon from "./pages/AcademicComingSoon";
-import AcademicDashboard from "./pages/AcademicDashboard";
-import AcademicSubjects from "./pages/AcademicSubjects";
-import AcademicClasses from "./pages/AcademicClasses";
-import AcademicTimetable from "./pages/AcademicTimetable";
-import AcademicAttendanceReports from "./pages/AcademicAttendanceReports";
-import AcademicPreExcuse from "./pages/AcademicPreExcuse";
-import AcademicWeeklySummary from "./pages/AcademicWeeklySummary";
-import AcademicLeaderboard from "./pages/AcademicLeaderboard";
 import UnifiedCalendar from "./pages/UnifiedCalendar";
 import SetPassword from "./pages/SetPassword";
 import DevAI from "./pages/DevAI";
@@ -78,7 +67,6 @@ const AppContent = () => {
           <Route path="/student/messages" element={<ProtectedRoute requiredRole="student"><StudentMessages /></ProtectedRoute>} />
           <Route path="/student/leaderboard" element={<ProtectedRoute requiredRole="student"><Leaderboard /></ProtectedRoute>} />
           <Route path="/student/dms" element={<ProtectedRoute requiredRole="student"><DirectMessages /></ProtectedRoute>} />
-          <Route path="/student/academic" element={<ProtectedRoute requiredRole="student"><Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" /></div>}><StudentAcademicLazy /></Suspense></ProtectedRoute>} />
           <Route path="/student/calendar" element={<ProtectedRoute requiredRole="student"><UnifiedCalendar /></ProtectedRoute>} />
 
           {/* Moderator */}
@@ -92,7 +80,6 @@ const AppContent = () => {
           <Route path="/moderator/pre-excuse" element={<ProtectedRoute requiredRole="moderator"><PreExcuseStudents /></ProtectedRoute>} />
           <Route path="/moderator/weekly-summary" element={<ProtectedRoute requiredRole="moderator"><WeeklySummary /></ProtectedRoute>} />
           <Route path="/moderator/activity-roster" element={<ProtectedRoute requiredRole="moderator"><ActivityRoster /></ProtectedRoute>} />
-          <Route path="/moderator/academic/*" element={<ProtectedRoute requiredRole="moderator"><AcademicComingSoon /></ProtectedRoute>} />
 
           {/* Admin */}
           <Route path="/admin" element={<ProtectedRoute requiredRole="admin"><AdminDashboard /></ProtectedRoute>} />
@@ -111,23 +98,10 @@ const AppContent = () => {
           <Route path="/admin/dms" element={<ProtectedRoute requiredRole="admin"><DirectMessages /></ProtectedRoute>} />
           <Route path="/admin/profile" element={<ProtectedRoute requiredRole="admin"><AdminProfile /></ProtectedRoute>} />
 
-          {/* Academic — real pages */}
-          <Route path="/admin/academic" element={<ProtectedRoute requiredRole="admin"><AcademicDashboard /></ProtectedRoute>} />
-          <Route path="/admin/academic/subjects" element={<ProtectedRoute requiredRole="admin"><AcademicSubjects /></ProtectedRoute>} />
-          <Route path="/admin/academic/classes" element={<ProtectedRoute requiredRole="admin"><AcademicClasses /></ProtectedRoute>} />
-          <Route path="/admin/academic/timetable" element={<ProtectedRoute requiredRole="admin"><AcademicTimetable /></ProtectedRoute>} />
-          <Route path="/admin/academic/attendance" element={<ProtectedRoute requiredRole="admin"><AcademicAttendanceReports /></ProtectedRoute>} />
-          <Route path="/admin/academic/pre-excuse" element={<ProtectedRoute requiredRole="admin"><AcademicPreExcuse /></ProtectedRoute>} />
-          <Route path="/admin/academic/weekly-summary" element={<ProtectedRoute requiredRole="admin"><AcademicWeeklySummary /></ProtectedRoute>} />
-
-          {/* Student academic leaderboard */}
-          <Route path="/student/academic/leaderboard" element={<ProtectedRoute requiredRole="student"><AcademicLeaderboard /></ProtectedRoute>} />
-
           {/* Teacher */}
           <Route path="/teacher" element={<ProtectedRoute requiredRole="teacher"><TeacherDashboard /></ProtectedRoute>} />
           <Route path="/teacher/attendance" element={<ProtectedRoute requiredRole="teacher"><TeacherAttendance /></ProtectedRoute>} />
           <Route path="/teacher/attendance-reports" element={<ProtectedRoute requiredRole="teacher"><AttendanceReports /></ProtectedRoute>} />
-          <Route path="/teacher/academic" element={<ProtectedRoute requiredRole="teacher"><TeacherAcademic /></ProtectedRoute>} />
 
           {/* Dev */}
           <Route path="/dev/ai" element={<DevAI />} />
