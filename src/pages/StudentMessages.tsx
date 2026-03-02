@@ -74,6 +74,7 @@ const BADGE_OPTIONS: { name: string; emoji: string; desc: string; animClass: str
   { name: "Team Player",  emoji: "🤝", desc: "Great collaboration",     animClass: "badge-anim-team"  },
   { name: "Dev",          emoji: "",   desc: "Exclusive developer badge", animClass: "", img: devBadge },
 ];
+const BADGE_MAP = new Map(BADGE_OPTIONS.map(o => [o.name, o]));
 
 function getLastSeen(): Record<string, string> {
   try { return JSON.parse(localStorage.getItem(LAST_SEEN_KEY) || "{}"); } catch { return {}; }
@@ -138,6 +139,8 @@ const StudentMessages = () => {
   const selectedActivityRef = useRef<string>("");
   const activityIdsRef = useRef<string[]>([]);
   const adminIdsRef = useRef<Set<string>>(new Set());
+  const profileCacheRef = useRef<Map<string, string>>(new Map());
+  const prevMsgCountRef = useRef(0);
 
   // Notifications
   const { showBanner, requestPermission, dismissBanner, notify } = useMessageNotifications({
@@ -184,14 +187,21 @@ const StudentMessages = () => {
       setMyBadges((myBadgeData || []).map((b: any) => b.badge_name));
 
       const lastSeen = getLastSeen();
+      const actIds = acts.map(a => a.id);
+      const minSince = actIds.reduce((min, id) => {
+        const ts = lastSeen[id] || new Date(0).toISOString();
+        return ts < min ? ts : min;
+      }, new Date().toISOString());
+      const { data: unreadMsgs } = await supabase
+        .from("activity_messages")
+        .select("activity_id, created_at")
+        .in("activity_id", actIds)
+        .gt("created_at", minSince);
       const counts: Record<string, number> = {};
-      await Promise.all(acts.map(async (a) => {
-        const since = lastSeen[a.id] || new Date(0).toISOString();
-        const { count } = await supabase
-          .from("activity_messages").select("*", { count: "exact", head: true })
-          .eq("activity_id", a.id).gt("created_at", since);
-        counts[a.id] = count || 0;
-      }));
+      (unreadMsgs || []).forEach(m => {
+        const since = lastSeen[m.activity_id] || new Date(0).toISOString();
+        if (m.created_at > since) counts[m.activity_id] = (counts[m.activity_id] || 0) + 1;
+      });
       setUnreadCounts(counts);
     };
     init();
@@ -213,6 +223,7 @@ const StudentMessages = () => {
       ]);
 
       const profileMap = new Map(profilesRes.data?.map(p => [p.id, p.full_name]) || []);
+      profilesRes.data?.forEach(p => profileCacheRef.current.set(p.id, p.full_name));
       const badgeMap: Record<string, string[]> = {};
       badgesRes.data?.forEach(b => {
         if (!badgeMap[b.user_id]) badgeMap[b.user_id] = [];
@@ -261,8 +272,12 @@ const StudentMessages = () => {
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "activity_messages" }, async (payload) => {
         const msg = payload.new as Message;
         if (!activityIdsRef.current.includes(msg.activity_id)) return;
-        const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", msg.sender_id).single();
-        const senderName = profile?.full_name || "Unknown";
+        let senderName = profileCacheRef.current.get(msg.sender_id);
+        if (!senderName) {
+          const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", msg.sender_id).single();
+          senderName = profile?.full_name || "Unknown";
+          if (profile?.full_name) profileCacheRef.current.set(msg.sender_id, profile.full_name);
+        }
         const enriched: Message = {
           ...msg,
           message_type: msg.message_type as "announcement" | "discussion",
@@ -315,7 +330,12 @@ const StudentMessages = () => {
     return () => { supabase.removeChannel(channel); };
   }, [activities]);
 
-  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
+  useEffect(() => {
+    if (messages.length > prevMsgCountRef.current) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+    prevMsgCountRef.current = messages.length;
+  }, [messages]);
 
   const selectActivity = (activityId: string) => {
     setSelectedActivity(activityId);
@@ -638,7 +658,7 @@ const StudentMessages = () => {
                                     </Badge>
                                   )}
                                   {senderBadges.map(b => {
-                                    const opt = BADGE_OPTIONS.find(o => o.name === b);
+                                    const opt = BADGE_MAP.get(b);
                                     if (!opt) return null;
 return opt.img ? <img key={b} src={opt.img} title={b} className="h-4 w-4 object-contain inline-block" /> : <span key={b} title={`${b} — ${opt.desc}`} className={`text-sm leading-none ${opt.animClass}`}>{opt.emoji}</span>;
                                   })}
@@ -700,7 +720,7 @@ return opt.img ? <img key={b} src={opt.img} title={b} className="h-4 w-4 object-
                                       </Badge>
                                     )}
                                     {senderBadges.map(b => {
-                                      const opt = BADGE_OPTIONS.find(o => o.name === b);
+                                      const opt = BADGE_MAP.get(b);
                                       if (!opt) return null;
                                     return opt.img ? <img key={b} src={opt.img} title={b} className="h-4 w-4 object-contain inline-block" /> : <span key={b} title={`${b} — ${opt.desc}`} className={`text-base leading-none ${opt.animClass}`}>{opt.emoji}</span>;
                                     })}

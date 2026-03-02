@@ -89,20 +89,22 @@ const MessagesCard = () => {
         );
       }
 
-      // Compute total unread across all activities
+      // Compute total unread — single query instead of N queries
       const lastSeen = getLastSeen();
+      const minSince = activityIds.reduce((min, id) => {
+        const ts = lastSeen[id] || new Date(0).toISOString();
+        return ts < min ? ts : min;
+      }, new Date().toISOString());
+      const { data: unreadMsgs } = await supabase
+        .from("activity_messages")
+        .select("activity_id, created_at")
+        .in("activity_id", activityIds)
+        .gt("created_at", minSince);
       let total = 0;
-      await Promise.all(
-        activityIds.map(async (id) => {
-          const since = lastSeen[id] || new Date(0).toISOString();
-          const { count } = await supabase
-            .from("activity_messages")
-            .select("*", { count: "exact", head: true })
-            .eq("activity_id", id)
-            .gt("created_at", since);
-          total += count || 0;
-        })
-      );
+      (unreadMsgs || []).forEach(m => {
+        const since = lastSeen[m.activity_id] || new Date(0).toISOString();
+        if (m.created_at > since) total++;
+      });
       setUnreadTotal(total);
     } catch (error) {
       console.error("Error fetching messages:", error);

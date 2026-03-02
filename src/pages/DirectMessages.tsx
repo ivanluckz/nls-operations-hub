@@ -163,6 +163,7 @@ const DirectMessages = () => {
   const [typingUser, setTypingUser] = useState<string | null>(null);
   const typingChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout>>();
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const selectedConvRef = useRef<Conversation | null>(null);
@@ -178,7 +179,13 @@ const DirectMessages = () => {
 
   useEffect(() => { selectedConvRef.current = selectedConv; }, [selectedConv]);
   useEffect(() => { myNameRef.current = myName; }, [myName]);
-  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
+  const prevDmCountRef = useRef(0);
+  useEffect(() => {
+    if (messages.length > prevDmCountRef.current) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+    prevDmCountRef.current = messages.length;
+  }, [messages]);
 
   // Init
   useEffect(() => {
@@ -828,7 +835,11 @@ const DirectMessages = () => {
                 autoFocus
                 placeholder="Search by name or email…"
                 value={userSearch}
-                onChange={e => { setUserSearch(e.target.value); searchUsers(e.target.value); }}
+                onChange={e => {
+                  setUserSearch(e.target.value);
+                  clearTimeout(searchDebounceRef.current);
+                  searchDebounceRef.current = setTimeout(() => searchUsers(e.target.value), 300);
+                }}
                 className="pl-9"
               />
             </div>
