@@ -99,14 +99,23 @@ Deno.serve(async (req) => {
       resultMessage = `Swapped from ${details.current_activity_name || "old"} to ${details.desired_activity_name || "new"}`;
 
     } else if (request.request_type === "excuse") {
-      // Create an attendance excuse
+      // Find matching attendance sessions for the excuse date and mark as excused
       const excuseDate = details.excuse_date || new Date().toISOString().split("T")[0];
-      await adminClient.from("academic_excuses").insert({
-        student_id: request.student_id,
-        excuse_date: excuseDate,
-        created_by: user.id,
-        reason: request.reason || "Excused via request",
-      });
+      const { data: sessions } = await adminClient
+        .from("attendance_sessions")
+        .select("id")
+        .eq("session_date", excuseDate);
+
+      if (sessions && sessions.length > 0) {
+        for (const session of sessions) {
+          await adminClient.from("attendance_records").upsert({
+            session_id: session.id,
+            student_id: request.student_id,
+            status: "excused",
+            marked_by: user.id,
+          }, { onConflict: "session_id,student_id" });
+        }
+      }
       resultMessage = `Excused for ${excuseDate}`;
 
     } else if (request.request_type === "drop_activity") {
