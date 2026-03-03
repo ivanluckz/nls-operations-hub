@@ -359,8 +359,10 @@ const StudentMessages = () => {
   };
 
   const confirmDelete = async () => {
-    if (!deleteTargetId) return;
-    const { error } = await supabase.from("activity_messages").delete().eq("id", deleteTargetId);
+    if (!deleteTargetId || !userId) return;
+    const { error } = await supabase.from("activity_messages").delete()
+      .eq("id", deleteTargetId)
+      .eq("sender_id", userId);
     if (error) toast({ variant: "destructive", title: "Failed to delete message" });
     setDeleteTargetId(null);
   };

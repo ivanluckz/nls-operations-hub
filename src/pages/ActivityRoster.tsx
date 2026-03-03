@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Search, Users, ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowLeft, Search, Users, ChevronDown, ChevronUp, Download } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
@@ -25,6 +25,7 @@ interface Student {
   student_name: string;
   student_email: string;
   day_of_week: string;
+  slot_number: number;
 }
 
 interface ActivityWithStudents extends Activity {
@@ -68,7 +69,7 @@ const ActivityRoster = () => {
       // Fetch allocations (without join - no FK relationship)
       const { data: allocationsData } = await supabase
         .from("allocations")
-        .select("activity_id, day_of_week, student_id")
+        .select("activity_id, day_of_week, slot_number, student_id")
         .limit(5000);
 
       // Get unique student IDs and fetch their profiles separately
@@ -98,6 +99,7 @@ const ActivityRoster = () => {
           student_name: profilesMap[alloc.student_id]?.full_name || "Unknown",
           student_email: profilesMap[alloc.student_id]?.email || "",
           day_of_week: alloc.day_of_week,
+          slot_number: alloc.slot_number ?? 1,
         }));
 
         // Count unique students (not total enrollments across days)
@@ -145,6 +147,48 @@ const ActivityRoster = () => {
     navigate(userRole === "admin" ? "/admin" : "/moderator");
   };
 
+  const downloadPDF = () => {
+    const win = window.open("", "_blank");
+    if (!win) return;
+    const rows = filteredActivities.map(a => {
+      const sorted = [...a.students].sort((x, y) => x.student_name.localeCompare(y.student_name));
+      const studentRows = sorted.map((s, i) =>
+        `<tr><td>${i + 1}</td><td>${s.student_name}</td><td>${s.student_email}</td><td>${s.day_of_week}${a.days_of_week.filter(d => d === s.day_of_week).length > 1 ? ` (Slot ${s.slot_number})` : ""}</td></tr>`
+      ).join("");
+      return `
+        <div class="activity">
+          <h2>${a.title} <span class="cat">${a.category}</span></h2>
+          <p class="meta">Teacher: ${a.teacher_in_charge} &nbsp;|&nbsp; ${a.uniqueStudentCount} / ${a.capacity} students</p>
+          ${a.students.length === 0
+            ? `<p class="empty">No students enrolled</p>`
+            : `<table><thead><tr><th>#</th><th>Name</th><th>Email</th><th>Day / Slot</th></tr></thead><tbody>${studentRows}</tbody></table>`}
+        </div>`;
+    }).join("");
+
+    win.document.write(`<!DOCTYPE html><html><head><title>Activity Roster</title>
+      <style>
+        body { font-family: Arial, sans-serif; font-size: 12px; color: #111; padding: 24px; }
+        h1 { font-size: 18px; margin-bottom: 4px; }
+        .subtitle { color: #666; margin-bottom: 20px; font-size: 11px; }
+        .activity { margin-bottom: 24px; page-break-inside: avoid; }
+        .activity h2 { font-size: 14px; margin: 0 0 2px; }
+        .cat { font-size: 10px; background: #eee; padding: 2px 6px; border-radius: 4px; margin-left: 6px; font-weight: normal; }
+        .meta { font-size: 11px; color: #555; margin: 0 0 6px; }
+        .empty { color: #999; font-style: italic; font-size: 11px; }
+        table { width: 100%; border-collapse: collapse; font-size: 11px; }
+        th { background: #f3f4f6; text-align: left; padding: 4px 8px; border: 1px solid #ddd; }
+        td { padding: 4px 8px; border: 1px solid #ddd; }
+        tr:nth-child(even) td { background: #fafafa; }
+        @media print { .activity { page-break-inside: avoid; } }
+      </style></head><body>
+      <h1>Activity Roster</h1>
+      <p class="subtitle">NLS &nbsp;|&nbsp; Generated ${new Date().toLocaleString()} &nbsp;|&nbsp; ${filteredActivities.length} activities</p>
+      ${rows}
+      <script>window.onload=()=>{window.print()}<\/script>
+    </body></html>`);
+    win.document.close();
+  };
+
   const filteredActivities = activities.filter(activity =>
     activity.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     activity.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -182,6 +226,10 @@ const ActivityRoster = () => {
             </Button>
             <Button variant="outline" size="sm" onClick={collapseAll}>
               Collapse All
+            </Button>
+            <Button variant="outline" size="sm" onClick={downloadPDF}>
+              <Download className="w-4 h-4 mr-2" />
+              Download PDF
             </Button>
           </div>
         </div>
@@ -306,19 +354,24 @@ const ActivityRoster = () => {
                             </TableHeader>
                             <TableBody>
                               {activity.students
-                                .sort((a, b) => a.student_name.localeCompare(b.student_name))
-                                .map((student, index) => (
-                                  <TableRow key={`${student.student_id}-${student.day_of_week}`}>
-                                    <TableCell className="font-medium">{index + 1}</TableCell>
-                                    <TableCell>{student.student_name}</TableCell>
-                                    <TableCell className="text-sm text-muted-foreground">
-                                      {student.student_email}
-                                    </TableCell>
-                                    <TableCell>
-                                      <Badge variant="outline">{student.day_of_week}</Badge>
-                                    </TableCell>
-                                  </TableRow>
-                                ))}
+                                .sort((a, b) => a.student_name.localeCompare(b.student_name) || a.slot_number - b.slot_number)
+                                .map((student, index) => {
+                                  const multiSlotDay = activity.days_of_week.filter(d => d === student.day_of_week).length > 1;
+                                  return (
+                                    <TableRow key={`${student.student_id}-${student.day_of_week}-${student.slot_number}`}>
+                                      <TableCell className="font-medium">{index + 1}</TableCell>
+                                      <TableCell>{student.student_name}</TableCell>
+                                      <TableCell className="text-sm text-muted-foreground">
+                                        {student.student_email}
+                                      </TableCell>
+                                      <TableCell>
+                                        <Badge variant="outline">
+                                          {student.day_of_week}{multiSlotDay ? ` (Slot ${student.slot_number})` : ""}
+                                        </Badge>
+                                      </TableCell>
+                                    </TableRow>
+                                  );
+                                })}
                             </TableBody>
                           </Table>
                         </div>
