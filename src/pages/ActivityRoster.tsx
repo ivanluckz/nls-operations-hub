@@ -6,9 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Search, Users, ChevronDown, ChevronUp, Download } from "lucide-react";
+import { ArrowLeft, Search, Users, ChevronDown, ChevronUp, Download, FileText, FileSpreadsheet } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 interface Activity {
   id: string;
@@ -189,6 +190,55 @@ const ActivityRoster = () => {
     win.document.close();
   };
 
+  const exportActivityCSV = (activity: ActivityWithStudents) => {
+    const sorted = [...activity.students].sort((a, b) => a.student_name.localeCompare(b.student_name) || a.slot_number - b.slot_number);
+    const header = ["#", "Name", "Email", "Day / Slot"].join(",");
+    const rows = sorted.map((s, i) => {
+      const multiSlotDay = activity.days_of_week.filter(d => d === s.day_of_week).length > 1;
+      const day = multiSlotDay ? `${s.day_of_week} (Slot ${s.slot_number})` : s.day_of_week;
+      return [i + 1, `"${s.student_name}"`, `"${s.student_email}"`, `"${day}"`].join(",");
+    });
+    const csv = [header, ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${activity.title.replace(/[^a-z0-9]/gi, "_")}_roster.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const exportActivityPDF = (activity: ActivityWithStudents) => {
+    const win = window.open("", "_blank");
+    if (!win) return;
+    const sorted = [...activity.students].sort((a, b) => a.student_name.localeCompare(b.student_name) || a.slot_number - b.slot_number);
+    const studentRows = sorted.map((s, i) => {
+      const multiSlotDay = activity.days_of_week.filter(d => d === s.day_of_week).length > 1;
+      const day = multiSlotDay ? `${s.day_of_week} (Slot ${s.slot_number})` : s.day_of_week;
+      return `<tr><td>${i + 1}</td><td>${s.student_name}</td><td>${s.student_email}</td><td>${day}</td></tr>`;
+    }).join("");
+    win.document.write(`<!DOCTYPE html><html><head><title>${activity.title} Roster</title>
+      <style>
+        body { font-family: Arial, sans-serif; font-size: 12px; color: #111; padding: 24px; }
+        h1 { font-size: 16px; margin-bottom: 2px; }
+        .meta { font-size: 11px; color: #555; margin: 0 0 16px; }
+        .cat { font-size: 10px; background: #eee; padding: 2px 6px; border-radius: 4px; margin-left: 6px; font-weight: normal; }
+        .empty { color: #999; font-style: italic; }
+        table { width: 100%; border-collapse: collapse; font-size: 11px; }
+        th { background: #f3f4f6; text-align: left; padding: 4px 8px; border: 1px solid #ddd; }
+        td { padding: 4px 8px; border: 1px solid #ddd; }
+        tr:nth-child(even) td { background: #fafafa; }
+      </style></head><body>
+      <h1>${activity.title} <span class="cat">${activity.category}</span></h1>
+      <p class="meta">Teacher: ${activity.teacher_in_charge} &nbsp;|&nbsp; ${activity.uniqueStudentCount} / ${activity.capacity} students &nbsp;|&nbsp; Generated ${new Date().toLocaleString()}</p>
+      ${activity.students.length === 0
+        ? `<p class="empty">No students enrolled</p>`
+        : `<table><thead><tr><th>#</th><th>Name</th><th>Email</th><th>Day / Slot</th></tr></thead><tbody>${studentRows}</tbody></table>`}
+      <script>window.onload=()=>{window.print()}<\/script>
+    </body></html>`);
+    win.document.close();
+  };
+
   const filteredActivities = activities.filter(activity =>
     activity.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     activity.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -321,11 +371,33 @@ const ActivityRoster = () => {
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Badge 
+                          <Badge
                             variant={activity.uniqueStudentCount > 0 ? "default" : "secondary"}
                           >
                             {activity.uniqueStudentCount} students
                           </Badge>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 shrink-0"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <Download className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                              <DropdownMenuItem onClick={() => exportActivityCSV(activity)}>
+                                <FileSpreadsheet className="w-4 h-4 mr-2" />
+                                Export CSV
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => exportActivityPDF(activity)}>
+                                <FileText className="w-4 h-4 mr-2" />
+                                Export PDF
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                           {expandedActivities.has(activity.id) ? (
                             <ChevronUp className="w-5 h-5" />
                           ) : (
