@@ -413,41 +413,55 @@ const ActivityRoster = () => {
                         <p className="text-sm text-muted-foreground py-4 text-center">
                           No students enrolled in this activity yet.
                         </p>
-                      ) : (
-                        <div className="rounded-md border">
-                          <Table>
-                            <TableHeader>
-                              <TableRow>
-                                <TableHead className="w-[50px]">#</TableHead>
-                                <TableHead>Student Name</TableHead>
-                                <TableHead>Email</TableHead>
-                                <TableHead>Day</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {activity.students
-                                .sort((a, b) => a.student_name.localeCompare(b.student_name) || a.slot_number - b.slot_number)
-                                .map((student, index) => {
-                                  const multiSlotDay = activity.days_of_week.filter(d => d === student.day_of_week).length > 1;
-                                  return (
-                                    <TableRow key={`${student.student_id}-${student.day_of_week}-${student.slot_number}`}>
-                                      <TableCell className="font-medium">{index + 1}</TableCell>
-                                      <TableCell>{student.student_name}</TableCell>
-                                      <TableCell className="text-sm text-muted-foreground">
-                                        {student.student_email}
-                                      </TableCell>
-                                      <TableCell>
-                                        <Badge variant="outline">
-                                          {student.day_of_week}{multiSlotDay ? ` (Slot ${student.slot_number})` : ""}
-                                        </Badge>
-                                      </TableCell>
-                                    </TableRow>
-                                  );
-                                })}
-                            </TableBody>
-                          </Table>
-                        </div>
-                      )}
+                      ) : (() => {
+                        const DAY_ORDER = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+                        const sessions = [...new Map(
+                          activity.students.map(s => [`${s.day_of_week}|${s.slot_number}`, { day: s.day_of_week, slot: s.slot_number }])
+                        ).values()].sort((a, b) =>
+                          (DAY_ORDER.indexOf(a.day) - DAY_ORDER.indexOf(b.day)) || (a.slot - b.slot)
+                        );
+                        const multiSlotDays = new Set(
+                          sessions.filter(s => sessions.filter(x => x.day === s.day).length > 1).map(s => s.day)
+                        );
+                        return (
+                          <div className="space-y-4">
+                            {sessions.map(({ day, slot }) => {
+                              const sessionStudents = activity.students
+                                .filter(s => s.day_of_week === day && s.slot_number === slot)
+                                .sort((a, b) => a.student_name.localeCompare(b.student_name));
+                              const label = multiSlotDays.has(day) ? `${day} — Slot ${slot}` : day;
+                              return (
+                                <div key={`${day}-${slot}`}>
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <Badge variant="secondary" className="text-xs font-medium">{label}</Badge>
+                                    <span className="text-xs text-muted-foreground">{sessionStudents.length} student{sessionStudents.length !== 1 ? "s" : ""}</span>
+                                  </div>
+                                  <div className="rounded-md border">
+                                    <Table>
+                                      <TableHeader>
+                                        <TableRow>
+                                          <TableHead className="w-[50px]">#</TableHead>
+                                          <TableHead>Student Name</TableHead>
+                                          <TableHead>Email</TableHead>
+                                        </TableRow>
+                                      </TableHeader>
+                                      <TableBody>
+                                        {sessionStudents.map((student, index) => (
+                                          <TableRow key={`${student.student_id}-${day}-${slot}`}>
+                                            <TableCell className="font-medium">{index + 1}</TableCell>
+                                            <TableCell>{student.student_name}</TableCell>
+                                            <TableCell className="text-sm text-muted-foreground">{student.student_email}</TableCell>
+                                          </TableRow>
+                                        ))}
+                                      </TableBody>
+                                    </Table>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        );
+                      })()}
                     </CardContent>
                   </CollapsibleContent>
                 </Card>
