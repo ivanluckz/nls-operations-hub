@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { flushSync } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -173,8 +172,11 @@ const ActivityChatbot = () => {
   const [userRole, setUserRole] = useState<string>("student");
   const [executingIdx, setExecutingIdx] = useState<string | null>(null);
   const [devModeActive, setDevModeActive] = useState(false);
+  const [devPromptLoading, setDevPromptLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const devPromptRef = useRef<string | null>(null);
+  const streamContentRef = useRef("");
+  const rafRef = useRef<number | null>(null);
 
   useEffect(() => {
     const fetchRole = async () => {
@@ -283,26 +285,31 @@ const ActivityChatbot = () => {
       if (useDevMode) {
         // Dev mode: build full system prompt once per active dev session
         if (!devPromptRef.current) {
+          setDevPromptLoading(true);
           const { prompt } = await buildDevSystemPrompt();
           devPromptRef.current = prompt;
+          setDevPromptLoading(false);
         }
         const devPrompt = devPromptRef.current;
         if (!devPrompt) throw new Error("Failed to initialize Dev prompt");
 
         const recentMessages = [...messages, userMsg].slice(-CHATBOT_LIMITS.MAX_CONVERSATION_LENGTH);
 
-        const updateDevAssistant = (chunk: string) => {
-          assistantContent += chunk;
-          flushSync(() => {
+        streamContentRef.current = "";
+        const scheduleUpdate = (isDevMode: boolean) => {
+          if (rafRef.current) return;
+          rafRef.current = requestAnimationFrame(() => {
+            rafRef.current = null;
+            const content = streamContentRef.current;
             setMessages(prev => {
               const last = prev[prev.length - 1];
               if (last?.role === "assistant") {
-                return prev.map((m, i) => (i === prev.length - 1 ? { ...m, content: assistantContent, isDevMode: true } : m));
+                return prev.map((m, i) => (i === prev.length - 1 ? { ...m, content, isDevMode } : m));
               }
-              return [...prev, { role: "assistant", content: assistantContent, timestamp: new Date(), isDevMode: true }];
+              return [...prev, { role: "assistant", content, timestamp: new Date(), isDevMode }];
             });
+            scrollToBottom();
           });
-          scrollToBottom();
         };
 
         await streamChat({
@@ -310,14 +317,18 @@ const ActivityChatbot = () => {
             { role: "system", content: devPrompt },
             ...recentMessages.map(m => ({ role: m.role, content: m.content })),
           ],
-          onDelta: updateDevAssistant,
+          onDelta: (chunk) => {
+            streamContentRef.current += chunk;
+            scheduleUpdate(true);
+          },
           onDone: () => {},
           onError: (error) => {
             toast({ title: "Error", description: error, variant: "destructive" });
           },
         });
 
-        // Parse actions once at the end for better streaming performance
+        // Final flush + parse actions
+        assistantContent = streamContentRef.current;
         const { actions } = parseActions(assistantContent);
         setMessages(prev => {
           const last = prev[prev.length - 1];
@@ -328,29 +339,45 @@ const ActivityChatbot = () => {
         });
       } else {
         // Normal mode
-        const updateAssistant = (chunk: string) => {
-          assistantContent += chunk;
-          flushSync(() => {
+        streamContentRef.current = "";
+        const scheduleNormalUpdate = () => {
+          if (rafRef.current) return;
+          rafRef.current = requestAnimationFrame(() => {
+            rafRef.current = null;
+            const content = streamContentRef.current;
             setMessages(prev => {
               const last = prev[prev.length - 1];
               if (last?.role === "assistant") {
-                return prev.map((m, i) => (i === prev.length - 1 ? { ...m, content: assistantContent } : m));
+                return prev.map((m, i) => (i === prev.length - 1 ? { ...m, content } : m));
               }
-              return [...prev, { role: "assistant", content: assistantContent, timestamp: new Date() }];
+              return [...prev, { role: "assistant", content, timestamp: new Date() }];
             });
+            scrollToBottom();
           });
-          scrollToBottom();
         };
 
         const recentMessages = [...messages, userMsg].slice(-CHATBOT_LIMITS.MAX_CONVERSATION_LENGTH);
 
         await streamChat({
           messages: recentMessages,
-          onDelta: updateAssistant,
+          onDelta: (chunk) => {
+            streamContentRef.current += chunk;
+            scheduleNormalUpdate();
+          },
           onDone: () => {},
           onError: (error) => {
             toast({ title: "Error", description: error, variant: "destructive" });
           },
+        });
+
+        // Final flush
+        assistantContent = streamContentRef.current;
+        setMessages(prev => {
+          const last = prev[prev.length - 1];
+          if (last?.role === "assistant") {
+            return prev.map((m, i) => (i === prev.length - 1 ? { ...m, content: assistantContent } : m));
+          }
+          return [...prev, { role: "assistant", content: assistantContent, timestamp: new Date() }];
         });
       }
     } catch (error) {
@@ -478,8 +505,18 @@ const ActivityChatbot = () => {
                       </div>
                     );
                   })}
-                  {isLoading && messages[messages.length - 1]?.role === "user" && (
+                  {isLoading && messages[messages.length - 1]?.role === "user" && !devPromptLoading && (
                     <TypingIndicator />
+                  )}
+                  {devPromptLoading && (
+                    <div className="flex gap-3 justify-start animate-in fade-in slide-in-from-bottom-2 duration-300">
+                      <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center flex-shrink-0">
+                        <Loader2 className="h-4 w-4 text-amber-400 animate-spin" />
+                      </div>
+                      <div className="bg-muted rounded-2xl rounded-tl-sm px-4 py-3">
+                        <p className="text-xs text-muted-foreground font-mono">Building snapshot… fetching live DB data</p>
+                      </div>
+                    </div>
                   )}
                 </div>
               )}
