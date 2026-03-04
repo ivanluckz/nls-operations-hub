@@ -7,8 +7,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Search, FileDown, Loader2 } from "lucide-react";
+import { ArrowLeft, Search, FileDown, Loader2, FileSpreadsheet, ChevronDown } from "lucide-react";
 import { toast as sonnerToast } from "sonner";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 interface StudentAllocation {
   student_id: string;
@@ -157,6 +158,36 @@ const AllocationsView = () => {
     }
   };
 
+  const isAssigned = (alloc: StudentAllocation) =>
+    !!(alloc.monday_activity || alloc.tuesday_activity ||
+       alloc.wednesday_slot1_activity || alloc.wednesday_slot2_activity ||
+       alloc.thursday_activity || alloc.friday_activity);
+
+  const handleExportCSV = (filter: "all" | "assigned" | "unassigned") => {
+    const rows = filteredAllocations.filter(a =>
+      filter === "all" ? true : filter === "assigned" ? isAssigned(a) : !isAssigned(a)
+    );
+    const header = ["Name", "Email", "Monday", "Tuesday", "Wed Slot 1", "Wed Slot 2", "Thursday", "Friday"].join(",");
+    const lines = rows.map(a => [
+      `"${a.student_name}"`,
+      `"${a.student_email}"`,
+      `"${a.monday_activity || ""}"`,
+      `"${a.tuesday_activity || ""}"`,
+      `"${a.wednesday_slot1_activity || ""}"`,
+      `"${a.wednesday_slot2_activity || ""}"`,
+      `"${a.thursday_activity || ""}"`,
+      `"${a.friday_activity || ""}"`,
+    ].join(","));
+    const csv = [header, ...lines].join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `allocations_${filter}_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -195,7 +226,27 @@ const AllocationsView = () => {
               />
             </div>
 
-            <div className="flex justify-end">
+            <div className="flex justify-end gap-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline">
+                    <FileSpreadsheet className="mr-2 h-4 w-4" />
+                    Export CSV
+                    <ChevronDown className="ml-2 h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => handleExportCSV("all")}>
+                    All students
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleExportCSV("assigned")}>
+                    Assigned only
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleExportCSV("unassigned")}>
+                    Unassigned only
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <Button onClick={handleExportPDF} disabled={isExporting} variant="outline">
                 {isExporting ? (
                   <>
