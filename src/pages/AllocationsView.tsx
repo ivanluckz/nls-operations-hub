@@ -7,8 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Search, FileDown, Loader2, FileSpreadsheet, ChevronDown } from "lucide-react";
-import { toast as sonnerToast } from "sonner";
+import { ArrowLeft, Search, FileDown, FileSpreadsheet, ChevronDown } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 interface StudentAllocation {
@@ -33,7 +32,6 @@ const AllocationsView = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState<string>("");
-  const [isExporting, setIsExporting] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
 
   useEffect(() => {
@@ -117,45 +115,45 @@ const AllocationsView = () => {
     navigate(userRole === 'admin' ? '/admin' : '/moderator');
   };
 
-  const handleExportPDF = async () => {
-    setIsExporting(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("generate-allocations-pdf", {
-        body: {
-          filterDay: activeTab !== "all" ? activeTab : undefined,
-        },
-      });
-
-      if (error) throw error;
-
-      if (data?.pdf) {
-        const binaryString = atob(data.pdf);
-        const bytes = new Uint8Array(binaryString.length);
-        for (let i = 0; i < binaryString.length; i++) {
-          bytes[i] = binaryString.charCodeAt(i);
-        }
-        const blob = new Blob([bytes], { type: "application/pdf" });
-        
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = data.filename || "student-allocations.pdf";
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-
-        sonnerToast.success("PDF exported successfully!", {
-          description: `${data.statistics?.totalStudents || 0} students included`,
-        });
-      }
-    } catch (error: unknown) {
-      console.error("Error exporting PDF:", error);
-      const message = error instanceof Error ? error.message : "Failed to export PDF";
-      sonnerToast.error(message);
-    } finally {
-      setIsExporting(false);
-    }
+  const handleExportPDF = (filter: "all" | "assigned" | "unassigned") => {
+    const win = window.open("", "_blank");
+    if (!win) return;
+    const rows = filteredAllocations.filter(a =>
+      filter === "all" ? true : filter === "assigned" ? isAssigned(a) : !isAssigned(a)
+    );
+    const label = filter === "assigned" ? "Assigned Students" : filter === "unassigned" ? "Unassigned Students" : "All Students";
+    const studentRows = rows.map((a, i) => `
+      <tr>
+        <td>${i + 1}</td>
+        <td>${a.student_name}</td>
+        <td>${a.student_email}</td>
+        <td>${a.monday_activity || "-"}</td>
+        <td>${a.tuesday_activity || "-"}</td>
+        <td>${a.wednesday_slot1_activity || "-"}</td>
+        <td>${a.wednesday_slot2_activity || "-"}</td>
+        <td>${a.thursday_activity || "-"}</td>
+        <td>${a.friday_activity || "-"}</td>
+      </tr>`).join("");
+    win.document.write(`<!DOCTYPE html><html><head><title>Student Allocations</title>
+      <style>
+        body { font-family: Arial, sans-serif; font-size: 11px; color: #111; padding: 20px; }
+        h1 { font-size: 15px; margin-bottom: 2px; }
+        .meta { font-size: 10px; color: #555; margin: 0 0 14px; }
+        table { width: 100%; border-collapse: collapse; font-size: 10px; }
+        th { background: #f3f4f6; text-align: left; padding: 4px 6px; border: 1px solid #ddd; }
+        td { padding: 4px 6px; border: 1px solid #ddd; }
+        tr:nth-child(even) td { background: #fafafa; }
+        @media print { @page { size: landscape; margin: 12mm; } }
+      </style></head><body>
+      <h1>Student Allocations — ${label}</h1>
+      <p class="meta">NLS &nbsp;|&nbsp; Generated ${new Date().toLocaleString()} &nbsp;|&nbsp; ${rows.length} students</p>
+      <table>
+        <thead><tr><th>#</th><th>Name</th><th>Email</th><th>Monday</th><th>Tuesday</th><th>Wed Slot 1</th><th>Wed Slot 2</th><th>Thursday</th><th>Friday</th></tr></thead>
+        <tbody>${studentRows}</tbody>
+      </table>
+      <script>window.onload=()=>{window.print()}<\/script>
+    </body></html>`);
+    win.document.close();
   };
 
   const isAssigned = (alloc: StudentAllocation) =>
@@ -247,19 +245,26 @@ const AllocationsView = () => {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-              <Button onClick={handleExportPDF} disabled={isExporting} variant="outline">
-                {isExporting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Exporting...
-                  </>
-                ) : (
-                  <>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline">
                     <FileDown className="mr-2 h-4 w-4" />
                     Export PDF
-                  </>
-                )}
-              </Button>
+                    <ChevronDown className="ml-2 h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => handleExportPDF("all")}>
+                    All students
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleExportPDF("assigned")}>
+                    Assigned only
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleExportPDF("unassigned")}>
+                    Unassigned only
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
 
             <Tabs defaultValue="all" className="w-full" value={activeTab} onValueChange={setActiveTab}>
