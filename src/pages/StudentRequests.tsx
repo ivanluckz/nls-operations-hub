@@ -71,15 +71,25 @@ const StudentRequests = () => {
   const [reason, setReason] = useState("");
 
   useEffect(() => {
-    fetchData();
-    // Realtime subscription for request status updates
-    const channel = supabase
-      .channel("student-requests")
-      .on("postgres_changes", { event: "*", schema: "public", table: "student_requests" }, () => {
-        fetchRequests();
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    let userId: string;
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return;
+      userId = user.id;
+      fetchData();
+      // Filter realtime to only this student's requests
+      const channel = supabase
+        .channel("student-requests")
+        .on("postgres_changes", {
+          event: "*",
+          schema: "public",
+          table: "student_requests",
+          filter: `student_id=eq.${userId}`,
+        }, () => {
+          fetchRequests();
+        })
+        .subscribe();
+      return () => { supabase.removeChannel(channel); };
+    });
   }, []);
 
   const fetchData = async () => {
@@ -203,8 +213,10 @@ const StudentRequests = () => {
     );
   }
 
+  // Deduplicate by activity+day (a student may have the same activity on multiple days)
   const uniqueAllocations = allocations.reduce((acc, alloc) => {
-    if (!acc.find(a => a.activity_id === alloc.activity_id)) acc.push(alloc);
+    const key = `${alloc.activity_id}-${alloc.day_of_week}`;
+    if (!acc.find(a => `${a.activity_id}-${a.day_of_week}` === key)) acc.push(alloc);
     return acc;
   }, [] as Allocation[]);
 
@@ -258,11 +270,20 @@ const StudentRequests = () => {
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label>Current Activity</Label>
-                    <Select value={currentActivityId} onValueChange={setCurrentActivityId}>
+                    <Select
+                      value={currentActivityId ? `${currentActivityId}|${dayOfWeek}` : ""}
+                      onValueChange={(v) => {
+                        const [actId, day] = v.split("|");
+                        setCurrentActivityId(actId);
+                        setDayOfWeek(day);
+                      }}
+                    >
                       <SelectTrigger><SelectValue placeholder="Select your current activity" /></SelectTrigger>
                       <SelectContent>
                         {uniqueAllocations.map((a) => (
-                          <SelectItem key={a.activity_id} value={a.activity_id}>{a.activities.title} ({a.day_of_week})</SelectItem>
+                          <SelectItem key={`${a.activity_id}-${a.day_of_week}`} value={`${a.activity_id}|${a.day_of_week}`}>
+                            {a.activities.title} ({a.day_of_week})
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>

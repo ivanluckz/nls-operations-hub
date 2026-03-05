@@ -43,7 +43,6 @@ const StudentDashboard = () => {
   const [hasPreferences, setHasPreferences] = useState(false);
   const [allocations, setAllocations] = useState<Allocation[]>([]);
   const [loading, setLoading] = useState(true);
-  const [hasDev, setHasDev] = useState(false);
   const [userBadges, setUserBadges] = useState<string[]>([]);
   const [section, setSection] = useState<"choose" | "cocurricular">("choose");
 
@@ -86,7 +85,6 @@ const StudentDashboard = () => {
 
       const badgeNames = (allBadges || []).map((b: any) => b.badge_name);
       setAllocations((allocationsData as Allocation[] || []).filter(a => a.activities != null));
-      setHasDev(badgeNames.includes("Dev"));
       setUserBadges(badgeNames);
 
       // Show toast for recently reviewed requests not yet seen
