@@ -4,15 +4,21 @@ import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const getAllowedOrigin = (req: Request): string => {
   const origin = req.headers.get("Origin") || "";
-  if (origin.endsWith(".lovable.app") || origin === "http://localhost:5173" || origin === "http://localhost:3000") {
+  if (
+    origin.endsWith(".lovable.app") ||
+    origin.endsWith(".lovableproject.com") ||
+    origin === "http://localhost:5173" ||
+    origin === "http://localhost:3000"
+  ) {
     return origin;
   }
-  return "https://nls-co-curricular.lovable.app";
+  return "*";
 };
 
 const getCorsHeaders = (req: Request) => ({
   "Access-Control-Allow-Origin": getAllowedOrigin(req),
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 });
 
