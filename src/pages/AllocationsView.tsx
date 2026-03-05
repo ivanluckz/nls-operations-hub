@@ -309,7 +309,8 @@ const AllocationsView = () => {
               </TabsContent>
 
               {DAYS.map(day => {
-                const dayKey = `${day.toLowerCase()}_activity`;
+                const isWed = day === 'Wednesday';
+                const dayKey = `${day.toLowerCase()}_activity` as keyof StudentAllocation;
                 return (
                   <TabsContent key={day} value={day}>
                     <Table>
@@ -317,20 +318,31 @@ const AllocationsView = () => {
                         <TableRow>
                           <TableHead>Student Name</TableHead>
                           <TableHead>Email</TableHead>
-                          <TableHead>Activity</TableHead>
+                          {isWed ? (
+                            <>
+                              <TableHead>Slot 1</TableHead>
+                              <TableHead>Slot 2</TableHead>
+                            </>
+                          ) : (
+                            <TableHead>Activity</TableHead>
+                          )}
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filteredAllocations.map(alloc => {
-                          const activity = alloc[dayKey as keyof StudentAllocation];
-                          return (
-                            <TableRow key={alloc.student_id}>
-                              <TableCell className="font-medium">{alloc.student_name}</TableCell>
-                              <TableCell>{alloc.student_email}</TableCell>
-                              <TableCell>{activity || 'Not allocated'}</TableCell>
-                            </TableRow>
-                          );
-                        })}
+                        {filteredAllocations.map(alloc => (
+                          <TableRow key={alloc.student_id}>
+                            <TableCell className="font-medium">{alloc.student_name}</TableCell>
+                            <TableCell>{alloc.student_email}</TableCell>
+                            {isWed ? (
+                              <>
+                                <TableCell>{alloc.wednesday_slot1_activity || '-'}</TableCell>
+                                <TableCell>{alloc.wednesday_slot2_activity || '-'}</TableCell>
+                              </>
+                            ) : (
+                              <TableCell>{alloc[dayKey] || 'Not allocated'}</TableCell>
+                            )}
+                          </TableRow>
+                        ))}
                       </TableBody>
                     </Table>
                   </TabsContent>
