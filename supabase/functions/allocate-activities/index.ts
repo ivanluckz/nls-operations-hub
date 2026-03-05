@@ -117,30 +117,29 @@ serve(async (req) => {
       const existingCount = existingAllocations?.length || 0;
       console.log(`Backup created at ${backupTimestamp}: ${existingCount} existing allocations`);
 
-      // Delete existing allocations FIRST to avoid unique constraint violations
-      // The unique constraint on (student_id, day_of_week, slot_number) prevents insert-then-delete
-      if (existingAllocations && existingAllocations.length > 0) {
-        const oldIds = existingAllocations.map((a) => a.id);
-        console.log(`Deleting ${oldIds.length} existing allocations before creating new ones...`);
-        const { error: deleteError } = await serviceClient.from("allocations").delete().in("id", oldIds);
+      // Delete ALL existing allocations before creating new ones
+      console.log(`Deleting ${existingCount} existing allocations before creating new ones...`);
+      const { error: deleteError } = await serviceClient
+        .from("allocations")
+        .delete()
+        .neq("id", "00000000-0000-0000-0000-000000000000"); // delete all rows
 
-        if (deleteError) {
-          console.error("Error deleting old allocations:", deleteError);
-          if (auditLog) {
-            await serviceClient
-              .from("allocation_audit_log")
-              .update({
-                completed_at: new Date().toISOString(),
-                status: "failed",
-                error_message: `Failed to clear old allocations: ${deleteError.message}`,
-                allocations_created: 0,
-              })
-              .eq("id", auditLog.id);
-          }
-          throw new Error(`Failed to clear old allocations: ${deleteError.message}`);
+      if (deleteError) {
+        console.error("Error deleting old allocations:", deleteError);
+        if (auditLog) {
+          await serviceClient
+            .from("allocation_audit_log")
+            .update({
+              completed_at: new Date().toISOString(),
+              status: "failed",
+              error_message: `Failed to clear old allocations: ${deleteError.message}`,
+              allocations_created: 0,
+            })
+            .eq("id", auditLog.id);
         }
-        console.log(`Successfully deleted ${oldIds.length} old allocations`);
+        throw new Error(`Failed to clear old allocations: ${deleteError.message}`);
       }
+      console.log(`Successfully deleted old allocations`);
 
       const { data: preferences, error: prefError } = await serviceClient.from("preferences").select("*");
 
