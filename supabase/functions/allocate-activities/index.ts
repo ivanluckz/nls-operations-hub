@@ -2,16 +2,12 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
-// Issue #21: Use specific allowed origins instead of wildcard
 const getAllowedOrigin = (req: Request): string => {
   const origin = req.headers.get("Origin") || "";
-  const allowedOrigins = [
-    "https://id-preview--f393e585-fc10-4a2e-a662-735d93b755e9.lovable.app",
-    "https://nls-co-curricular.lovable.app",
-    "http://localhost:5173",
-    "http://localhost:3000",
-  ];
-  return allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
+  if (origin.endsWith(".lovable.app") || origin === "http://localhost:5173" || origin === "http://localhost:3000") {
+    return origin;
+  }
+  return "https://nls-co-curricular.lovable.app";
 };
 
 const getCorsHeaders = (req: Request) => ({
