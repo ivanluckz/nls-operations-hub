@@ -19,14 +19,29 @@ const ModeratorAllocations = () => {
 
   const fetchAuditLogs = async () => {
     try {
-      const { data, error } = await supabase
+      const { data: logs, error } = await supabase
         .from("allocation_audit_log" as any)
-        .select(`
-          *,
-          profiles:triggered_by (full_name, email)
-        `)
+        .select("*")
         .order("started_at", { ascending: false })
         .limit(10);
+
+      if (error) throw error;
+
+      // Fetch profile names separately since there's no FK
+      const triggerIds = [...new Set((logs || []).map((l: any) => l.triggered_by))];
+      let profileMap: Record<string, any> = {};
+      if (triggerIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("id, full_name, email")
+          .in("id", triggerIds);
+        profileMap = Object.fromEntries((profiles || []).map(p => [p.id, p]));
+      }
+
+      const data = (logs || []).map((l: any) => ({
+        ...l,
+        profiles: profileMap[l.triggered_by] || null,
+      }));
 
       if (error) throw error;
       setAuditLogs(data || []);
