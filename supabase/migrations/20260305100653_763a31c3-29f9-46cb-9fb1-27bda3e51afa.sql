@@ -1,0 +1,1 @@
+ALTER TABLE allocations DROP CONSTRAINT IF EXISTS allocations_preference_rank_check;
