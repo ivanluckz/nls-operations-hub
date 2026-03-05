@@ -97,9 +97,6 @@ const ModeratorAllocations = () => {
               <p className="text-sm text-muted-foreground">
                 The AI allocation system will process all submitted preferences and assign students to activities based on their choices and capacity constraints.
               </p>
-              <p className="text-sm text-muted-foreground font-medium">
-                Rate Limit: Maximum 3 allocations per hour
-              </p>
             </div>
             <Button
               onClick={handleRunAllocation}
