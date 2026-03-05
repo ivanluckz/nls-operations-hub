@@ -64,6 +64,7 @@ const TeacherAttendance = () => {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [selectedActivity, setSelectedActivity] = useState<string>("");
   const [selectedDay, setSelectedDay] = useState<string>("");
+  const [selectedSlot, setSelectedSlot] = useState<number>(1);
   const [students, setStudents] = useState<Student[]>([]);
   const [attendance, setAttendance] = useState<Map<string, AttendanceRecord>>(new Map());
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -73,17 +74,25 @@ const TeacherAttendance = () => {
   const canExcuseStudents = userRole === USER_ROLES.ADMIN || userRole === USER_ROLES.MODERATOR;
 
   const selectedActivityData = activities.find(a => a.id === selectedActivity);
+  const daySlotCount = selectedActivityData && selectedDay
+    ? selectedActivityData.days_of_week.filter(d => d === selectedDay).length
+    : 0;
 
   useEffect(() => {
     fetchActivities();
   }, []);
+
+  // When activity or day changes, reset slot to 1
+  useEffect(() => {
+    setSelectedSlot(1);
+  }, [selectedActivity, selectedDay]);
 
   useEffect(() => {
     if (selectedActivity && selectedDay) {
       fetchStudents();
       createOrLoadSession();
     }
-  }, [selectedActivity, selectedDay]);
+  }, [selectedActivity, selectedDay, selectedSlot]);
 
   const fetchActivities = async () => {
     try {
@@ -123,7 +132,8 @@ const TeacherAttendance = () => {
         .from("allocations")
         .select("student_id")
         .eq("activity_id", selectedActivity)
-        .eq("day_of_week", selectedDay);
+        .eq("day_of_week", selectedDay)
+        .eq("slot_number", selectedSlot);
 
       const studentIds = [...new Set((allocations || []).map(a => a.student_id))];
 
@@ -173,6 +183,7 @@ const TeacherAttendance = () => {
         .eq("teacher_id", user.id)
         .eq("session_date", today)
         .eq("day_of_week", selectedDay)
+        .eq("slot_number", selectedSlot)
         .eq("status", SESSION_STATUS.DRAFT)
         .maybeSingle();
 
@@ -187,7 +198,7 @@ const TeacherAttendance = () => {
             teacher_id: user.id,
             session_date: today,
             day_of_week: selectedDay,
-            slot_number: 1,
+            slot_number: selectedSlot,
             status: SESSION_STATUS.DRAFT
           })
           .select()
@@ -362,7 +373,7 @@ const TeacherAttendance = () => {
             <CardTitle>Select Activity</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="text-sm font-medium mb-2 block">Activity</label>
                 <Select value={selectedActivity} onValueChange={setSelectedActivity}>
@@ -385,16 +396,31 @@ const TeacherAttendance = () => {
                     <SelectValue placeholder="Select day" />
                   </SelectTrigger>
                   <SelectContent>
-                    {activities
-                      .find(a => a.id === selectedActivity)
-                      ?.days_of_week.map(day => (
-                        <SelectItem key={day} value={day}>
-                          {day}
-                        </SelectItem>
-                      ))}
+                    {[...new Set(selectedActivityData?.days_of_week || [])].map(day => (
+                      <SelectItem key={day} value={day}>
+                        {day}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
+              {daySlotCount > 1 && (
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Slot</label>
+                  <Select value={String(selectedSlot)} onValueChange={v => setSelectedSlot(Number(v))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select slot" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: daySlotCount }, (_, i) => i + 1).map(slot => (
+                        <SelectItem key={slot} value={String(slot)}>
+                          Slot {slot}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
