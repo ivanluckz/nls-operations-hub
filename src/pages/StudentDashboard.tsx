@@ -162,6 +162,12 @@ const StudentDashboard = () => {
               <p className="text-muted-foreground text-sm">Choose a section to explore</p>
             </div>
 
+            {/* House & Workout Selection */}
+            <div className="grid grid-cols-1 gap-5 w-full max-w-lg mx-auto">
+              <HouseSelectionCard />
+              <WorkoutSelectionCard />
+            </div>
+
             <div className="grid grid-cols-1 gap-5 w-full max-w-sm mx-auto">
               {/* Co-curricular */}
               <Card
