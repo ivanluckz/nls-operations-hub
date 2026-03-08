@@ -279,7 +279,20 @@ Please provide:
     }
 
     const aiData = await aiResponse.json();
-    const summary = aiData.choices?.[0]?.message?.content || "Unable to generate summary.";
+    const rawSummary = aiData.choices?.[0]?.message?.content || "Unable to generate summary.";
+
+    // Post-process: replace anonymized labels with real names (names stay server-side, never sent to AI)
+    let summary = rawSummary;
+    studentAnonMap.forEach((label, id) => {
+      const realName = studentMap.get(id);
+      if (realName) {
+        summary = summary.replaceAll(label, realName);
+      }
+    });
+    // Also replace repeat offender labels
+    repeatOffenders.forEach(r => {
+      summary = summary.replaceAll(r.label, r.name);
+    });
 
     console.log("Successfully generated summary");
 
