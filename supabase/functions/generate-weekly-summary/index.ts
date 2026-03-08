@@ -217,7 +217,7 @@ serve(async (req) => {
 Write in a formal but friendly tone. Be concise but informative. 
 Include actionable recommendations when appropriate.
 Format with clear sections using markdown.
-IMPORTANT: Always mention specific student names when discussing attendance issues - this helps administrators follow up with individual students.`
+Use the anonymized student labels (e.g. "Student 1") as provided - they will be replaced with real names after generation.`
           },
           {
             role: "user",
@@ -231,26 +231,26 @@ Statistics:
 - Late arrivals: ${dataContext.statistics.late}
 - Excused absences: ${dataContext.statistics.excused}
 
-Students with multiple issues this week (PRIORITY - mention these by name):
-${repeatOffenders.length > 0 ? repeatOffenders.map(s => `- ${s.name}: ${s.count} issues`).join("\n") : "None"}
+Students with multiple issues this week (PRIORITY):
+${repeatOffenders.length > 0 ? repeatOffenders.map(s => `- ${s.label}: ${s.count} issues`).join("\n") : "None"}
 
 Activities with most attendance issues:
 ${problematicActivities.length > 0 ? problematicActivities.map(a => `- ${a.name}: ${a.count} issues`).join("\n") : "None"}
 
-Detailed Absent Students (mention by name):
-${absentRecords.length > 0 ? absentRecords.slice(0, 15).map(r => `- ${r.studentName} was absent from ${r.activityName} on ${r.date}`).join("\n") : "No absences"}
+Detailed Absent Students:
+${absentRecords.length > 0 ? absentRecords.slice(0, 15).map(r => `- ${r.studentLabel} was absent from ${r.activityName} on ${r.date}`).join("\n") : "No absences"}
 
-Detailed Late Students (mention by name):
-${lateRecords.length > 0 ? lateRecords.slice(0, 10).map(r => `- ${r.studentName} was late to ${r.activityName} on ${r.date}`).join("\n") : "No late arrivals"}
+Detailed Late Students:
+${lateRecords.length > 0 ? lateRecords.slice(0, 10).map(r => `- ${r.studentLabel} was late to ${r.activityName} on ${r.date}`).join("\n") : "No late arrivals"}
 
 Excused Students:
-${excusedRecords.length > 0 ? excusedRecords.slice(0, 10).map(r => `- ${r.studentName} was excused from ${r.activityName} on ${r.date}${r.notes ? ` (${r.notes})` : ""}`).join("\n") : "No excused absences"}
+${excusedRecords.length > 0 ? excusedRecords.slice(0, 10).map(r => `- ${r.studentLabel} was excused from ${r.activityName} on ${r.date}${r.notes ? ` (${r.notes})` : ""}`).join("\n") : "No excused absences"}
 
 Please provide:
 1. An executive summary (2-3 sentences)
-2. Key highlights and concerns - MENTION SPECIFIC STUDENT NAMES who need attention
-3. Breakdown by status type with student names
-4. Recommendations for improvement (mention specific students to follow up with)
+2. Key highlights and concerns - mention specific students who need attention
+3. Breakdown by status type with student identifiers
+4. Recommendations for improvement
 5. Any positive trends to note`
           }
         ],
