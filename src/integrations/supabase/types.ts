@@ -772,6 +772,7 @@ export type Database = {
           house_id: string | null
           id: string
           updated_at: string
+          workout_location: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -782,6 +783,7 @@ export type Database = {
           house_id?: string | null
           id: string
           updated_at?: string
+          workout_location?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -792,6 +794,7 @@ export type Database = {
           house_id?: string | null
           id?: string
           updated_at?: string
+          workout_location?: string | null
         }
         Relationships: [
           {
