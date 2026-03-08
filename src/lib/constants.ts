@@ -5,8 +5,18 @@ export const USER_ROLES = {
   MODERATOR: 'moderator',
   TEACHER: 'teacher',
   STUDENT: 'student',
-  KITCHEN_STAFF: 'kitchen_staff'
+  KITCHEN_STAFF: 'kitchen_staff',
+  RL_COACH: 'rl_coach'
 } as const;
+
+export const WORKOUT_LOCATIONS = ['Courts', 'Pitch', 'Medical'] as const;
+export type WorkoutLocation = typeof WORKOUT_LOCATIONS[number];
+
+export const HOUSES = [
+  'Amistad', 'Altruismo', 'Sollevare', 'Nukumori',
+  'Protos', 'Onraka', 'Reveur', 'Isibindi'
+] as const;
+export type HouseName = typeof HOUSES[number];
 
 export const MEAL_TYPES = ['breakfast', 'lunch', 'dinner'] as const;
 export type MealType = typeof MEAL_TYPES[number];
