@@ -140,6 +140,8 @@ serve(async (req) => {
       .filter(([_, count]) => count >= 2)
       .map(([id, count]) => ({
         name: studentMap.get(id) || "Unknown",
+        label: `Student-${id.slice(0, 6)}`,
+        id,
         count
       }))
       .sort((a, b) => b.count - a.count)
