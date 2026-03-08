@@ -37,6 +37,7 @@ import {
 } from "lucide-react";
 import MealQRScanner from "@/components/kitchen/MealQRScanner";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import AttendanceChart from "@/components/dashboard/AttendanceChart";
 
 interface Visit {
   id: string;
