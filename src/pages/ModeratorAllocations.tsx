@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, PlayCircle, Download } from "lucide-react";
+import { ArrowLeft, PlayCircle, Download, Loader2 } from "lucide-react";
 
 const ModeratorAllocations = () => {
   const navigate = useNavigate();
