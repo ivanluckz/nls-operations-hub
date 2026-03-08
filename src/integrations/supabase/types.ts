@@ -1008,6 +1008,7 @@ export type Database = {
         | "teacher"
         | "kitchen_staff"
         | "rl_coach"
+        | "medical"
       message_type: "announcement" | "discussion"
       user_role: "student" | "moderator" | "admin" | "teacher"
     }
@@ -1145,6 +1146,7 @@ export const Constants = {
         "teacher",
         "kitchen_staff",
         "rl_coach",
+        "medical",
       ],
       message_type: ["announcement", "discussion"],
       user_role: ["student", "moderator", "admin", "teacher"],
