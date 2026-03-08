@@ -142,9 +142,9 @@ const KitchenDashboard = () => {
           </div>
 
           {lastScanned && (
-            <Card className="border-green-500 bg-green-500/10">
+            <Card className="border-primary/30 bg-primary/5">
               <CardContent className="py-3 text-center">
-                <p className="text-lg font-semibold text-green-700 dark:text-green-400">
+                <p className="text-lg font-semibold text-primary">
                   ✅ {lastScanned.name}
                 </p>
                 <p className="text-sm text-muted-foreground">Checked in for {lastScanned.meal}</p>
