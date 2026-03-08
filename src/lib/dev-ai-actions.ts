@@ -369,6 +369,11 @@ export const buildDevSystemPrompt = async (): Promise<{ prompt: string; stats: D
     { data: staffRoles },
     { count: attendanceCount },
     { count: prefCount },
+    { data: recentSessions },
+    { data: pendingRequests },
+    { data: houses },
+    { data: workoutClearances },
+    { data: recentMedicalVisits },
   ] = await Promise.all([
     s.from("user_roles").select("*", { count: "exact", head: true }).eq("role", "student"),
     s.from("activities").select("id, title, category, capacity, current_enrollment, teacher_in_charge, description, schedule, days_of_week, is_active").limit(150),
@@ -376,9 +381,14 @@ export const buildDevSystemPrompt = async (): Promise<{ prompt: string; stats: D
     s.from("allocations").select("student_id, activity_id, day_of_week, slot_number, status, preference_rank").limit(1000),
     s.from("user_badges").select("user_id, badge_name").limit(500),
     s.from("user_roles").select("user_id").eq("role", "student").limit(1000),
-    s.from("user_roles").select("user_id, role").in("role", ["teacher", "admin", "moderator"]).limit(200),
+    s.from("user_roles").select("user_id, role").in("role", ["teacher", "admin", "moderator", "kitchen_staff", "rl_coach", "medical"]).limit(200),
     s.from("attendance_records").select("*", { count: "exact", head: true }),
     s.from("preferences").select("*", { count: "exact", head: true }),
+    s.from("attendance_sessions").select("id, activity_id, teacher_id, session_date, day_of_week, slot_number, status").order("session_date", { ascending: false }).limit(30),
+    s.from("student_requests").select("id, student_id, request_type, reason, status, details, created_at").eq("status", "pending").order("created_at", { ascending: false }).limit(50),
+    s.from("houses").select("id, name, color").limit(20),
+    s.from("workout_clearances").select("student_id, status, restriction_reason, valid_until").limit(200),
+    s.from("medical_visits").select("id, student_id, condition, treatment, visit_date").order("visit_date", { ascending: false }).limit(30),
   ]);
 
   const allStudentIds = (allStudentRoles || []).map((r: any) => r.user_id);
@@ -386,10 +396,10 @@ export const buildDevSystemPrompt = async (): Promise<{ prompt: string; stats: D
 
   const [{ data: studentProfiles }, { data: staffProfiles }] = await Promise.all([
     allStudentIds.length > 0
-      ? s.from("profiles").select("id, full_name, email").in("id", allStudentIds.slice(0, 500))
+      ? s.from("profiles").select("id, full_name, email, avatar_url, house_id, workout_location").in("id", allStudentIds.slice(0, 500))
       : Promise.resolve({ data: [] }),
     staffIds.length > 0
-      ? s.from("profiles").select("id, full_name, email").in("id", staffIds.slice(0, 200))
+      ? s.from("profiles").select("id, full_name, email, avatar_url").in("id", staffIds.slice(0, 200))
       : Promise.resolve({ data: [] }),
   ]);
 
@@ -417,7 +427,7 @@ export const buildDevSystemPrompt = async (): Promise<{ prompt: string; stats: D
 
   const allocatedList = Array.from(studentAllocMap.entries()).map(([sid, acts]) => {
     const p = profileMap.get(sid);
-    return `[${sid}] ${p?.full_name || "Unknown"} (${p?.email || "?"}) → ${acts.join("; ")}`;
+    return `[${sid}] ${p?.full_name || "Unknown"} (${p?.email || "?"})${p?.avatar_url ? " 📸" : ""} → ${acts.join("; ")}`;
   }).join("\n") || "None";
 
   const unallocatedList = unallocatedIds.slice(0, 300).map((id: string) => {
@@ -435,6 +445,33 @@ export const buildDevSystemPrompt = async (): Promise<{ prompt: string; stats: D
     return `[${b.user_id}] ${p?.full_name || "Unknown"} (${p?.email || "?"}): ${b.badge_name}`;
   }).join("\n") || "No badges";
 
+  // Recent attendance sessions
+  const sessionList = (recentSessions || []).map((ses: any) => {
+    const act = activityMap.get(ses.activity_id);
+    return `[${ses.id}] ${act?.title || ses.activity_id} | ${ses.session_date} ${ses.day_of_week} slot ${ses.slot_number} | Status: ${ses.status}`;
+  }).join("\n") || "No recent sessions";
+
+  // Pending student requests
+  const requestList = (pendingRequests || []).map((r: any) => {
+    const p = profileMap.get(r.student_id);
+    return `[${r.id}] ${p?.full_name || "Unknown"} (${p?.email || "?"}) — ${r.request_type}: ${r.reason}${r.details ? ` | Details: ${JSON.stringify(r.details)}` : ""}`;
+  }).join("\n") || "No pending requests";
+
+  // Houses
+  const houseList = (houses || []).map((h: any) => `[${h.id}] ${h.name} (${h.color})`).join("\n") || "No houses";
+
+  // Workout clearances
+  const clearanceList = (workoutClearances || []).map((c: any) => {
+    const p = profileMap.get(c.student_id);
+    return `[${c.student_id}] ${p?.full_name || "Unknown"} — ${c.status}${c.restriction_reason ? `: ${c.restriction_reason}` : ""}${c.valid_until ? ` (until ${c.valid_until})` : ""}`;
+  }).join("\n") || "No clearances";
+
+  // Recent medical visits
+  const medicalList = (recentMedicalVisits || []).map((v: any) => {
+    const p = profileMap.get(v.student_id);
+    return `[${v.id}] ${p?.full_name || "Unknown"} — ${v.condition}${v.treatment ? ` → ${v.treatment}` : ""} (${v.visit_date})`;
+  }).join("\n") || "No recent visits";
+
   const stats: DbStats = {
     students: studentCount || 0,
     allocated: studentAllocMap.size,
@@ -451,6 +488,7 @@ export const buildDevSystemPrompt = async (): Promise<{ prompt: string; stats: D
 - **UUID**: \`${currentUserId}\`
 - **Email**: ${currentUserEmail}
 - **Name**: ${profileMap.get(currentUserId)?.full_name || "Unknown"}
+- **Avatar**: ${profileMap.get(currentUserId)?.avatar_url || "none"}
 - **Today's Date**: ${new Date().toLocaleDateString("en-CA")} (${new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })})
 
 When the user says "me", "my", "I" — they mean this user. Resolve immediately.
@@ -487,6 +525,7 @@ Search snapshot data using fuzzy matching. Resolve UUIDs automatically. Confirm 
 5. Emit ACTION blocks at END of message for write ops.
 6. **NEVER ask for info you already have**.
 7. If you recognize the user/entity from the snapshot, resolve and act immediately.
+8. **AFTER EACH EXECUTION**, the snapshot auto-refreshes. Your next response will have up-to-date data.
 
 ## WRITE OPERATIONS
 Emit: \`<ACTION>{"type":"move_student","student_id":"uuid","activity_id":"uuid"}</ACTION>\`
@@ -599,7 +638,22 @@ ${allocatedList}
 ${unallocatedList}
 
 ### Badges (${stats.badges})
-${badgeList}`;
+${badgeList}
+
+### Recent Attendance Sessions (last 30)
+${sessionList}
+
+### Pending Student Requests
+${requestList}
+
+### Houses
+${houseList}
+
+### Workout Clearances
+${clearanceList}
+
+### Recent Medical Visits (last 30)
+${medicalList}`;
 
   return { prompt, stats };
 };
