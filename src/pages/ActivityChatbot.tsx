@@ -212,6 +212,8 @@ const ActivityChatbot = () => {
     try {
       const result = await executeAction(action);
       toast({ title: "⚡ Executed", description: result });
+      // Invalidate cached dev prompt so next message uses fresh data
+      devPromptRef.current = null;
     } catch (error: any) {
       toast({ variant: "destructive", title: "Action Failed", description: error.message || "Unknown error" });
     } finally {
