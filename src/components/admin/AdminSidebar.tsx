@@ -42,6 +42,7 @@ import {
   Award,
   Zap,
   UtensilsCrossed,
+  CalendarDays,
 } from "lucide-react";
 
 import nlsLogo from "@/assets/nls-logo.png";
@@ -54,6 +55,7 @@ const coCurricularItems = [
   { title: "Auto Allocation", url: "/admin/co-curricular/allocations", icon: Shield, description: "Auto-allocate" },
   { title: "View Allocations", url: "/admin/co-curricular/view-allocations", icon: Users, description: "See assignments" },
   { title: "Activity Roster", url: "/admin/co-curricular/activity-roster", icon: BookOpen, description: "View rosters" },
+  { title: "Weekly Timetable", url: "/admin/co-curricular/timetable", icon: CalendarDays, description: "Visual weekly schedule" },
   { title: "Attendance", url: "/admin/co-curricular/attendance", icon: ClipboardCheck, description: "Take attendance" },
   { title: "Attendance Reports", url: "/admin/co-curricular/attendance-reports", icon: AlertTriangle, description: "View reports" },
   { title: "Pre-Excuse Students", url: "/admin/co-curricular/pre-excuse", icon: UserCheck, description: "Excuse students" },
