@@ -91,7 +91,7 @@ export function GlobalSearch() {
           type: "user",
           title: p.full_name,
           subtitle: p.email,
-          url: "/admin/user-management",
+          url: `/admin/user-management?editUser=${p.id}`,
         });
       });
 
@@ -101,7 +101,7 @@ export function GlobalSearch() {
           type: "activity",
           title: a.title,
           subtitle: `${a.category} · ${a.teacher_in_charge}`,
-          url: "/admin/co-curricular/activities",
+          url: `/admin/co-curricular/activities?editActivity=${a.id}`,
         });
       });
 
