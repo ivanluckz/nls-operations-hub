@@ -43,6 +43,7 @@ import KitchenReports from "./pages/KitchenReports";
 import RLCoachDashboard from "./pages/RLCoachDashboard";
 import RLCoachReports from "./pages/RLCoachReports";
 import MedicalDashboard from "./pages/MedicalDashboard";
+import WeeklyTimetable from "./pages/WeeklyTimetable";
 
 const queryClient = new QueryClient();
 
