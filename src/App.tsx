@@ -106,6 +106,10 @@ const AppContent = () => {
           <Route path="/teacher/attendance" element={<ProtectedRoute requiredRole="teacher"><TeacherAttendance /></ProtectedRoute>} />
           <Route path="/teacher/attendance-reports" element={<ProtectedRoute requiredRole="teacher"><AttendanceReports /></ProtectedRoute>} />
 
+          {/* Kitchen Staff */}
+          <Route path="/kitchen" element={<ProtectedRoute requiredRole="kitchen_staff"><KitchenDashboard /></ProtectedRoute>} />
+          <Route path="/kitchen/reports" element={<ProtectedRoute requiredRole="kitchen_staff"><KitchenReports /></ProtectedRoute>} />
+
           {/* Public */}
           <Route path="/chatbot" element={<ActivityChatbot />} />
           <Route path="/themes" element={<ThemeManagement />} />
