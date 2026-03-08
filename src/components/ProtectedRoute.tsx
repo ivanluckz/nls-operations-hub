@@ -5,7 +5,7 @@ import { User } from "@supabase/supabase-js";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  requiredRole?: "student" | "moderator" | "admin" | "teacher";
+  requiredRole?: "student" | "moderator" | "admin" | "teacher" | "kitchen_staff";
 }
 
 /** Admin pages Dev badge holders can view (read-only) */
