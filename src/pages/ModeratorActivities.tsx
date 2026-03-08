@@ -42,6 +42,7 @@ const DAYS_OPTIONS = [
 
 const ModeratorActivities = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
   const [activities, setActivities] = useState<Activity[]>([]);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
@@ -63,6 +64,18 @@ const ModeratorActivities = () => {
   useEffect(() => {
     fetchData();
   }, []);
+
+  // Auto-open edit dialog from URL param (global search deep-link)
+  useEffect(() => {
+    const editActivityId = searchParams.get("editActivity");
+    if (editActivityId && activities.length > 0 && teachers.length >= 0) {
+      const activity = activities.find((a) => a.id === editActivityId);
+      if (activity) {
+        handleOpenDialog(activity);
+        setSearchParams({}, { replace: true });
+      }
+    }
+  }, [activities, teachers, searchParams]);
 
   const fetchData = async () => {
     try {

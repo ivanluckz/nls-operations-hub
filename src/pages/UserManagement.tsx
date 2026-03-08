@@ -38,6 +38,7 @@ interface Profile {
 
 const UserManagement = () => {
   const { toast } = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [users, setUsers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingUser, setEditingUser] = useState<Profile | null>(null);
@@ -52,6 +53,18 @@ const UserManagement = () => {
   useEffect(() => {
     fetchUsers();
   }, []);
+
+  // Auto-open edit dialog from URL param (global search deep-link)
+  useEffect(() => {
+    const editUserId = searchParams.get("editUser");
+    if (editUserId && users.length > 0) {
+      const user = users.find((u) => u.id === editUserId);
+      if (user) {
+        openEditDialog(user);
+        setSearchParams({}, { replace: true });
+      }
+    }
+  }, [users, searchParams]);
 
   const fetchUsers = async () => {
     try {
