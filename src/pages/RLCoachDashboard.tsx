@@ -11,6 +11,7 @@ import {
   MapPin, BarChart3, AlertTriangle, CheckCircle2, Flag
 } from "lucide-react";
 import { MEAL_TYPES, WORKOUT_LOCATIONS, type MealType, type WorkoutLocation } from "@/lib/constants";
+import MealTrendChart from "@/components/dashboard/MealTrendChart";
 import MealQRScanner from "@/components/kitchen/MealQRScanner";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import {
