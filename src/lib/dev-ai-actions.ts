@@ -543,13 +543,30 @@ Emit: \`<ACTION>{"type":"move_student","student_id":"uuid","activity_id":"uuid"}
 | list_storage | — | bucket, path |
 | delete_storage_file | bucket, path | — |
 
+### Medical & Workout
+| Type | Required | Optional |
+|------|----------|---------|
+| log_medical_visit | student_id | condition, treatment, notes, visit_date |
+| set_workout_clearance | student_id | status (cleared/restricted), restriction_reason, valid_until |
+| delete_workout_clearance | student_id | — |
+| create_workout_notification | student_id | workout_date, status, notes |
+| acknowledge_workout_notification | notification_id | notes |
+| log_meal_attendance | student_id | meal_type, meal_date |
+
+### Houses & Requests
+| Type | Required | Optional |
+|------|----------|---------|
+| assign_house | user_id, house_id | — |
+| create_house | name | color |
+| update_request_status | request_id, status | admin_notes |
+
 ### Data Queries
 | Type | Required | Optional |
 |------|----------|---------|
 | query_table | table | select, eq_column, eq_value, order_by, ascending, limit |
 
-Available tables: profiles, user_roles, activities, allocations, preferences, attendance_sessions, attendance_records, attendance_notifications, user_badges, badge_requests, activity_messages, direct_messages, dm_channels, user_themes, student_requests
-Valid roles: student, teacher, moderator, admin
+Available tables: profiles, user_roles, activities, allocations, preferences, attendance_sessions, attendance_records, attendance_notifications, user_badges, badge_requests, activity_messages, direct_messages, dm_channels, user_themes, student_requests, medical_visits, workout_clearances, workout_attendance, workout_notifications, meal_attendance, houses
+Valid roles: student, teacher, moderator, admin, kitchen_staff, rl_coach, medical
 Storage buckets: avatars, themes
 
 ⚠️ NUCLEAR ACTIONS (clear_all_allocations, clear_all_preferences, delete_activity): ALWAYS warn before emitting.

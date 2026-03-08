@@ -307,6 +307,11 @@ You help admins:
 - **Badges**: User badges system. Dev badge is permanently locked to whitelisted accounts.
 - **Allocations**: 5-ranked preference system per day slot. Allocation engine runs server-side.
 - **Bulk Import**: CSV-based bulk import for students and teachers.
+- **Medical Module**: Medical staff log visits (\`medical_visits\`) and manage workout clearances (\`workout_clearances\`: cleared/restricted). QR scanning for check-in.
+- **RL Coach Module**: RL coaches manage morning workouts via QR scanning (\`workout_attendance\`). Auto-flag absent students in \`workout_notifications\` (3+ absences or 5+ late in 14 days).
+- **Kitchen Module**: Kitchen staff scan QR for meal attendance (\`meal_attendance\`). Tracks breakfast/lunch/dinner.
+- **Houses**: 8 houses in \`houses\` table. Students assigned via \`profiles.house_id\`.
+- **Roles**: student, teacher, moderator, admin, kitchen_staff, rl_coach, medical.
 
 ## PENDING STUDENT REQUESTS
 ${pendingContext}
