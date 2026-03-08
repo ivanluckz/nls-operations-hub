@@ -4,8 +4,12 @@ export const USER_ROLES = {
   ADMIN: 'admin',
   MODERATOR: 'moderator',
   TEACHER: 'teacher',
-  STUDENT: 'student'
+  STUDENT: 'student',
+  KITCHEN_STAFF: 'kitchen_staff'
 } as const;
+
+export const MEAL_TYPES = ['breakfast', 'lunch', 'dinner'] as const;
+export type MealType = typeof MEAL_TYPES[number];
 
 export type UserRole = typeof USER_ROLES[keyof typeof USER_ROLES];
 

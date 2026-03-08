@@ -39,6 +39,8 @@ import DirectMessages from "./pages/DirectMessages";
 import SetPassword from "./pages/SetPassword";
 import StudentRequests from "./pages/StudentRequests";
 import AdminAI from "./pages/AdminAI";
+import KitchenDashboard from "./pages/KitchenDashboard";
+import KitchenReports from "./pages/KitchenReports";
 
 const queryClient = new QueryClient();
 
@@ -98,11 +100,16 @@ const AppContent = () => {
           <Route path="/admin/dms" element={<ProtectedRoute requiredRole="admin"><DirectMessages /></ProtectedRoute>} />
           <Route path="/admin/profile" element={<ProtectedRoute requiredRole="admin"><AdminProfile /></ProtectedRoute>} />
           <Route path="/admin/admin-ai" element={<ProtectedRoute requiredRole="admin"><AdminAI /></ProtectedRoute>} />
+          <Route path="/admin/meal-reports" element={<ProtectedRoute requiredRole="admin"><KitchenReports /></ProtectedRoute>} />
 
           {/* Teacher */}
           <Route path="/teacher" element={<ProtectedRoute requiredRole="teacher"><TeacherDashboard /></ProtectedRoute>} />
           <Route path="/teacher/attendance" element={<ProtectedRoute requiredRole="teacher"><TeacherAttendance /></ProtectedRoute>} />
           <Route path="/teacher/attendance-reports" element={<ProtectedRoute requiredRole="teacher"><AttendanceReports /></ProtectedRoute>} />
+
+          {/* Kitchen Staff */}
+          <Route path="/kitchen" element={<ProtectedRoute requiredRole="kitchen_staff"><KitchenDashboard /></ProtectedRoute>} />
+          <Route path="/kitchen/reports" element={<ProtectedRoute requiredRole="kitchen_staff"><KitchenReports /></ProtectedRoute>} />
 
           {/* Public */}
           <Route path="/chatbot" element={<ActivityChatbot />} />

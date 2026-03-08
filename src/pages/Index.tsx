@@ -38,6 +38,8 @@ const Index = () => {
           navigate("/moderator");
         } else if (role === "teacher") {
           navigate("/teacher");
+        } else if (role === "kitchen_staff") {
+          navigate("/kitchen");
         } else {
           // Default to student for any other role or missing role
           navigate("/student");
