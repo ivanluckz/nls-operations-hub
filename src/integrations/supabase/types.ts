@@ -885,7 +885,7 @@ export type Database = {
     }
     Enums: {
       allocation_status: "pending" | "allocated" | "waitlisted"
-      app_role: "student" | "moderator" | "admin" | "teacher"
+      app_role: "student" | "moderator" | "admin" | "teacher" | "kitchen_staff"
       message_type: "announcement" | "discussion"
       user_role: "student" | "moderator" | "admin" | "teacher"
     }
@@ -1016,7 +1016,7 @@ export const Constants = {
   public: {
     Enums: {
       allocation_status: ["pending", "allocated", "waitlisted"],
-      app_role: ["student", "moderator", "admin", "teacher"],
+      app_role: ["student", "moderator", "admin", "teacher", "kitchen_staff"],
       message_type: ["announcement", "discussion"],
       user_role: ["student", "moderator", "admin", "teacher"],
     },
