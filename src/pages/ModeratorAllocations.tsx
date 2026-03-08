@@ -88,6 +88,48 @@ const ModeratorAllocations = () => {
     }
   };
 
+  const handleDownloadPDF = async () => {
+    setDownloading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-allocations-pdf", {
+        body: {},
+      });
+
+      if (error) throw error;
+
+      if (data?.pdf) {
+        const binaryString = atob(data.pdf);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        const blob = new Blob([bytes], { type: "application/pdf" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = data.filename || "student-allocations.pdf";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+
+        toast({
+          title: "PDF Downloaded",
+          description: `Allocations report for ${data.statistics?.totalStudents || 0} students`,
+        });
+      }
+    } catch (error: any) {
+      console.error("PDF download error:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to download PDF",
+      });
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card shadow-card">
@@ -99,7 +141,7 @@ const ModeratorAllocations = () => {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8 max-w-2xl">
+      <main className="container mx-auto px-4 py-8 max-w-2xl space-y-6">
         <Card className="shadow-card">
           <CardHeader>
             <CardTitle>Run AI Allocation</CardTitle>
@@ -114,15 +156,29 @@ const ModeratorAllocations = () => {
                 The AI allocation system will process all submitted preferences and assign students to activities based on their choices and capacity constraints.
               </p>
             </div>
-            <Button
-              onClick={handleRunAllocation}
-              disabled={running}
-              className="w-full"
-              size="lg"
-            >
-              <PlayCircle className="w-5 h-5 mr-2" />
-              {running ? "Running Allocation..." : "Run Allocation"}
-            </Button>
+            <div className="flex gap-3">
+              <Button
+                onClick={handleRunAllocation}
+                disabled={running}
+                className="flex-1"
+                size="lg"
+              >
+                <PlayCircle className="w-5 h-5 mr-2" />
+                {running ? "Running Allocation..." : "Run Allocation"}
+              </Button>
+              <Button
+                onClick={handleDownloadPDF}
+                disabled={downloading}
+                variant="outline"
+                size="lg"
+              >
+                {downloading ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <Download className="w-5 h-5" />
+                )}
+              </Button>
+            </div>
           </CardContent>
         </Card>
 
