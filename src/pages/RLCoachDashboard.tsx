@@ -55,6 +55,10 @@ const RLCoachDashboard = () => {
   const [workoutScanning, setWorkoutScanning] = useState(false);
   const [workoutCount, setWorkoutCount] = useState(0);
   const [lastWorkoutScanned, setLastWorkoutScanned] = useState<{ name: string; location: string } | null>(null);
+  const [finalizing, setFinalizing] = useState(false);
+  const [absentStudents, setAbsentStudents] = useState<Array<{ id: string; name: string }>>([]);
+  const [flaggedStudents, setFlaggedStudents] = useState<Array<{ id: string; name: string; absent_count: number; late_count: number }>>([]);
+  const [restrictedStudents, setRestrictedStudents] = useState<Array<{ id: string; name: string; reason: string | null }>>([]);
 
   const [totalStudents, setTotalStudents] = useState(0);
 
@@ -65,6 +69,8 @@ const RLCoachDashboard = () => {
     fetchMealCounts();
     fetchWorkoutCount();
     fetchTotalStudents();
+    fetchFlaggedStudents();
+    fetchRestrictedStudents();
   }, []);
 
   const fetchTotalStudents = async () => {
