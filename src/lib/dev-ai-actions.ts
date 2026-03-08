@@ -381,7 +381,7 @@ export const buildDevSystemPrompt = async (): Promise<{ prompt: string; stats: D
     s.from("allocations").select("student_id, activity_id, day_of_week, slot_number, status, preference_rank").limit(1000),
     s.from("user_badges").select("user_id, badge_name").limit(500),
     s.from("user_roles").select("user_id").eq("role", "student").limit(1000),
-    s.from("user_roles").select("user_id, role").in("role", ["teacher", "admin", "moderator", "rl_coach", "medical"]).limit(200),.limit(200),
+    s.from("user_roles").select("user_id, role").in("role", ["teacher", "admin", "moderator", "rl_coach", "medical"]).limit(200),
     s.from("attendance_records").select("*", { count: "exact", head: true }),
     s.from("preferences").select("*", { count: "exact", head: true }),
     s.from("attendance_sessions").select("id, activity_id, teacher_id, session_date, day_of_week, slot_number, status").order("session_date", { ascending: false }).limit(30),
