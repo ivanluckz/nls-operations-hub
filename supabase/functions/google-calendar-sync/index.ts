@@ -23,6 +23,33 @@ const GOOGLE_CLIENT_SECRET = Deno.env.get("Google_client_secret")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 
+// ---------- HMAC helpers for OAuth state signing ----------
+async function getHmacKey(): Promise<CryptoKey> {
+  const secret = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!; // Use service role key as HMAC secret
+  const keyBytes = new TextEncoder().encode(secret);
+  return crypto.subtle.importKey("raw", keyBytes, { name: "HMAC", hash: "SHA-256" }, false, ["sign", "verify"]);
+}
+
+async function signState(payload: Record<string, unknown>): Promise<string> {
+  const key = await getHmacKey();
+  const data = JSON.stringify(payload);
+  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(data));
+  const sigB64 = btoa(String.fromCharCode(...new Uint8Array(sig)));
+  return btoa(JSON.stringify({ ...payload, hmac: sigB64 }));
+}
+
+async function verifyState(stateParam: string): Promise<Record<string, unknown>> {
+  const parsed = JSON.parse(atob(stateParam));
+  const { hmac, ...payload } = parsed;
+  if (!hmac) throw new Error("Missing HMAC in state");
+  const key = await getHmacKey();
+  const data = JSON.stringify(payload);
+  const sigBytes = new Uint8Array(atob(hmac).split("").map(c => c.charCodeAt(0)));
+  const valid = await crypto.subtle.verify("HMAC", key, sigBytes, new TextEncoder().encode(data));
+  if (!valid) throw new Error("Invalid state signature");
+  return payload;
+}
+
 // ---------- Token encryption helpers (AES-GCM via Web Crypto) ----------
 async function getEncryptKey(): Promise<CryptoKey> {
   const raw = Deno.env.get("TOKEN_ENCRYPT_KEY");
