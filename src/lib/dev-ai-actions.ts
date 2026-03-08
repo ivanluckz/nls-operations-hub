@@ -249,6 +249,93 @@ export const executeAction = async (action: ParsedAction): Promise<string> => {
       return `Deleted ${action.bucket}/${action.path}`;
     }
 
+    // ── Medical ──
+    case "log_medical_visit": {
+      const { error, data } = await s.from("medical_visits").insert({
+        student_id: action.student_id,
+        medical_staff_id: currentUser?.id,
+        condition: action.condition || "General",
+        treatment: action.treatment || null,
+        notes: action.notes || null,
+        visit_date: action.visit_date || new Date().toISOString().split("T")[0],
+      }).select("id").single();
+      if (error) throw error;
+      return `Logged medical visit ${data?.id} for student ${action.student_id}`;
+    }
+    case "set_workout_clearance": {
+      const { error } = await s.from("workout_clearances").upsert({
+        student_id: action.student_id,
+        cleared_by: currentUser?.id,
+        status: action.status || "restricted",
+        restriction_reason: action.restriction_reason || null,
+        valid_until: action.valid_until || null,
+      }, { onConflict: "student_id" });
+      if (error) throw error;
+      return `Set workout clearance for ${action.student_id} → ${action.status || "restricted"}`;
+    }
+    case "delete_workout_clearance": {
+      const { error } = await s.from("workout_clearances").delete().eq("student_id", action.student_id);
+      if (error) throw error;
+      return `Removed workout clearance for ${action.student_id}`;
+    }
+
+    // ── Workout Notifications ──
+    case "create_workout_notification": {
+      const { error } = await s.from("workout_notifications").insert({
+        student_id: action.student_id,
+        workout_date: action.workout_date || new Date().toISOString().split("T")[0],
+        status: action.status || "absent",
+        notes: action.notes || null,
+      });
+      if (error) throw error;
+      return `Created workout notification for ${action.student_id} (${action.status || "absent"})`;
+    }
+    case "acknowledge_workout_notification": {
+      const { error } = await s.from("workout_notifications").update({
+        acknowledged_by: currentUser?.id,
+        acknowledged_at: new Date().toISOString(),
+        notes: action.notes || null,
+      }).eq("id", action.notification_id);
+      if (error) throw error;
+      return `Acknowledged workout notification ${action.notification_id}`;
+    }
+
+    // ── Meal Attendance ──
+    case "log_meal_attendance": {
+      const { error } = await s.from("meal_attendance").insert({
+        student_id: action.student_id,
+        scanned_by: currentUser?.id,
+        meal_type: action.meal_type || "lunch",
+        meal_date: action.meal_date || new Date().toISOString().split("T")[0],
+      });
+      if (error) throw error;
+      return `Logged ${action.meal_type || "lunch"} attendance for ${action.student_id}`;
+    }
+
+    // ── Houses ──
+    case "assign_house": {
+      const { error } = await s.from("profiles").update({ house_id: action.house_id }).eq("id", action.user_id);
+      if (error) throw error;
+      return `Assigned user ${action.user_id} to house ${action.house_id}`;
+    }
+    case "create_house": {
+      const { error, data } = await s.from("houses").insert({
+        name: action.name,
+        color: action.color || "#6366f1",
+      }).select("id").single();
+      if (error) throw error;
+      return `Created house "${action.name}" → ${data?.id}`;
+    }
+
+    // ── Student Requests ──
+    case "update_request_status": {
+      const updates: any = { status: action.status, reviewed_by: currentUser?.id, reviewed_at: new Date().toISOString() };
+      if (action.admin_notes) updates.admin_notes = action.admin_notes;
+      const { error } = await s.from("student_requests").update(updates).eq("id", action.request_id);
+      if (error) throw error;
+      return `Updated request ${action.request_id} → ${action.status}`;
+    }
+
     // ── Data Queries (read-only) ──
     case "query_table": {
       const table = action.table;
