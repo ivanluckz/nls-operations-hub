@@ -178,7 +178,7 @@ Deno.serve(async (req) => {
     // Step 1: Generate OAuth URL for calendar consent
     if (action === "auth-url") {
       const redirectUri = url.searchParams.get("redirect_uri") || "";
-      const state = btoa(JSON.stringify({ userId, redirectUri }));
+      const state = await signState({ userId, redirectUri });
 
       const authUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
       authUrl.searchParams.set("client_id", GOOGLE_CLIENT_ID);
