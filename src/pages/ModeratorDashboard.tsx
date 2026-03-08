@@ -62,19 +62,19 @@ const ModeratorDashboard = () => {
         { count: activitiesCount },
         { count: studentsCount },
         { count: preferencesCount },
-        { count: allocationsCount },
+        { data: allocatedData },
       ] = await Promise.all([
         supabase.from("activities").select("*", { count: "exact", head: true }).eq("is_active", true),
         supabase.from("user_roles" as any).select("*", { count: "exact", head: true }).eq("role", "student"),
         supabase.from("preferences").select("*", { count: "exact", head: true }),
-        supabase.from("allocations").select("*", { count: "exact", head: true }),
+        supabase.rpc("count_allocated_students"),
       ]);
 
       setStats({
         totalActivities: activitiesCount || 0,
         totalStudents: studentsCount || 0,
         submittedPreferences: preferencesCount || 0,
-        completedAllocations: allocationsCount || 0,
+        completedAllocations: typeof allocatedData === 'number' ? allocatedData : 0,
       });
     } catch (error) {
       console.error("Error fetching stats:", error);
