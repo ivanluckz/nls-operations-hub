@@ -149,14 +149,14 @@ const AdminDashboard = () => {
         {/* Live Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {statCards.map((s) => (
-            <Card key={s.label} className="relative overflow-hidden">
+            <Card key={s.label} className="relative overflow-hidden cursor-pointer hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5 group" onClick={() => navigate(s.url)}>
               <CardContent className="p-5">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">{s.label}</p>
+                    <p className="text-sm font-medium text-muted-foreground group-hover:text-primary transition-colors">{s.label}</p>
                     <p className="text-3xl font-bold mt-1">{s.value}</p>
                   </div>
-                  <div className={`w-12 h-12 rounded-2xl ${s.bg} flex items-center justify-center`}>
+                  <div className={`w-12 h-12 rounded-2xl ${s.bg} flex items-center justify-center group-hover:scale-110 transition-transform`}>
                     <s.icon className={`h-6 w-6 ${s.color}`} />
                   </div>
                 </div>
