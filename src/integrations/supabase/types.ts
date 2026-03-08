@@ -534,6 +534,50 @@ export type Database = {
           },
         ]
       }
+      medical_visits: {
+        Row: {
+          condition: string
+          created_at: string
+          id: string
+          medical_staff_id: string
+          notes: string | null
+          scanned_at: string
+          student_id: string
+          treatment: string | null
+          visit_date: string
+        }
+        Insert: {
+          condition: string
+          created_at?: string
+          id?: string
+          medical_staff_id: string
+          notes?: string | null
+          scanned_at?: string
+          student_id: string
+          treatment?: string | null
+          visit_date?: string
+        }
+        Update: {
+          condition?: string
+          created_at?: string
+          id?: string
+          medical_staff_id?: string
+          notes?: string | null
+          scanned_at?: string
+          student_id?: string
+          treatment?: string | null
+          visit_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medical_visits_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       message_reactions: {
         Row: {
           created_at: string | null
@@ -970,6 +1014,47 @@ export type Database = {
           },
         ]
       }
+      workout_clearances: {
+        Row: {
+          cleared_by: string
+          created_at: string
+          id: string
+          restriction_reason: string | null
+          status: string
+          student_id: string
+          updated_at: string
+          valid_until: string | null
+        }
+        Insert: {
+          cleared_by: string
+          created_at?: string
+          id?: string
+          restriction_reason?: string | null
+          status?: string
+          student_id: string
+          updated_at?: string
+          valid_until?: string | null
+        }
+        Update: {
+          cleared_by?: string
+          created_at?: string
+          id?: string
+          restriction_reason?: string | null
+          status?: string
+          student_id?: string
+          updated_at?: string
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workout_clearances_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -996,6 +1081,7 @@ export type Database = {
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_kitchen_staff: { Args: { _user_id: string }; Returns: boolean }
+      is_medical: { Args: { _user_id: string }; Returns: boolean }
       is_moderator: { Args: { _user_id: string }; Returns: boolean }
       is_rl_coach: { Args: { _user_id: string }; Returns: boolean }
     }
