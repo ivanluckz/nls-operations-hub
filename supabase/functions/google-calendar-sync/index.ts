@@ -99,7 +99,14 @@ Deno.serve(async (req) => {
         return new Response("Missing code or state", { status: 400, headers: corsHeaders });
       }
 
-      const { userId: stateUserId, redirectUri } = JSON.parse(atob(stateParam));
+      let stateData: Record<string, unknown>;
+      try {
+        stateData = await verifyState(stateParam);
+      } catch (e) {
+        console.error("State verification failed:", e);
+        return new Response("Invalid or tampered state parameter", { status: 403, headers: corsHeaders });
+      }
+      const { userId: stateUserId, redirectUri } = stateData as { userId: string; redirectUri: string };
 
       const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
         method: "POST",
