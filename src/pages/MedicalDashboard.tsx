@@ -236,23 +236,25 @@ const MedicalDashboard = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="border-b bg-card">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Stethoscope className="h-6 w-6 text-primary" />
+      <header className="border-b bg-gradient-to-r from-rose-500/5 via-background to-rose-500/5">
+        <div className="container mx-auto px-4 py-5 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-rose-500/20 to-pink-500/20 flex items-center justify-center">
+              <Stethoscope className="h-6 w-6 text-rose-600 dark:text-rose-400" />
+            </div>
             <div>
               <h1 className="text-xl font-bold">Medical Dashboard</h1>
-              <p className="text-sm text-muted-foreground">Student Health & Clearances</p>
+              <p className="text-sm text-muted-foreground">Student health & clearances</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <ThemeToggle />
-            <Button variant="ghost" size="sm" onClick={handleLogout}>
+            <Button variant="ghost" size="icon" onClick={handleLogout}>
               <LogOut className="h-4 w-4" />
             </Button>
           </div>
         </div>
-      </div>
+      </header>
 
       <div className="container mx-auto px-4 py-6 space-y-6">
         {/* Quick Stats */}

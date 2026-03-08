@@ -6,8 +6,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
-import { LogOut, GraduationCap, ClipboardCheck, AlertTriangle } from "lucide-react";
+import { LogOut, GraduationCap, ClipboardCheck, AlertTriangle, Users, BookOpen, MessageSquare } from "lucide-react";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import ActivityMessaging from "@/components/teacher/ActivityMessaging";
 import FloatingChatButton from "@/components/student/FloatingChatButton";
 
@@ -32,7 +34,7 @@ const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 const TeacherDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [profile, setProfile] = useState<{ full_name: string } | null>(null);
+  const [profile, setProfile] = useState<{ full_name: string; avatar_url: string | null } | null>(null);
   const [activities, setActivities] = useState<ActivityData[]>([]);
   const [students, setStudents] = useState<StudentAllocation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -46,33 +48,18 @@ const TeacherDashboard = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data: profileData } = await supabase
-        .from("profiles")
-        .select("full_name")
-        .eq("id", user.id)
-        .single();
+      const [{ data: profileData }, { data: activitiesData }, { data: studentsData }] = await Promise.all([
+        supabase.from("profiles").select("full_name, avatar_url").eq("id", user.id).single(),
+        supabase.from("activities").select("*").eq("teacher_id", user.id).order("title"),
+        supabase.rpc("get_teacher_students", { teacher_user_id: user.id }),
+      ]);
 
       setProfile(profileData);
-
-      const { data: activitiesData } = await supabase
-        .from("activities")
-        .select("*")
-        .eq("teacher_id", user.id)
-        .order("title");
-
       setActivities(activitiesData || []);
-
-      const { data: studentsData } = await supabase
-        .rpc("get_teacher_students", { teacher_user_id: user.id });
-
       setStudents(studentsData || []);
     } catch (error) {
       console.error("Error fetching data:", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to load dashboard data",
-      });
+      toast({ variant: "destructive", title: "Error", description: "Failed to load dashboard data" });
     } finally {
       setLoading(false);
     }
@@ -83,99 +70,178 @@ const TeacherDashboard = () => {
     navigate("/auth");
   };
 
-  const getStudentsByDay = (day: string) => {
-    return students.filter(s => s.day_of_week === day);
-  };
+  const getStudentsByDay = (day: string) => students.filter(s => s.day_of_week === day);
+  const uniqueStudents = new Set(students.map(s => s.student_id)).size;
+
+  const getInitials = (name: string) =>
+    name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-16 h-16 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
+          <p className="text-sm text-muted-foreground animate-pulse">Loading your portal...</p>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b bg-card shadow-card">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-primary flex items-center justify-center">
-              <GraduationCap className="w-5 h-5 text-primary-foreground" />
-            </div>
+      {/* Header */}
+      <header className="border-b bg-gradient-to-r from-primary/5 via-background to-primary/5">
+        <div className="container mx-auto px-4 py-5 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Avatar className="h-12 w-12 border-2 border-primary/20">
+              <AvatarImage src={profile?.avatar_url || undefined} />
+              <AvatarFallback className="bg-primary/10 text-primary font-bold">
+                {profile ? getInitials(profile.full_name) : "T"}
+              </AvatarFallback>
+            </Avatar>
             <div>
               <h1 className="text-xl font-bold">Teacher Portal</h1>
               <p className="text-sm text-muted-foreground">{profile?.full_name}</p>
             </div>
           </div>
-          <Button variant="outline" onClick={handleLogout}>
-            <LogOut className="w-4 h-4 mr-2" />
-            Logout
-          </Button>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <Button variant="ghost" size="icon" onClick={handleLogout}>
+              <LogOut className="w-4 h-4" />
+            </Button>
+          </div>
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8 space-y-6">
-        <div className="flex justify-end gap-2 mb-4">
-          <Button variant="outline" onClick={() => navigate("/teacher/attendance-reports")}>
-            <AlertTriangle className="w-4 h-4 mr-2" />
-            Attendance Reports
-          </Button>
-          <Button onClick={() => navigate("/teacher/attendance")}>
-            <ClipboardCheck className="w-4 h-4 mr-2" />
+      <main className="container mx-auto px-4 py-6 space-y-6">
+        {/* Stats row */}
+        <div className="grid grid-cols-3 gap-4">
+          <Card className="relative overflow-hidden">
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Activities</p>
+                  <p className="text-3xl font-bold">{activities.length}</p>
+                </div>
+                <div className="w-11 h-11 rounded-2xl bg-primary/10 flex items-center justify-center">
+                  <BookOpen className="h-5 w-5 text-primary" />
+                </div>
+              </div>
+            </CardContent>
+            <div className="absolute bottom-0 left-0 right-0 h-1 bg-primary/10" />
+          </Card>
+          <Card className="relative overflow-hidden">
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Students</p>
+                  <p className="text-3xl font-bold">{uniqueStudents}</p>
+                </div>
+                <div className="w-11 h-11 rounded-2xl bg-emerald-500/10 flex items-center justify-center">
+                  <Users className="h-5 w-5 text-emerald-500" />
+                </div>
+              </div>
+            </CardContent>
+            <div className="absolute bottom-0 left-0 right-0 h-1 bg-emerald-500/10" />
+          </Card>
+          <Card className="relative overflow-hidden">
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Days Active</p>
+                  <p className="text-3xl font-bold">
+                    {new Set(activities.flatMap(a => a.days_of_week)).size}
+                  </p>
+                </div>
+                <div className="w-11 h-11 rounded-2xl bg-violet-500/10 flex items-center justify-center">
+                  <GraduationCap className="h-5 w-5 text-violet-500" />
+                </div>
+              </div>
+            </CardContent>
+            <div className="absolute bottom-0 left-0 right-0 h-1 bg-violet-500/10" />
+          </Card>
+        </div>
+
+        {/* Action buttons */}
+        <div className="flex gap-3">
+          <Button onClick={() => navigate("/teacher/attendance")} className="gap-2">
+            <ClipboardCheck className="w-4 h-4" />
             Take Attendance
+          </Button>
+          <Button variant="outline" onClick={() => navigate("/teacher/attendance-reports")} className="gap-2">
+            <AlertTriangle className="w-4 h-4" />
+            Reports
           </Button>
         </div>
 
-        <Card className="shadow-card">
+        {/* My Activities */}
+        <Card>
           <CardHeader>
             <CardTitle>My Activities</CardTitle>
             <CardDescription>Activities you're teaching this week</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2">
-              {DAYS.map(day => {
-                const dayActivities = activities.filter(a => a.days_of_week.includes(day));
-                return dayActivities.map(activity => {
-                  const slotCount = activity.days_of_week.filter(d => d === day).length;
-                  return Array.from({ length: slotCount }, (_, i) => i + 1).map(slot => (
-                    <div key={`${activity.id}-${day}-${slot}`} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div>
-                        <span className="font-medium">{activity.title}</span>
-                        <Badge variant="outline" className="ml-2">
-                          {day}{slotCount > 1 ? ` — Slot ${slot}` : ""}
-                        </Badge>
+            {activities.length === 0 ? (
+              <p className="text-center text-muted-foreground py-6">No activities assigned yet</p>
+            ) : (
+              <div className="grid gap-2">
+                {DAYS.map(day => {
+                  const dayActivities = activities.filter(a => a.days_of_week.includes(day));
+                  return dayActivities.map(activity => {
+                    const pct = activity.capacity > 0 ? Math.round((activity.current_enrollment / activity.capacity) * 100) : 0;
+                    return (
+                      <div key={`${activity.id}-${day}`} className="flex items-center justify-between p-3 rounded-xl border hover:border-primary/20 hover:bg-muted/30 transition-colors">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
+                            {day.slice(0, 2)}
+                          </div>
+                          <div>
+                            <span className="font-medium text-sm">{activity.title}</span>
+                            <p className="text-xs text-muted-foreground">
+                              {activity.current_enrollment}/{activity.capacity} enrolled
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-16 h-1.5 rounded-full bg-muted overflow-hidden">
+                            <div
+                              className={`h-full rounded-full ${pct >= 100 ? "bg-destructive" : pct > 80 ? "bg-amber-500" : "bg-primary"}`}
+                              style={{ width: `${Math.min(pct, 100)}%` }}
+                            />
+                          </div>
+                          {pct >= 100 && <Badge variant="destructive" className="text-[10px] h-4 px-1">Full</Badge>}
+                        </div>
                       </div>
-                      <span className="text-sm text-muted-foreground">
-                        {activity.current_enrollment}/{activity.capacity} students
-                      </span>
-                    </div>
-                  ));
-                });
-              })}
-              {activities.length === 0 && (
-                <p className="text-center text-muted-foreground py-4">No activities assigned yet</p>
-              )}
-            </div>
+                    );
+                  });
+                })}
+              </div>
+            )}
           </CardContent>
         </Card>
 
-        <Card className="shadow-card">
+        {/* My Students */}
+        <Card>
           <CardHeader>
             <CardTitle>My Students</CardTitle>
-            <CardDescription>Students enrolled in your activities</CardDescription>
+            <CardDescription>Students enrolled in your activities by day</CardDescription>
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="Monday">
               <TabsList className="grid w-full grid-cols-5">
                 {DAYS.map(day => (
-                  <TabsTrigger key={day} value={day}>{day.slice(0, 3)}</TabsTrigger>
+                  <TabsTrigger key={day} value={day}>
+                    {day.slice(0, 3)}
+                    <Badge variant="secondary" className="ml-1.5 h-4 px-1 text-[10px]">
+                      {getStudentsByDay(day).length}
+                    </Badge>
+                  </TabsTrigger>
                 ))}
               </TabsList>
               {DAYS.map(day => {
                 const dayStudents = getStudentsByDay(day);
                 return (
-                  <TabsContent key={day} value={day} className="space-y-4">
+                  <TabsContent key={day} value={day} className="mt-4">
                     {dayStudents.length > 0 ? (
                       <Table>
                         <TableHeader>
@@ -189,8 +255,10 @@ const TeacherDashboard = () => {
                           {dayStudents.map((student) => (
                             <TableRow key={`${student.student_id}-${student.activity_title}`}>
                               <TableCell className="font-medium">{student.student_name}</TableCell>
-                              <TableCell>{student.student_email}</TableCell>
-                              <TableCell>{student.activity_title}</TableCell>
+                              <TableCell className="text-muted-foreground">{student.student_email}</TableCell>
+                              <TableCell>
+                                <Badge variant="outline">{student.activity_title}</Badge>
+                              </TableCell>
                             </TableRow>
                           ))}
                         </TableBody>
