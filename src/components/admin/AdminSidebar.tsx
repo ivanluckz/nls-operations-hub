@@ -42,6 +42,7 @@ import {
   Award,
   Zap,
   UtensilsCrossed,
+  CalendarDays,
 } from "lucide-react";
 
 import nlsLogo from "@/assets/nls-logo.png";
