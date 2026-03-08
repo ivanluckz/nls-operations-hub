@@ -41,6 +41,8 @@ import StudentRequests from "./pages/StudentRequests";
 import AdminAI from "./pages/AdminAI";
 import KitchenDashboard from "./pages/KitchenDashboard";
 import KitchenReports from "./pages/KitchenReports";
+import RLCoachDashboard from "./pages/RLCoachDashboard";
+import RLCoachReports from "./pages/RLCoachReports";
 
 const queryClient = new QueryClient();
 
@@ -101,15 +103,20 @@ const AppContent = () => {
           <Route path="/admin/profile" element={<ProtectedRoute requiredRole="admin"><AdminProfile /></ProtectedRoute>} />
           <Route path="/admin/admin-ai" element={<ProtectedRoute requiredRole="admin"><AdminAI /></ProtectedRoute>} />
           <Route path="/admin/meal-reports" element={<ProtectedRoute requiredRole="admin"><KitchenReports /></ProtectedRoute>} />
+          <Route path="/admin/workout-reports" element={<ProtectedRoute requiredRole="admin"><RLCoachReports /></ProtectedRoute>} />
 
           {/* Teacher */}
           <Route path="/teacher" element={<ProtectedRoute requiredRole="teacher"><TeacherDashboard /></ProtectedRoute>} />
           <Route path="/teacher/attendance" element={<ProtectedRoute requiredRole="teacher"><TeacherAttendance /></ProtectedRoute>} />
           <Route path="/teacher/attendance-reports" element={<ProtectedRoute requiredRole="teacher"><AttendanceReports /></ProtectedRoute>} />
 
-          {/* Kitchen Staff */}
+          {/* Kitchen Staff (legacy) */}
           <Route path="/kitchen" element={<ProtectedRoute requiredRole="kitchen_staff"><KitchenDashboard /></ProtectedRoute>} />
           <Route path="/kitchen/reports" element={<ProtectedRoute requiredRole="kitchen_staff"><KitchenReports /></ProtectedRoute>} />
+
+          {/* RL Coach */}
+          <Route path="/rl-coach" element={<ProtectedRoute requiredRole="rl_coach"><RLCoachDashboard /></ProtectedRoute>} />
+          <Route path="/rl-coach/reports" element={<ProtectedRoute requiredRole="rl_coach"><RLCoachReports /></ProtectedRoute>} />
 
           {/* Public */}
           <Route path="/chatbot" element={<ActivityChatbot />} />

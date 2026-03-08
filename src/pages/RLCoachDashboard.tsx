@@ -1,0 +1,450 @@
+import { useEffect, useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useToast } from "@/hooks/use-toast";
+import {
+  QrCode, Users, LogOut, Sun, Coffee, Moon, Dumbbell,
+  MapPin, BarChart3
+} from "lucide-react";
+import { MEAL_TYPES, WORKOUT_LOCATIONS, type MealType, type WorkoutLocation } from "@/lib/constants";
+import MealQRScanner from "@/components/kitchen/MealQRScanner";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+const mealIcons: Record<MealType, typeof Coffee> = {
+  breakfast: Coffee,
+  lunch: Sun,
+  dinner: Moon,
+};
+
+const mealLabels: Record<MealType, string> = {
+  breakfast: "Breakfast",
+  lunch: "Lunch",
+  dinner: "Dinner",
+};
+
+const locationIcons: Record<WorkoutLocation, string> = {
+  Courts: "🏀",
+  Pitch: "⚽",
+  Medical: "🏥",
+};
+
+const RLCoachDashboard = () => {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const [userId, setUserId] = useState<string | null>(null);
+
+  // Meal state
+  const [selectedMeal, setSelectedMeal] = useState<MealType | null>(null);
+  const [mealScanning, setMealScanning] = useState(false);
+  const [mealCounts, setMealCounts] = useState<Record<MealType, number>>({ breakfast: 0, lunch: 0, dinner: 0 });
+  const [lastMealScanned, setLastMealScanned] = useState<{ name: string; meal: string } | null>(null);
+
+  // Workout state
+  const [selectedLocation, setSelectedLocation] = useState<WorkoutLocation>("Courts");
+  const [workoutScanning, setWorkoutScanning] = useState(false);
+  const [workoutCount, setWorkoutCount] = useState(0);
+  const [lastWorkoutScanned, setLastWorkoutScanned] = useState<{ name: string; location: string } | null>(null);
+
+  const [totalStudents, setTotalStudents] = useState(0);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) setUserId(user.id);
+    });
+    fetchMealCounts();
+    fetchWorkoutCount();
+    fetchTotalStudents();
+  }, []);
+
+  const fetchTotalStudents = async () => {
+    const { count } = await supabase
+      .from("user_roles")
+      .select("id", { count: "exact", head: true })
+      .eq("role", "student");
+    setTotalStudents(count || 0);
+  };
+
+  const fetchMealCounts = async () => {
+    const today = new Date().toISOString().split("T")[0];
+    const { data } = await (supabase as any)
+      .from("meal_attendance")
+      .select("meal_type")
+      .eq("meal_date", today);
+
+    const counts: Record<MealType, number> = { breakfast: 0, lunch: 0, dinner: 0 };
+    (data || []).forEach((r: any) => {
+      if (r.meal_type in counts) counts[r.meal_type as MealType]++;
+    });
+    setMealCounts(counts);
+  };
+
+  const fetchWorkoutCount = async () => {
+    const today = new Date().toISOString().split("T")[0];
+    const { count } = await (supabase as any)
+      .from("workout_attendance")
+      .select("id", { count: "exact", head: true })
+      .eq("workout_date", today);
+    setWorkoutCount(count || 0);
+  };
+
+  const handleMealScan = useCallback(async (studentId: string) => {
+    if (!selectedMeal || !userId) return;
+    const today = new Date().toISOString().split("T")[0];
+
+    const { data: existing } = await (supabase as any)
+      .from("meal_attendance")
+      .select("id")
+      .eq("student_id", studentId)
+      .eq("meal_type", selectedMeal)
+      .eq("meal_date", today)
+      .maybeSingle();
+
+    if (existing) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", studentId)
+        .single();
+      toast({
+        title: "Already checked in",
+        description: `${profile?.full_name || "Student"} already checked in for ${mealLabels[selectedMeal]}`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const { error } = await (supabase as any)
+      .from("meal_attendance")
+      .insert({
+        student_id: studentId,
+        scanned_by: userId,
+        meal_type: selectedMeal,
+        meal_date: today,
+      });
+
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+      return;
+    }
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("full_name")
+      .eq("id", studentId)
+      .single();
+
+    setLastMealScanned({ name: profile?.full_name || "Student", meal: mealLabels[selectedMeal] });
+    toast({
+      title: "✅ Checked in!",
+      description: `${profile?.full_name || "Student"} → ${mealLabels[selectedMeal]}`,
+    });
+    fetchMealCounts();
+  }, [selectedMeal, userId, toast]);
+
+  const handleWorkoutScan = useCallback(async (studentId: string) => {
+    if (!userId) return;
+    const today = new Date().toISOString().split("T")[0];
+
+    const { data: existing } = await (supabase as any)
+      .from("workout_attendance")
+      .select("id")
+      .eq("student_id", studentId)
+      .eq("workout_date", today)
+      .maybeSingle();
+
+    if (existing) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", studentId)
+        .single();
+      toast({
+        title: "Already recorded",
+        description: `${profile?.full_name || "Student"} already has workout attendance today`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const { error } = await (supabase as any)
+      .from("workout_attendance")
+      .insert({
+        student_id: studentId,
+        scanned_by: userId,
+        workout_date: today,
+        location: selectedLocation,
+        status: "present",
+      });
+
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+      return;
+    }
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("full_name")
+      .eq("id", studentId)
+      .single();
+
+    setLastWorkoutScanned({ name: profile?.full_name || "Student", location: selectedLocation });
+    toast({
+      title: "✅ Workout recorded!",
+      description: `${profile?.full_name || "Student"} → ${selectedLocation}`,
+    });
+    fetchWorkoutCount();
+  }, [selectedLocation, userId, toast]);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate("/auth");
+  };
+
+  // Meal scanning view
+  if (mealScanning && selectedMeal) {
+    return (
+      <div className="min-h-screen bg-background p-4">
+        <div className="max-w-lg mx-auto space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold flex items-center gap-2">
+              <QrCode className="h-5 w-5" />
+              Scanning: {mealLabels[selectedMeal]}
+            </h2>
+            <Button variant="outline" onClick={() => setMealScanning(false)}>Done</Button>
+          </div>
+          {lastMealScanned && (
+            <Card className="border-primary/30 bg-primary/5">
+              <CardContent className="py-3 text-center">
+                <p className="text-lg font-semibold text-primary">✅ {lastMealScanned.name}</p>
+                <p className="text-sm text-muted-foreground">Checked in for {lastMealScanned.meal}</p>
+              </CardContent>
+            </Card>
+          )}
+          <Card>
+            <CardContent className="p-4">
+              <MealQRScanner onScan={handleMealScan} isActive={true} />
+            </CardContent>
+          </Card>
+          <div className="text-center">
+            <Badge variant="secondary" className="text-lg px-4 py-2">
+              {mealCounts[selectedMeal]} checked in today
+            </Badge>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Workout scanning view
+  if (workoutScanning) {
+    return (
+      <div className="min-h-screen bg-background p-4">
+        <div className="max-w-lg mx-auto space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold flex items-center gap-2">
+              <Dumbbell className="h-5 w-5" />
+              Workout: {selectedLocation}
+            </h2>
+            <Button variant="outline" onClick={() => setWorkoutScanning(false)}>Done</Button>
+          </div>
+          {lastWorkoutScanned && (
+            <Card className="border-primary/30 bg-primary/5">
+              <CardContent className="py-3 text-center">
+                <p className="text-lg font-semibold text-primary">✅ {lastWorkoutScanned.name}</p>
+                <p className="text-sm text-muted-foreground">At {lastWorkoutScanned.location}</p>
+              </CardContent>
+            </Card>
+          )}
+          <Card>
+            <CardContent className="p-4">
+              <MealQRScanner onScan={handleWorkoutScan} isActive={true} />
+            </CardContent>
+          </Card>
+          <div className="text-center">
+            <Badge variant="secondary" className="text-lg px-4 py-2">
+              {workoutCount} recorded today
+            </Badge>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <div className="border-b bg-card">
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Dumbbell className="h-6 w-6 text-primary" />
+            <div>
+              <h1 className="text-xl font-bold">RL Coach Dashboard</h1>
+              <p className="text-sm text-muted-foreground">House & Attendance Management</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <Button variant="outline" size="sm" onClick={() => navigate("/rl-coach/reports")}>
+              <BarChart3 className="h-4 w-4 mr-2" />
+              Reports
+            </Button>
+            <Button variant="ghost" size="sm" onClick={handleLogout}>
+              <LogOut className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      <div className="container mx-auto px-4 py-6">
+        <Tabs defaultValue="meals" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="meals" className="gap-2">
+              <Coffee className="h-4 w-4" />
+              Meals
+            </TabsTrigger>
+            <TabsTrigger value="workouts" className="gap-2">
+              <Dumbbell className="h-4 w-4" />
+              Morning Workouts
+            </TabsTrigger>
+          </TabsList>
+
+          {/* MEALS TAB */}
+          <TabsContent value="meals" className="space-y-6">
+            {/* Today's meal summary */}
+            <div className="grid grid-cols-3 gap-4">
+              {MEAL_TYPES.map((meal) => {
+                const Icon = mealIcons[meal];
+                return (
+                  <Card key={meal}>
+                    <CardContent className="pt-6 text-center">
+                      <Icon className="h-8 w-8 mx-auto mb-2 text-primary" />
+                      <p className="text-2xl font-bold">{mealCounts[meal]}</p>
+                      <p className="text-sm text-muted-foreground">{mealLabels[meal]}</p>
+                      <p className="text-xs text-muted-foreground mt-1">of {totalStudents} students</p>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+
+            {/* Scan Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <QrCode className="h-5 w-5" />
+                  Scan Student QR Codes
+                </CardTitle>
+                <CardDescription>Select a meal type, then start scanning</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-3 gap-3">
+                  {MEAL_TYPES.map((meal) => {
+                    const Icon = mealIcons[meal];
+                    const isSelected = selectedMeal === meal;
+                    return (
+                      <Button
+                        key={meal}
+                        variant={isSelected ? "default" : "outline"}
+                        className="h-20 flex-col gap-2"
+                        onClick={() => setSelectedMeal(meal)}
+                      >
+                        <Icon className="h-6 w-6" />
+                        {mealLabels[meal]}
+                      </Button>
+                    );
+                  })}
+                </div>
+                <Button
+                  size="lg"
+                  className="w-full"
+                  disabled={!selectedMeal}
+                  onClick={() => setMealScanning(true)}
+                >
+                  <QrCode className="h-5 w-5 mr-2" />
+                  {selectedMeal ? `Start Scanning for ${mealLabels[selectedMeal]}` : "Select a meal first"}
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* WORKOUTS TAB */}
+          <TabsContent value="workouts" className="space-y-6">
+            {/* Today's workout summary */}
+            <div className="grid grid-cols-3 gap-4">
+              {WORKOUT_LOCATIONS.map((loc) => (
+                <Card key={loc}>
+                  <CardContent className="pt-6 text-center">
+                    <span className="text-3xl block mb-2">{locationIcons[loc]}</span>
+                    <p className="text-lg font-bold">{loc}</p>
+                    <p className="text-xs text-muted-foreground">Location</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            <Card>
+              <CardContent className="pt-6 text-center">
+                <Dumbbell className="h-8 w-8 mx-auto mb-2 text-primary" />
+                <p className="text-2xl font-bold">{workoutCount}</p>
+                <p className="text-sm text-muted-foreground">Total checked in today</p>
+                <p className="text-xs text-muted-foreground">of {totalStudents} students</p>
+              </CardContent>
+            </Card>
+
+            {/* Scan Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <QrCode className="h-5 w-5" />
+                  Morning Workout Check-in
+                </CardTitle>
+                <CardDescription>Select location, then scan student QR codes</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Location</label>
+                  <Select
+                    value={selectedLocation}
+                    onValueChange={(v) => setSelectedLocation(v as WorkoutLocation)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {WORKOUT_LOCATIONS.map((loc) => (
+                        <SelectItem key={loc} value={loc}>
+                          {locationIcons[loc]} {loc}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button
+                  size="lg"
+                  className="w-full"
+                  onClick={() => setWorkoutScanning(true)}
+                >
+                  <QrCode className="h-5 w-5 mr-2" />
+                  Start Scanning for {selectedLocation}
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
+    </div>
+  );
+};
+
+export default RLCoachDashboard;

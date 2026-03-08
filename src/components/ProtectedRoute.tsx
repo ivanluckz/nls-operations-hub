@@ -5,7 +5,7 @@ import { User } from "@supabase/supabase-js";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  requiredRole?: "student" | "moderator" | "admin" | "teacher" | "kitchen_staff";
+  requiredRole?: "student" | "moderator" | "admin" | "teacher" | "kitchen_staff" | "rl_coach";
 }
 
 /** Admin pages Dev badge holders can view (read-only) */
@@ -111,6 +111,7 @@ const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
     if (userRole === "moderator") return <Navigate to="/moderator" replace />;
     if (userRole === "teacher") return <Navigate to="/teacher" replace />;
     if (userRole === "kitchen_staff") return <Navigate to="/kitchen" replace />;
+    if (userRole === "rl_coach") return <Navigate to="/rl-coach" replace />;
     return <Navigate to="/student" replace />;
   }
 
