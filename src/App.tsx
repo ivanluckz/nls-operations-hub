@@ -43,6 +43,7 @@ import KitchenDashboard from "./pages/KitchenDashboard";
 import KitchenReports from "./pages/KitchenReports";
 import RLCoachDashboard from "./pages/RLCoachDashboard";
 import RLCoachReports from "./pages/RLCoachReports";
+import MedicalDashboard from "./pages/MedicalDashboard";
 
 const queryClient = new QueryClient();
 
@@ -117,6 +118,9 @@ const AppContent = () => {
           {/* RL Coach */}
           <Route path="/rl-coach" element={<ProtectedRoute requiredRole="rl_coach"><RLCoachDashboard /></ProtectedRoute>} />
           <Route path="/rl-coach/reports" element={<ProtectedRoute requiredRole="rl_coach"><RLCoachReports /></ProtectedRoute>} />
+
+          {/* Medical */}
+          <Route path="/medical" element={<ProtectedRoute requiredRole="medical"><MedicalDashboard /></ProtectedRoute>} />
 
           {/* Public */}
           <Route path="/chatbot" element={<ActivityChatbot />} />

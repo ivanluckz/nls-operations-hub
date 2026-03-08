@@ -41,7 +41,7 @@ interface Profile {
   email: string;
   full_name: string;
    avatar_url: string | null;
-  roles: Array<{ role: "student" | "moderator" | "admin" | "teacher" | "kitchen_staff" | "rl_coach" }>;
+  roles: Array<{ role: "student" | "moderator" | "admin" | "teacher" | "kitchen_staff" | "rl_coach" | "medical" }>;
   banned: boolean;
   created_at: string;
 }
@@ -52,7 +52,7 @@ const UserManagement = () => {
   const [loading, setLoading] = useState(true);
   const [editingUser, setEditingUser] = useState<Profile | null>(null);
   const [editName, setEditName] = useState("");
-  const [editRole, setEditRole] = useState<"student" | "moderator" | "admin" | "teacher" | "kitchen_staff" | "rl_coach">("student");
+  const [editRole, setEditRole] = useState<"student" | "moderator" | "admin" | "teacher" | "kitchen_staff" | "rl_coach" | "medical">("student");
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
@@ -455,6 +455,7 @@ const UserManagement = () => {
                   <SelectItem value="admin">Admin</SelectItem>
                   <SelectItem value="kitchen_staff">Kitchen Staff</SelectItem>
                   <SelectItem value="rl_coach">RL Coach</SelectItem>
+                  <SelectItem value="medical">Medical</SelectItem>
                 </SelectContent>
               </Select>
             </div>
