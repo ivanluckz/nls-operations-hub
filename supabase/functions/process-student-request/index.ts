@@ -1,11 +1,28 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+const ALLOWED_ORIGINS = [
+  "https://nls-co-curricular.lovable.app",
+  "https://id-preview--f393e585-fc10-4a2e-a662-735d93b755e9.lovable.app",
+  "http://localhost:5173",
+  "http://localhost:3000",
+];
+
+const getAllowedOrigin = (req: Request): string => {
+  const origin = req.headers.get("Origin") || "";
+  if (ALLOWED_ORIGINS.includes(origin)) return origin;
+  if (origin.endsWith(".lovable.app") || origin.endsWith(".lovableproject.com")) return origin;
+  return ALLOWED_ORIGINS[0];
 };
 
+const getCorsHeaders = (req: Request) => ({
+  "Access-Control-Allow-Origin": getAllowedOrigin(req),
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+});
+
 Deno.serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
+
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -79,7 +96,6 @@ Deno.serve(async (req) => {
     let resultMessage = "Request approved";
 
     if (request.request_type === "swap_activity") {
-      // Remove old allocation, add new one
       if (details.current_activity_id) {
         await adminClient.from("allocations").delete()
           .eq("student_id", request.student_id)
@@ -99,7 +115,6 @@ Deno.serve(async (req) => {
       resultMessage = `Swapped from ${details.current_activity_name || "old"} to ${details.desired_activity_name || "new"}`;
 
     } else if (request.request_type === "excuse") {
-      // Find matching attendance sessions for the excuse date and mark as excused
       const excuseDate = details.excuse_date || new Date().toISOString().split("T")[0];
       const { data: sessions } = await adminClient
         .from("attendance_sessions")
@@ -139,6 +154,6 @@ Deno.serve(async (req) => {
 
   } catch (error) {
     console.error("Error:", error);
-    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "Internal error" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "Internal error" }), { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } });
   }
 });

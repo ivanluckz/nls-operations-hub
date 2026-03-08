@@ -69,7 +69,8 @@ const ModeratorActivities = () => {
       const { data: activitiesData } = await supabase
         .from("activities")
         .select("*")
-        .order("title");
+        .order("title")
+        .limit(500);
 
       setActivities(activitiesData || []);
 
