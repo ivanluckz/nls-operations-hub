@@ -95,20 +95,20 @@ const AdminDashboard = () => {
   }, []);
 
   const statCards = [
-    { label: "Students", value: stats.totalStudents, icon: Users, color: "text-blue-500", bg: "bg-blue-500/10" },
-    { label: "Activities", value: stats.totalActivities, icon: BookOpen, color: "text-emerald-500", bg: "bg-emerald-500/10" },
-    { label: "Students Allocated", value: stats.totalAllocations, icon: TrendingUp, color: "text-violet-500", bg: "bg-violet-500/10" },
-    { label: "Preferences", value: stats.totalPreferences, icon: ClipboardCheck, color: "text-amber-500", bg: "bg-amber-500/10" },
-    { label: "Teachers", value: stats.totalTeachers, icon: UserCog, color: "text-cyan-500", bg: "bg-cyan-500/10" },
-    { label: "Pending Requests", value: stats.pendingRequests, icon: AlertTriangle, color: "text-red-500", bg: "bg-red-500/10" },
-    { label: "Attendance Sessions", value: stats.attendanceSessions, icon: CalendarDays, color: "text-indigo-500", bg: "bg-indigo-500/10" },
-    { label: "Badges Awarded", value: stats.totalBadges, icon: Award, color: "text-pink-500", bg: "bg-pink-500/10" },
-    { label: "Meal Scans", value: stats.totalMeals, icon: UtensilsCrossed, color: "text-orange-500", bg: "bg-orange-500/10" },
-    { label: "Workout Scans", value: stats.totalWorkouts, icon: Dumbbell, color: "text-lime-500", bg: "bg-lime-500/10" },
-    { label: "Medical Visits", value: stats.medicalVisits, icon: HeartPulse, color: "text-rose-500", bg: "bg-rose-500/10" },
-    { label: "Activity Messages", value: stats.totalMessages, icon: MessageSquare, color: "text-sky-500", bg: "bg-sky-500/10" },
-    { label: "Direct Messages", value: stats.dmMessages, icon: Mail, color: "text-fuchsia-500", bg: "bg-fuchsia-500/10" },
-    { label: "Workout Restricted", value: stats.workoutClearances, icon: Shield, color: "text-yellow-500", bg: "bg-yellow-500/10" },
+    { label: "Students", value: stats.totalStudents, icon: Users, color: "text-blue-500", bg: "bg-blue-500/10", url: "/admin/user-management" },
+    { label: "Activities", value: stats.totalActivities, icon: BookOpen, color: "text-emerald-500", bg: "bg-emerald-500/10", url: "/admin/co-curricular/activities" },
+    { label: "Students Allocated", value: stats.totalAllocations, icon: TrendingUp, color: "text-violet-500", bg: "bg-violet-500/10", url: "/admin/co-curricular/view-allocations" },
+    { label: "Preferences", value: stats.totalPreferences, icon: ClipboardCheck, color: "text-amber-500", bg: "bg-amber-500/10", url: "/admin/co-curricular/allocations" },
+    { label: "Teachers", value: stats.totalTeachers, icon: UserCog, color: "text-cyan-500", bg: "bg-cyan-500/10", url: "/admin/user-management" },
+    { label: "Pending Requests", value: stats.pendingRequests, icon: AlertTriangle, color: "text-red-500", bg: "bg-red-500/10", url: "/admin/admin-ai" },
+    { label: "Attendance Sessions", value: stats.attendanceSessions, icon: CalendarDays, color: "text-indigo-500", bg: "bg-indigo-500/10", url: "/admin/co-curricular/attendance-reports" },
+    { label: "Badges Awarded", value: stats.totalBadges, icon: Award, color: "text-pink-500", bg: "bg-pink-500/10", url: "/admin/co-curricular/badge-requests" },
+    { label: "Meal Scans", value: stats.totalMeals, icon: UtensilsCrossed, color: "text-orange-500", bg: "bg-orange-500/10", url: "/admin/meal-reports" },
+    { label: "Workout Scans", value: stats.totalWorkouts, icon: Dumbbell, color: "text-lime-500", bg: "bg-lime-500/10", url: "/admin/workout-reports" },
+    { label: "Medical Visits", value: stats.medicalVisits, icon: HeartPulse, color: "text-rose-500", bg: "bg-rose-500/10", url: "/medical" },
+    { label: "Activity Messages", value: stats.totalMessages, icon: MessageSquare, color: "text-sky-500", bg: "bg-sky-500/10", url: "/admin/co-curricular/messages" },
+    { label: "Direct Messages", value: stats.dmMessages, icon: Mail, color: "text-fuchsia-500", bg: "bg-fuchsia-500/10", url: "/admin/dms" },
+    { label: "Workout Restricted", value: stats.workoutClearances, icon: Shield, color: "text-yellow-500", bg: "bg-yellow-500/10", url: "/admin/workout-reports" },
   ];
 
   const quickActions = [
@@ -149,14 +149,14 @@ const AdminDashboard = () => {
         {/* Live Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {statCards.map((s) => (
-            <Card key={s.label} className="relative overflow-hidden">
+            <Card key={s.label} className="relative overflow-hidden cursor-pointer hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5 group" onClick={() => navigate(s.url)}>
               <CardContent className="p-5">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">{s.label}</p>
+                    <p className="text-sm font-medium text-muted-foreground group-hover:text-primary transition-colors">{s.label}</p>
                     <p className="text-3xl font-bold mt-1">{s.value}</p>
                   </div>
-                  <div className={`w-12 h-12 rounded-2xl ${s.bg} flex items-center justify-center`}>
+                  <div className={`w-12 h-12 rounded-2xl ${s.bg} flex items-center justify-center group-hover:scale-110 transition-transform`}>
                     <s.icon className={`h-6 w-6 ${s.color}`} />
                   </div>
                 </div>
