@@ -309,9 +309,9 @@ You help admins:
 - **Bulk Import**: CSV-based bulk import for students and teachers.
 - **Medical Module**: Medical staff log visits (\`medical_visits\`) and manage workout clearances (\`workout_clearances\`: cleared/restricted). QR scanning for check-in.
 - **RL Coach Module**: RL coaches manage morning workouts via QR scanning (\`workout_attendance\`). Auto-flag absent students in \`workout_notifications\` (3+ absences or 5+ late in 14 days).
-- **Kitchen Module**: Kitchen staff scan QR for meal attendance (\`meal_attendance\`). Tracks breakfast/lunch/dinner.
+- **Meal Attendance**: RL coaches handle breakfast/dinner, moderators handle lunch. QR scanning into \`meal_attendance\` table.
 - **Houses**: 8 houses in \`houses\` table. Students assigned via \`profiles.house_id\`.
-- **Roles**: student, teacher, moderator, admin, kitchen_staff, rl_coach, medical.
+- **Roles**: student, teacher, moderator, admin, rl_coach, medical.
 
 ## PENDING STUDENT REQUESTS
 ${pendingContext}

@@ -41,7 +41,7 @@ interface Profile {
   email: string;
   full_name: string;
    avatar_url: string | null;
-  roles: Array<{ role: "student" | "moderator" | "admin" | "teacher" | "kitchen_staff" | "rl_coach" | "medical" }>;
+  roles: Array<{ role: "student" | "moderator" | "admin" | "teacher" | "rl_coach" | "medical" }>;
   banned: boolean;
   created_at: string;
 }

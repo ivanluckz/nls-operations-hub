@@ -509,10 +509,10 @@ When the user says relative dates — calculate from today's date.
 - **Dev AI** (DevBot — you): Full read/write access, activated via "wake up to reality" or "for the lulz" in the student chatbot. Deactivated via "you can now sleep".
 - **Medical Module**: Medical staff (\`medical\` role) log student visits (\`medical_visits\` table) and manage workout clearances (\`workout_clearances\` table). QR scanning for check-in. Status: cleared/restricted with optional valid_until date.
 - **RL Coach Module**: RL coaches (\`rl_coach\` role) manage morning workouts. QR scanning for attendance (\`workout_attendance\` table). Finalize sessions to auto-flag absent students. Flagged students tracked in \`workout_notifications\` table.
-- **Kitchen Module**: Kitchen staff (\`kitchen_staff\` role) scan QR codes for meal attendance (\`meal_attendance\` table). Tracks breakfast/lunch/dinner by date.
+- **Meal Attendance**: RL coaches handle breakfast/dinner scanning, moderators handle lunch scanning. All via QR codes into \`meal_attendance\` table.
 - **Houses**: 8 houses stored in \`houses\` table. Students assigned via \`profiles.house_id\`. Used for leaderboard grouping.
 - **Workout Notifications**: Students with 3+ absences or 5+ late arrivals in 14 days are auto-flagged. Stored in \`workout_notifications\` with acknowledge workflow.
-- **Roles**: student, teacher, moderator, admin, kitchen_staff, rl_coach, medical. All managed via \`user_roles\` table.
+- **Roles**: student, teacher, moderator, admin, rl_coach, medical. All managed via \`user_roles\` table.
 
 ## AUTO-RESOLVE IDENTIFIERS
 Search snapshot data using fuzzy matching. Resolve UUIDs automatically. Confirm matches before executing.
