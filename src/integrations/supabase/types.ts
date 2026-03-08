@@ -1055,6 +1055,50 @@ export type Database = {
           },
         ]
       }
+      workout_notifications: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          notified_at: string | null
+          status: string
+          student_id: string
+          workout_date: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          notified_at?: string | null
+          status?: string
+          student_id: string
+          workout_date: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          notified_at?: string | null
+          status?: string
+          student_id?: string
+          workout_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workout_notifications_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
