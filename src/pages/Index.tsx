@@ -42,6 +42,8 @@ const Index = () => {
           navigate("/kitchen");
         } else if (role === "rl_coach") {
           navigate("/rl-coach");
+        } else if (role === "medical") {
+          navigate("/medical");
         } else {
           // Default to student for any other role or missing role
           navigate("/student");
