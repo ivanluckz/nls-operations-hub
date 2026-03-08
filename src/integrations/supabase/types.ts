@@ -475,6 +475,27 @@ export type Database = {
         }
         Relationships: []
       }
+      houses: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       meal_attendance: {
         Row: {
           created_at: string
@@ -748,6 +769,7 @@ export type Database = {
           created_at: string
           email: string
           full_name: string
+          house_id: string | null
           id: string
           updated_at: string
         }
@@ -757,6 +779,7 @@ export type Database = {
           created_at?: string
           email: string
           full_name: string
+          house_id?: string | null
           id: string
           updated_at?: string
         }
@@ -766,10 +789,19 @@ export type Database = {
           created_at?: string
           email?: string
           full_name?: string
+          house_id?: string | null
           id?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_house_id_fkey"
+            columns: ["house_id"]
+            isOneToOne: false
+            referencedRelation: "houses"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       student_requests: {
         Row: {
@@ -894,6 +926,47 @@ export type Database = {
         }
         Relationships: []
       }
+      workout_attendance: {
+        Row: {
+          created_at: string
+          id: string
+          location: string
+          scanned_at: string
+          scanned_by: string
+          status: string
+          student_id: string
+          workout_date: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          location: string
+          scanned_at?: string
+          scanned_by: string
+          status?: string
+          student_id: string
+          workout_date?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          location?: string
+          scanned_at?: string
+          scanned_by?: string
+          status?: string
+          student_id?: string
+          workout_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workout_attendance_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -921,6 +994,7 @@ export type Database = {
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_kitchen_staff: { Args: { _user_id: string }; Returns: boolean }
       is_moderator: { Args: { _user_id: string }; Returns: boolean }
+      is_rl_coach: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       allocation_status: "pending" | "allocated" | "waitlisted"
