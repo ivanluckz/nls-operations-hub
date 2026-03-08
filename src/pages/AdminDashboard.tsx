@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   Users, Shield, UserCog, ClipboardCheck, AlertTriangle, UserCheck,
   Sparkles, BookOpen, Activity, Zap, TrendingUp, CalendarDays,
-  UtensilsCrossed, MessageSquare, Award
+  UtensilsCrossed, MessageSquare, Award, Dumbbell, HeartPulse, Mail
 } from "lucide-react";
 import FloatingChatButton from "@/components/student/FloatingChatButton";
 import TodayScheduleWidget from "@/components/dashboard/TodayScheduleWidget";
