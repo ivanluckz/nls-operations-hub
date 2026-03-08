@@ -154,15 +154,9 @@ const KitchenDashboard = () => {
 
           <Card>
             <CardContent className="p-4">
-              <QRScanner
-                onScan={(result) => {
-                  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-                  if (uuidRegex.test(result)) {
-                    handleScan(result);
-                  }
-                }}
+              <MealQRScanner
+                onScan={handleScan}
                 isActive={true}
-                scanMode="continuous"
               />
             </CardContent>
           </Card>
