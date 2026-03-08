@@ -10,6 +10,7 @@ const ModeratorAllocations = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [running, setRunning] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(true);
 
