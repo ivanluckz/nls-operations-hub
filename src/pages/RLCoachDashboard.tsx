@@ -104,6 +104,155 @@ const RLCoachDashboard = () => {
     setWorkoutCount(count || 0);
   };
 
+  const fetchFlaggedStudents = async () => {
+    // Get last 14 days of workout notifications (absent/late)
+    const twoWeeksAgo = new Date();
+    twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+    const sinceDate = twoWeeksAgo.toISOString().split("T")[0];
+
+    const { data: notifications } = await (supabase as any)
+      .from("workout_notifications")
+      .select("student_id, status")
+      .gte("workout_date", sinceDate);
+
+    if (!notifications || notifications.length === 0) {
+      setFlaggedStudents([]);
+      return;
+    }
+
+    // Count per student
+    const counts: Record<string, { absent: number; late: number }> = {};
+    notifications.forEach((n: any) => {
+      if (!counts[n.student_id]) counts[n.student_id] = { absent: 0, late: 0 };
+      if (n.status === "absent") counts[n.student_id].absent++;
+      if (n.status === "late") counts[n.student_id].late++;
+    });
+
+    // Flag students with 3+ absences or 5+ late
+    const flaggedIds = Object.entries(counts)
+      .filter(([, c]) => c.absent >= 3 || c.late >= 5)
+      .map(([id, c]) => ({ id, absent_count: c.absent, late_count: c.late }));
+
+    if (flaggedIds.length === 0) {
+      setFlaggedStudents([]);
+      return;
+    }
+
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("id, full_name")
+      .in("id", flaggedIds.map(f => f.id));
+
+    const nameMap: Record<string, string> = {};
+    (profiles || []).forEach(p => { nameMap[p.id] = p.full_name; });
+
+    setFlaggedStudents(flaggedIds.map(f => ({
+      ...f,
+      name: nameMap[f.id] || "Unknown",
+    })));
+  };
+
+  const fetchRestrictedStudents = async () => {
+    const { data } = await (supabase as any)
+      .from("workout_clearances")
+      .select("student_id, restriction_reason")
+      .eq("status", "restricted");
+
+    if (!data || data.length === 0) {
+      setRestrictedStudents([]);
+      return;
+    }
+
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("id, full_name")
+      .in("id", data.map((d: any) => d.student_id));
+
+    const nameMap: Record<string, string> = {};
+    (profiles || []).forEach(p => { nameMap[p.id] = p.full_name; });
+
+    setRestrictedStudents(data.map((d: any) => ({
+      id: d.student_id,
+      name: nameMap[d.student_id] || "Unknown",
+      reason: d.restriction_reason,
+    })));
+  };
+
+  const finalizeWorkout = async () => {
+    if (!userId) return;
+    setFinalizing(true);
+    try {
+      const today = new Date().toISOString().split("T")[0];
+
+      // Get all students
+      const { data: allStudentRoles } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "student");
+
+      const allStudentIds = (allStudentRoles || []).map(r => r.user_id);
+
+      // Get students who checked in today
+      const { data: checkedIn } = await (supabase as any)
+        .from("workout_attendance")
+        .select("student_id")
+        .eq("workout_date", today);
+
+      const checkedInIds = new Set((checkedIn || []).map((r: any) => r.student_id));
+
+      // Get medically restricted students
+      const { data: restricted } = await (supabase as any)
+        .from("workout_clearances")
+        .select("student_id")
+        .eq("status", "restricted");
+
+      const restrictedIds = new Set((restricted || []).map((r: any) => r.student_id));
+
+      // Absent = not checked in AND not medically restricted
+      const absentIds = allStudentIds.filter(id => !checkedInIds.has(id) && !restrictedIds.has(id));
+
+      if (absentIds.length === 0) {
+        toast({ title: "All Clear! ✅", description: "All students are accounted for" });
+        setFinalizing(false);
+        return;
+      }
+
+      // Insert notifications for absent students
+      const notifications = absentIds.map(id => ({
+        student_id: id,
+        workout_date: today,
+        status: "absent",
+      }));
+
+      const { error } = await (supabase as any)
+        .from("workout_notifications")
+        .upsert(notifications, { onConflict: "student_id,workout_date" });
+
+      if (error) throw error;
+
+      // Get names
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, full_name")
+        .in("id", absentIds);
+
+      const absentList = (profiles || []).map(p => ({ id: p.id, name: p.full_name }));
+      setAbsentStudents(absentList);
+
+      toast({
+        title: `⚠️ ${absentIds.length} Student${absentIds.length > 1 ? "s" : ""} Absent`,
+        description: "Notifications created for absent students",
+        variant: "destructive",
+      });
+
+      fetchFlaggedStudents();
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally {
+      setFinalizing(false);
+    }
+  };
+
   const handleMealScan = useCallback(async (studentId: string) => {
     if (!selectedMeal || !userId) return;
     const today = new Date().toISOString().split("T")[0];
