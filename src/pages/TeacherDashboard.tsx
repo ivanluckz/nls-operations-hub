@@ -12,6 +12,8 @@ import { LogOut, GraduationCap, ClipboardCheck, AlertTriangle, Users, BookOpen, 
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import ActivityMessaging from "@/components/teacher/ActivityMessaging";
 import FloatingChatButton from "@/components/student/FloatingChatButton";
+import AttendanceChart from "@/components/dashboard/AttendanceChart";
+import TodayScheduleWidget from "@/components/dashboard/TodayScheduleWidget";
 
 interface ActivityData {
   id: string;
@@ -272,6 +274,12 @@ const TeacherDashboard = () => {
             </Tabs>
           </CardContent>
         </Card>
+
+        {/* Charts */}
+        <div className="grid gap-4 lg:grid-cols-2">
+          <AttendanceChart title="My Attendance (Last 7 Days)" />
+          <TodayScheduleWidget />
+        </div>
 
         <ActivityMessaging />
       </main>

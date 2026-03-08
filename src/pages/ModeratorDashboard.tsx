@@ -20,6 +20,9 @@ import {
 } from "lucide-react";
 import FloatingChatButton from "@/components/student/FloatingChatButton";
 import MealQRScanner from "@/components/kitchen/MealQRScanner";
+import AttendanceChart from "@/components/dashboard/AttendanceChart";
+import TodayScheduleWidget from "@/components/dashboard/TodayScheduleWidget";
+import RecentActivityFeed from "@/components/dashboard/RecentActivityFeed";
 
 interface Stats {
   totalActivities: number;
@@ -359,7 +362,6 @@ const ModeratorDashboard = () => {
                   />
                 </div>
               </div>
-
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium">Students Allocated</span>
@@ -375,6 +377,16 @@ const ModeratorDashboard = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Charts & Widgets */}
+        <div className="grid gap-4 lg:grid-cols-3">
+          <div className="lg:col-span-2">
+            <AttendanceChart />
+          </div>
+          <TodayScheduleWidget />
+        </div>
+
+        <RecentActivityFeed />
       </main>
 
       <FloatingChatButton />

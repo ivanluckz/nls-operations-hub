@@ -37,6 +37,7 @@ import {
 } from "lucide-react";
 import MealQRScanner from "@/components/kitchen/MealQRScanner";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import AttendanceChart from "@/components/dashboard/AttendanceChart";
 
 interface Visit {
   id: string;
@@ -287,6 +288,9 @@ const MedicalDashboard = () => {
           <QrCode className="h-5 w-5 mr-2" />
           Scan Student QR Code
         </Button>
+
+        {/* Attendance Overview */}
+        <AttendanceChart title="Workout Attendance (Last 7 Days)" />
 
         <Tabs defaultValue="visits" className="space-y-4">
           <TabsList className="grid w-full grid-cols-2">
