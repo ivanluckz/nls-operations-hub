@@ -41,6 +41,7 @@ import {
   MessageSquare,
   Award,
   Zap,
+  UtensilsCrossed,
 } from "lucide-react";
 
 import nlsLogo from "@/assets/nls-logo.png";
