@@ -171,7 +171,16 @@ const AdminDashboard = () => {
             ))}
           </div>
         </div>
-      </div>
+        {/* Charts & Widgets */}
+        <div className="grid gap-4 lg:grid-cols-3">
+          <div className="lg:col-span-2">
+            <AttendanceChart />
+          </div>
+          <TodayScheduleWidget />
+        </div>
+
+        <RecentActivityFeed />
+        </div>
       <FloatingChatButton />
     </AdminLayout>
   );

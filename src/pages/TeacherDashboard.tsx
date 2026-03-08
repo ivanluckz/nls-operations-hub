@@ -275,6 +275,12 @@ const TeacherDashboard = () => {
           </CardContent>
         </Card>
 
+        {/* Charts */}
+        <div className="grid gap-4 lg:grid-cols-2">
+          <AttendanceChart title="My Attendance (Last 7 Days)" />
+          <TodayScheduleWidget />
+        </div>
+
         <ActivityMessaging />
       </main>
       <FloatingChatButton />
