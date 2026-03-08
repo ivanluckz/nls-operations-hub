@@ -10,6 +10,8 @@ import QRCodeCard from "@/components/student/QRCodeCard";
 import CalendarSyncCard from "@/components/student/CalendarSyncCard";
 import FloatingChatButton from "@/components/student/FloatingChatButton";
 import MessagesCard from "@/components/student/MessagesCard";
+import HouseSelectionCard from "@/components/student/HouseSelectionCard";
+import WorkoutSelectionCard from "@/components/student/WorkoutSelectionCard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Activity, ArrowRight, KeyRound, FileText } from "lucide-react";
 
