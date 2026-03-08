@@ -78,7 +78,7 @@ const KitchenReports = () => {
 
     if (data && data.length > 0) {
       // Fetch student names
-      const studentIds = [...new Set(data.map((r: any) => r.student_id as string))];
+      const studentIds: string[] = [...new Set((data as any[]).map((r) => String(r.student_id)))];
       const { data: profiles } = await supabase
         .from("profiles")
         .select("id, full_name")
