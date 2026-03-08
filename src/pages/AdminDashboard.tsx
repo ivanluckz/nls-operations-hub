@@ -10,6 +10,9 @@ import {
   UtensilsCrossed, MessageSquare, Award
 } from "lucide-react";
 import FloatingChatButton from "@/components/student/FloatingChatButton";
+import TodayScheduleWidget from "@/components/dashboard/TodayScheduleWidget";
+import RecentActivityFeed from "@/components/dashboard/RecentActivityFeed";
+import AttendanceChart from "@/components/dashboard/AttendanceChart";
 
 interface DashboardStats {
   totalStudents: number;
