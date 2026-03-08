@@ -9,7 +9,7 @@ export const USER_ROLES = {
   RL_COACH: 'rl_coach'
 } as const;
 
-export const WORKOUT_LOCATIONS = ['Courts', 'Pitch', 'Medical'] as const;
+export const WORKOUT_LOCATIONS = ['Courts', 'Pitch', 'Competition'] as const;
 export type WorkoutLocation = typeof WORKOUT_LOCATIONS[number];
 
 export const HOUSES = [
