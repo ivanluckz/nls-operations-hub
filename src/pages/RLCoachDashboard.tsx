@@ -36,7 +36,7 @@ const mealLabels: Record<MealType, string> = {
 const locationIcons: Record<WorkoutLocation, string> = {
   Courts: "🏀",
   Pitch: "⚽",
-  Medical: "🏥",
+  Competition: "🏆",
 };
 
 const RLCoachDashboard = () => {

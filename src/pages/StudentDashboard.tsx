@@ -10,6 +10,8 @@ import QRCodeCard from "@/components/student/QRCodeCard";
 import CalendarSyncCard from "@/components/student/CalendarSyncCard";
 import FloatingChatButton from "@/components/student/FloatingChatButton";
 import MessagesCard from "@/components/student/MessagesCard";
+import HouseSelectionCard from "@/components/student/HouseSelectionCard";
+import WorkoutSelectionCard from "@/components/student/WorkoutSelectionCard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Activity, ArrowRight, KeyRound, FileText } from "lucide-react";
 
@@ -158,6 +160,12 @@ const StudentDashboard = () => {
             <div className="text-center space-y-2">
               <h2 className="text-2xl font-bold tracking-tight">What's on your mind?</h2>
               <p className="text-muted-foreground text-sm">Choose a section to explore</p>
+            </div>
+
+            {/* House & Workout Selection */}
+            <div className="grid grid-cols-1 gap-5 w-full max-w-lg mx-auto">
+              <HouseSelectionCard />
+              <WorkoutSelectionCard />
             </div>
 
             <div className="grid grid-cols-1 gap-5 w-full max-w-sm mx-auto">
