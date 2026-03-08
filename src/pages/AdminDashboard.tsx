@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   Users, Shield, UserCog, ClipboardCheck, AlertTriangle, UserCheck,
   Sparkles, BookOpen, Activity, Zap, TrendingUp, CalendarDays,
-  UtensilsCrossed, MessageSquare, Award
+  UtensilsCrossed, MessageSquare, Award, Dumbbell, HeartPulse, Mail
 } from "lucide-react";
 import FloatingChatButton from "@/components/student/FloatingChatButton";
 import TodayScheduleWidget from "@/components/dashboard/TodayScheduleWidget";
@@ -23,6 +23,12 @@ interface DashboardStats {
   totalTeachers: number;
   attendanceSessions: number;
   totalBadges: number;
+  totalMeals: number;
+  totalWorkouts: number;
+  medicalVisits: number;
+  totalMessages: number;
+  dmMessages: number;
+  workoutClearances: number;
 }
 
 const AdminDashboard = () => {
@@ -30,7 +36,9 @@ const AdminDashboard = () => {
   const [stats, setStats] = useState<DashboardStats>({
     totalStudents: 0, totalActivities: 0, totalAllocations: 0,
     totalPreferences: 0, pendingRequests: 0, totalTeachers: 0,
-    attendanceSessions: 0, totalBadges: 0,
+    attendanceSessions: 0, totalBadges: 0, totalMeals: 0,
+    totalWorkouts: 0, medicalVisits: 0, totalMessages: 0,
+    dmMessages: 0, workoutClearances: 0,
   });
 
   useEffect(() => {
@@ -44,6 +52,12 @@ const AdminDashboard = () => {
         { count: teachers },
         { count: sessions },
         { count: badges },
+        { count: meals },
+        { count: workouts },
+        { count: medical },
+        { count: messages },
+        { count: dms },
+        { count: clearances },
       ] = await Promise.all([
         supabase.from("user_roles").select("id", { count: "exact", head: true }).eq("role", "student"),
         supabase.from("activities").select("id", { count: "exact", head: true }).eq("is_active", true),
@@ -53,6 +67,12 @@ const AdminDashboard = () => {
         supabase.from("user_roles").select("id", { count: "exact", head: true }).eq("role", "teacher"),
         supabase.from("attendance_sessions").select("id", { count: "exact", head: true }),
         supabase.from("user_badges").select("id", { count: "exact", head: true }),
+        supabase.from("meal_attendance").select("id", { count: "exact", head: true }),
+        supabase.from("workout_attendance").select("id", { count: "exact", head: true }),
+        supabase.from("medical_visits").select("id", { count: "exact", head: true }),
+        supabase.from("activity_messages").select("id", { count: "exact", head: true }),
+        supabase.from("direct_messages").select("id", { count: "exact", head: true }),
+        supabase.from("workout_clearances").select("id", { count: "exact", head: true }).eq("status", "restricted"),
       ]);
       setStats({
         totalStudents: students || 0,
@@ -63,6 +83,12 @@ const AdminDashboard = () => {
         totalTeachers: teachers || 0,
         attendanceSessions: sessions || 0,
         totalBadges: badges || 0,
+        totalMeals: meals || 0,
+        totalWorkouts: workouts || 0,
+        medicalVisits: medical || 0,
+        totalMessages: messages || 0,
+        dmMessages: dms || 0,
+        workoutClearances: clearances || 0,
       });
     };
     fetchStats();
@@ -77,6 +103,12 @@ const AdminDashboard = () => {
     { label: "Pending Requests", value: stats.pendingRequests, icon: AlertTriangle, color: "text-red-500", bg: "bg-red-500/10" },
     { label: "Attendance Sessions", value: stats.attendanceSessions, icon: CalendarDays, color: "text-indigo-500", bg: "bg-indigo-500/10" },
     { label: "Badges Awarded", value: stats.totalBadges, icon: Award, color: "text-pink-500", bg: "bg-pink-500/10" },
+    { label: "Meal Scans", value: stats.totalMeals, icon: UtensilsCrossed, color: "text-orange-500", bg: "bg-orange-500/10" },
+    { label: "Workout Scans", value: stats.totalWorkouts, icon: Dumbbell, color: "text-lime-500", bg: "bg-lime-500/10" },
+    { label: "Medical Visits", value: stats.medicalVisits, icon: HeartPulse, color: "text-rose-500", bg: "bg-rose-500/10" },
+    { label: "Activity Messages", value: stats.totalMessages, icon: MessageSquare, color: "text-sky-500", bg: "bg-sky-500/10" },
+    { label: "Direct Messages", value: stats.dmMessages, icon: Mail, color: "text-fuchsia-500", bg: "bg-fuchsia-500/10" },
+    { label: "Workout Restricted", value: stats.workoutClearances, icon: Shield, color: "text-yellow-500", bg: "bg-yellow-500/10" },
   ];
 
   const quickActions = [
