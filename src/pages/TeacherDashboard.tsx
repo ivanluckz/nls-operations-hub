@@ -12,6 +12,8 @@ import { LogOut, GraduationCap, ClipboardCheck, AlertTriangle, Users, BookOpen, 
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import ActivityMessaging from "@/components/teacher/ActivityMessaging";
 import FloatingChatButton from "@/components/student/FloatingChatButton";
+import AttendanceChart from "@/components/dashboard/AttendanceChart";
+import TodayScheduleWidget from "@/components/dashboard/TodayScheduleWidget";
 
 interface ActivityData {
   id: string;
