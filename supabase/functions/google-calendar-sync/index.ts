@@ -23,6 +23,33 @@ const GOOGLE_CLIENT_SECRET = Deno.env.get("Google_client_secret")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 
+// ---------- HMAC helpers for OAuth state signing ----------
+async function getHmacKey(): Promise<CryptoKey> {
+  const secret = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!; // Use service role key as HMAC secret
+  const keyBytes = new TextEncoder().encode(secret);
+  return crypto.subtle.importKey("raw", keyBytes, { name: "HMAC", hash: "SHA-256" }, false, ["sign", "verify"]);
+}
+
+async function signState(payload: Record<string, unknown>): Promise<string> {
+  const key = await getHmacKey();
+  const data = JSON.stringify(payload);
+  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(data));
+  const sigB64 = btoa(String.fromCharCode(...new Uint8Array(sig)));
+  return btoa(JSON.stringify({ ...payload, hmac: sigB64 }));
+}
+
+async function verifyState(stateParam: string): Promise<Record<string, unknown>> {
+  const parsed = JSON.parse(atob(stateParam));
+  const { hmac, ...payload } = parsed;
+  if (!hmac) throw new Error("Missing HMAC in state");
+  const key = await getHmacKey();
+  const data = JSON.stringify(payload);
+  const sigBytes = new Uint8Array(atob(hmac).split("").map(c => c.charCodeAt(0)));
+  const valid = await crypto.subtle.verify("HMAC", key, sigBytes, new TextEncoder().encode(data));
+  if (!valid) throw new Error("Invalid state signature");
+  return payload;
+}
+
 // ---------- Token encryption helpers (AES-GCM via Web Crypto) ----------
 async function getEncryptKey(): Promise<CryptoKey> {
   const raw = Deno.env.get("TOKEN_ENCRYPT_KEY");
@@ -72,7 +99,14 @@ Deno.serve(async (req) => {
         return new Response("Missing code or state", { status: 400, headers: corsHeaders });
       }
 
-      const { userId: stateUserId, redirectUri } = JSON.parse(atob(stateParam));
+      let stateData: Record<string, unknown>;
+      try {
+        stateData = await verifyState(stateParam);
+      } catch (e) {
+        console.error("State verification failed:", e);
+        return new Response("Invalid or tampered state parameter", { status: 403, headers: corsHeaders });
+      }
+      const { userId: stateUserId, redirectUri } = stateData as { userId: string; redirectUri: string };
 
       const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
         method: "POST",
@@ -144,7 +178,7 @@ Deno.serve(async (req) => {
     // Step 1: Generate OAuth URL for calendar consent
     if (action === "auth-url") {
       const redirectUri = url.searchParams.get("redirect_uri") || "";
-      const state = btoa(JSON.stringify({ userId, redirectUri }));
+      const state = await signState({ userId, redirectUri });
 
       const authUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
       authUrl.searchParams.set("client_id", GOOGLE_CLIENT_ID);
