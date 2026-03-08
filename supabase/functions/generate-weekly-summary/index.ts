@@ -160,8 +160,17 @@ serve(async (req) => {
       .sort((a, b) => b.count - a.count)
       .slice(0, 5);
 
-    // Build detailed records with names for AI context
+    // Build detailed records with anonymized IDs for AI context (privacy: no PII sent to external AI)
+    // Create anonymized student labels for AI prompt
+    const studentAnonMap = new Map<string, string>();
+    let anonCounter = 1;
+    studentIds.forEach(id => {
+      studentAnonMap.set(id, `Student ${anonCounter++}`);
+    });
+
     const detailedRecords = notifications?.map(n => ({
+      studentLabel: studentAnonMap.get(n.student_id) || "Unknown Student",
+      studentId: n.student_id,
       studentName: studentMap.get(n.student_id) || "Unknown Student",
       activityName: activityMap.get(n.activity_id) || "Unknown Activity",
       status: n.status,
