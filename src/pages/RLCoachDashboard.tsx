@@ -496,6 +496,9 @@ const RLCoachDashboard = () => {
               })}
             </div>
 
+            {/* Meal Trend Chart */}
+            <MealTrendChart />
+
             {/* Scan Section */}
             <Card>
               <CardHeader>
