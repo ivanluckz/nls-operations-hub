@@ -20,13 +20,17 @@ interface DashboardStats {
   totalAllocations: number;
   totalPreferences: number;
   pendingRequests: number;
+  totalTeachers: number;
+  attendanceSessions: number;
+  totalBadges: number;
 }
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const [stats, setStats] = useState<DashboardStats>({
     totalStudents: 0, totalActivities: 0, totalAllocations: 0,
-    totalPreferences: 0, pendingRequests: 0,
+    totalPreferences: 0, pendingRequests: 0, totalTeachers: 0,
+    attendanceSessions: 0, totalBadges: 0,
   });
 
   useEffect(() => {
@@ -37,12 +41,18 @@ const AdminDashboard = () => {
         { data: allocatedData },
         { count: preferences },
         { count: pending },
+        { count: teachers },
+        { count: sessions },
+        { count: badges },
       ] = await Promise.all([
         supabase.from("user_roles").select("id", { count: "exact", head: true }).eq("role", "student"),
         supabase.from("activities").select("id", { count: "exact", head: true }).eq("is_active", true),
         supabase.rpc("count_allocated_students"),
         supabase.from("preferences").select("id", { count: "exact", head: true }),
         supabase.from("student_requests").select("id", { count: "exact", head: true }).eq("status", "pending"),
+        supabase.from("user_roles").select("id", { count: "exact", head: true }).eq("role", "teacher"),
+        supabase.from("attendance_sessions").select("id", { count: "exact", head: true }),
+        supabase.from("user_badges").select("id", { count: "exact", head: true }),
       ]);
       setStats({
         totalStudents: students || 0,
@@ -50,6 +60,9 @@ const AdminDashboard = () => {
         totalAllocations: typeof allocatedData === 'number' ? allocatedData : 0,
         totalPreferences: preferences || 0,
         pendingRequests: pending || 0,
+        totalTeachers: teachers || 0,
+        attendanceSessions: sessions || 0,
+        totalBadges: badges || 0,
       });
     };
     fetchStats();
@@ -60,6 +73,10 @@ const AdminDashboard = () => {
     { label: "Activities", value: stats.totalActivities, icon: BookOpen, color: "text-emerald-500", bg: "bg-emerald-500/10" },
     { label: "Students Allocated", value: stats.totalAllocations, icon: TrendingUp, color: "text-violet-500", bg: "bg-violet-500/10" },
     { label: "Preferences", value: stats.totalPreferences, icon: ClipboardCheck, color: "text-amber-500", bg: "bg-amber-500/10" },
+    { label: "Teachers", value: stats.totalTeachers, icon: UserCog, color: "text-cyan-500", bg: "bg-cyan-500/10" },
+    { label: "Pending Requests", value: stats.pendingRequests, icon: AlertTriangle, color: "text-red-500", bg: "bg-red-500/10" },
+    { label: "Attendance Sessions", value: stats.attendanceSessions, icon: CalendarDays, color: "text-indigo-500", bg: "bg-indigo-500/10" },
+    { label: "Badges Awarded", value: stats.totalBadges, icon: Award, color: "text-pink-500", bg: "bg-pink-500/10" },
   ];
 
   const quickActions = [
