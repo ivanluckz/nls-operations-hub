@@ -475,6 +475,44 @@ export type Database = {
         }
         Relationships: []
       }
+      meal_attendance: {
+        Row: {
+          created_at: string
+          id: string
+          meal_date: string
+          meal_type: string
+          scanned_at: string
+          scanned_by: string
+          student_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          meal_date?: string
+          meal_type: string
+          scanned_at?: string
+          scanned_by: string
+          student_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          meal_date?: string
+          meal_type?: string
+          scanned_at?: string
+          scanned_by?: string
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meal_attendance_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       message_reactions: {
         Row: {
           created_at: string | null
@@ -881,6 +919,7 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_kitchen_staff: { Args: { _user_id: string }; Returns: boolean }
       is_moderator: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
