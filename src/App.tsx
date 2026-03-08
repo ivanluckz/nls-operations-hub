@@ -41,6 +41,8 @@ import StudentRequests from "./pages/StudentRequests";
 import AdminAI from "./pages/AdminAI";
 import KitchenDashboard from "./pages/KitchenDashboard";
 import KitchenReports from "./pages/KitchenReports";
+import RLCoachDashboard from "./pages/RLCoachDashboard";
+import RLCoachReports from "./pages/RLCoachReports";
 
 const queryClient = new QueryClient();
 
