@@ -7,8 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { QrCode, UtensilsCrossed, Users, BarChart3, LogOut, Sun, Coffee, Moon } from "lucide-react";
 import { MEAL_TYPES, type MealType } from "@/lib/constants";
-import { QR_SCAN_COOLDOWN_MS } from "@/lib/constants";
-import QRScanner from "@/components/attendance/QRScanner";
+import MealQRScanner from "@/components/kitchen/MealQRScanner";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 const mealIcons: Record<MealType, typeof Coffee> = {
