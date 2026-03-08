@@ -52,7 +52,7 @@ const UserManagement = () => {
   const [loading, setLoading] = useState(true);
   const [editingUser, setEditingUser] = useState<Profile | null>(null);
   const [editName, setEditName] = useState("");
-  const [editRole, setEditRole] = useState<"student" | "moderator" | "admin" | "teacher" | "kitchen_staff" | "rl_coach" | "medical">("student");
+  const [editRole, setEditRole] = useState<"student" | "moderator" | "admin" | "teacher" | "rl_coach" | "medical">("student");
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
