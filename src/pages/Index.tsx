@@ -38,8 +38,6 @@ const Index = () => {
           navigate("/moderator");
         } else if (role === "teacher") {
           navigate("/teacher");
-        } else if (role === "kitchen_staff") {
-          navigate("/kitchen");
         } else if (role === "rl_coach") {
           navigate("/rl-coach");
         } else if (role === "medical") {

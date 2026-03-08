@@ -111,10 +111,6 @@ const AppContent = () => {
           <Route path="/teacher/attendance" element={<ProtectedRoute requiredRole="teacher"><TeacherAttendance /></ProtectedRoute>} />
           <Route path="/teacher/attendance-reports" element={<ProtectedRoute requiredRole="teacher"><AttendanceReports /></ProtectedRoute>} />
 
-          {/* Kitchen Staff (legacy) */}
-          <Route path="/kitchen" element={<ProtectedRoute requiredRole="kitchen_staff"><KitchenDashboard /></ProtectedRoute>} />
-          <Route path="/kitchen/reports" element={<ProtectedRoute requiredRole="kitchen_staff"><KitchenReports /></ProtectedRoute>} />
-
           {/* RL Coach */}
           <Route path="/rl-coach" element={<ProtectedRoute requiredRole="rl_coach"><RLCoachDashboard /></ProtectedRoute>} />
           <Route path="/rl-coach/reports" element={<ProtectedRoute requiredRole="rl_coach"><RLCoachReports /></ProtectedRoute>} />
