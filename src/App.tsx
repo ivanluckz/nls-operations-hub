@@ -39,6 +39,8 @@ import DirectMessages from "./pages/DirectMessages";
 import SetPassword from "./pages/SetPassword";
 import StudentRequests from "./pages/StudentRequests";
 import AdminAI from "./pages/AdminAI";
+import KitchenDashboard from "./pages/KitchenDashboard";
+import KitchenReports from "./pages/KitchenReports";
 
 const queryClient = new QueryClient();
 
