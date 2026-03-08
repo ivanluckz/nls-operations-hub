@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import {
   QrCode, Users, LogOut, Sun, Coffee, Moon, Dumbbell,
-  MapPin, BarChart3
+  MapPin, BarChart3, AlertTriangle, CheckCircle2, Flag
 } from "lucide-react";
 import { MEAL_TYPES, WORKOUT_LOCATIONS, type MealType, type WorkoutLocation } from "@/lib/constants";
 import MealQRScanner from "@/components/kitchen/MealQRScanner";
