@@ -119,6 +119,9 @@ const AppContent = () => {
           <Route path="/rl-coach" element={<ProtectedRoute requiredRole="rl_coach"><RLCoachDashboard /></ProtectedRoute>} />
           <Route path="/rl-coach/reports" element={<ProtectedRoute requiredRole="rl_coach"><RLCoachReports /></ProtectedRoute>} />
 
+          {/* Medical */}
+          <Route path="/medical" element={<ProtectedRoute requiredRole="medical"><MedicalDashboard /></ProtectedRoute>} />
+
           {/* Public */}
           <Route path="/chatbot" element={<ActivityChatbot />} />
           <Route path="/themes" element={<ThemeManagement />} />
