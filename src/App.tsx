@@ -43,6 +43,7 @@ import KitchenDashboard from "./pages/KitchenDashboard";
 import KitchenReports from "./pages/KitchenReports";
 import RLCoachDashboard from "./pages/RLCoachDashboard";
 import RLCoachReports from "./pages/RLCoachReports";
+import MedicalDashboard from "./pages/MedicalDashboard";
 
 const queryClient = new QueryClient();
 
