@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import {
   QrCode, Users, LogOut, Sun, Coffee, Moon, Dumbbell,
-  MapPin, BarChart3
+  MapPin, BarChart3, AlertTriangle, CheckCircle2, Flag
 } from "lucide-react";
 import { MEAL_TYPES, WORKOUT_LOCATIONS, type MealType, type WorkoutLocation } from "@/lib/constants";
 import MealQRScanner from "@/components/kitchen/MealQRScanner";
@@ -55,6 +55,10 @@ const RLCoachDashboard = () => {
   const [workoutScanning, setWorkoutScanning] = useState(false);
   const [workoutCount, setWorkoutCount] = useState(0);
   const [lastWorkoutScanned, setLastWorkoutScanned] = useState<{ name: string; location: string } | null>(null);
+  const [finalizing, setFinalizing] = useState(false);
+  const [absentStudents, setAbsentStudents] = useState<Array<{ id: string; name: string }>>([]);
+  const [flaggedStudents, setFlaggedStudents] = useState<Array<{ id: string; name: string; absent_count: number; late_count: number }>>([]);
+  const [restrictedStudents, setRestrictedStudents] = useState<Array<{ id: string; name: string; reason: string | null }>>([]);
 
   const [totalStudents, setTotalStudents] = useState(0);
 
@@ -65,6 +69,8 @@ const RLCoachDashboard = () => {
     fetchMealCounts();
     fetchWorkoutCount();
     fetchTotalStudents();
+    fetchFlaggedStudents();
+    fetchRestrictedStudents();
   }, []);
 
   const fetchTotalStudents = async () => {
@@ -96,6 +102,155 @@ const RLCoachDashboard = () => {
       .select("id", { count: "exact", head: true })
       .eq("workout_date", today);
     setWorkoutCount(count || 0);
+  };
+
+  const fetchFlaggedStudents = async () => {
+    // Get last 14 days of workout notifications (absent/late)
+    const twoWeeksAgo = new Date();
+    twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+    const sinceDate = twoWeeksAgo.toISOString().split("T")[0];
+
+    const { data: notifications } = await (supabase as any)
+      .from("workout_notifications")
+      .select("student_id, status")
+      .gte("workout_date", sinceDate);
+
+    if (!notifications || notifications.length === 0) {
+      setFlaggedStudents([]);
+      return;
+    }
+
+    // Count per student
+    const counts: Record<string, { absent: number; late: number }> = {};
+    notifications.forEach((n: any) => {
+      if (!counts[n.student_id]) counts[n.student_id] = { absent: 0, late: 0 };
+      if (n.status === "absent") counts[n.student_id].absent++;
+      if (n.status === "late") counts[n.student_id].late++;
+    });
+
+    // Flag students with 3+ absences or 5+ late
+    const flaggedIds = Object.entries(counts)
+      .filter(([, c]) => c.absent >= 3 || c.late >= 5)
+      .map(([id, c]) => ({ id, absent_count: c.absent, late_count: c.late }));
+
+    if (flaggedIds.length === 0) {
+      setFlaggedStudents([]);
+      return;
+    }
+
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("id, full_name")
+      .in("id", flaggedIds.map(f => f.id));
+
+    const nameMap: Record<string, string> = {};
+    (profiles || []).forEach(p => { nameMap[p.id] = p.full_name; });
+
+    setFlaggedStudents(flaggedIds.map(f => ({
+      ...f,
+      name: nameMap[f.id] || "Unknown",
+    })));
+  };
+
+  const fetchRestrictedStudents = async () => {
+    const { data } = await (supabase as any)
+      .from("workout_clearances")
+      .select("student_id, restriction_reason")
+      .eq("status", "restricted");
+
+    if (!data || data.length === 0) {
+      setRestrictedStudents([]);
+      return;
+    }
+
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("id, full_name")
+      .in("id", data.map((d: any) => d.student_id));
+
+    const nameMap: Record<string, string> = {};
+    (profiles || []).forEach(p => { nameMap[p.id] = p.full_name; });
+
+    setRestrictedStudents(data.map((d: any) => ({
+      id: d.student_id,
+      name: nameMap[d.student_id] || "Unknown",
+      reason: d.restriction_reason,
+    })));
+  };
+
+  const finalizeWorkout = async () => {
+    if (!userId) return;
+    setFinalizing(true);
+    try {
+      const today = new Date().toISOString().split("T")[0];
+
+      // Get all students
+      const { data: allStudentRoles } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "student");
+
+      const allStudentIds = (allStudentRoles || []).map(r => r.user_id);
+
+      // Get students who checked in today
+      const { data: checkedIn } = await (supabase as any)
+        .from("workout_attendance")
+        .select("student_id")
+        .eq("workout_date", today);
+
+      const checkedInIds = new Set((checkedIn || []).map((r: any) => r.student_id));
+
+      // Get medically restricted students
+      const { data: restricted } = await (supabase as any)
+        .from("workout_clearances")
+        .select("student_id")
+        .eq("status", "restricted");
+
+      const restrictedIds = new Set((restricted || []).map((r: any) => r.student_id));
+
+      // Absent = not checked in AND not medically restricted
+      const absentIds = allStudentIds.filter(id => !checkedInIds.has(id) && !restrictedIds.has(id));
+
+      if (absentIds.length === 0) {
+        toast({ title: "All Clear! ✅", description: "All students are accounted for" });
+        setFinalizing(false);
+        return;
+      }
+
+      // Insert notifications for absent students
+      const notifications = absentIds.map(id => ({
+        student_id: id,
+        workout_date: today,
+        status: "absent",
+      }));
+
+      const { error } = await (supabase as any)
+        .from("workout_notifications")
+        .upsert(notifications, { onConflict: "student_id,workout_date" });
+
+      if (error) throw error;
+
+      // Get names
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, full_name")
+        .in("id", absentIds);
+
+      const absentList = (profiles || []).map(p => ({ id: p.id, name: p.full_name }));
+      setAbsentStudents(absentList);
+
+      toast({
+        title: `⚠️ ${absentIds.length} Student${absentIds.length > 1 ? "s" : ""} Absent`,
+        description: "Notifications created for absent students",
+        variant: "destructive",
+      });
+
+      fetchFlaggedStudents();
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally {
+      setFinalizing(false);
+    }
   };
 
   const handleMealScan = useCallback(async (studentId: string) => {
@@ -402,6 +557,27 @@ const RLCoachDashboard = () => {
               </CardContent>
             </Card>
 
+            {/* Medical Restrictions */}
+            {restrictedStudents.length > 0 && (
+              <Card className="border-destructive/30">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm flex items-center gap-2 text-destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    Medically Restricted ({restrictedStudents.length})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-wrap gap-2">
+                    {restrictedStudents.map((s) => (
+                      <Badge key={s.id} variant="destructive" className="text-xs">
+                        {s.name} {s.reason ? `— ${s.reason}` : ""}
+                      </Badge>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Scan Section */}
             <Card>
               <CardHeader>
@@ -440,6 +616,79 @@ const RLCoachDashboard = () => {
                 </Button>
               </CardContent>
             </Card>
+
+            {/* Finalize & Absent */}
+            <Card className="border-amber-500/30 bg-amber-500/5">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-amber-600">
+                  <CheckCircle2 className="h-5 w-5" />
+                  Finalize Workout Session
+                </CardTitle>
+                <CardDescription>
+                  Mark all un-scanned students as absent and send notifications
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Button
+                  variant="destructive"
+                  size="lg"
+                  className="w-full"
+                  onClick={finalizeWorkout}
+                  disabled={finalizing}
+                >
+                  {finalizing ? "Processing..." : "Finalize & Notify Absences"}
+                </Button>
+
+                {absentStudents.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-destructive">
+                      ⚠️ {absentStudents.length} absent student{absentStudents.length > 1 ? "s" : ""}:
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {absentStudents.map((s) => (
+                        <Badge key={s.id} variant="outline" className="text-xs border-destructive text-destructive">
+                          {s.name}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Flagged Students */}
+            {flaggedStudents.length > 0 && (
+              <Card className="border-orange-500/30">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-orange-600">
+                    <Flag className="h-5 w-5" />
+                    Flagged Students (Last 14 Days)
+                  </CardTitle>
+                  <CardDescription>Students with 3+ absences or 5+ late arrivals</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {flaggedStudents.map((s) => (
+                      <div key={s.id} className="flex items-center justify-between rounded-lg border p-3">
+                        <span className="font-medium text-sm">{s.name}</span>
+                        <div className="flex gap-2">
+                          {s.absent_count > 0 && (
+                            <Badge variant="destructive" className="text-xs">
+                              {s.absent_count} absent
+                            </Badge>
+                          )}
+                          {s.late_count > 0 && (
+                            <Badge variant="outline" className="text-xs border-amber-500 text-amber-600">
+                              {s.late_count} late
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
         </Tabs>
       </div>
