@@ -74,7 +74,7 @@ const UserManagement = () => {
 
       const usersWithRoles: Profile[] = profilesData?.map(profile => ({
         ...profile,
-        roles: (rolesData || []).filter((r) => r.user_id === profile.id)
+        roles: (rolesData || []).filter((r) => r.user_id === profile.id) as any
       })) || [];
 
       setUsers(usersWithRoles);
