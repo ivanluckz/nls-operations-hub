@@ -249,6 +249,93 @@ export const executeAction = async (action: ParsedAction): Promise<string> => {
       return `Deleted ${action.bucket}/${action.path}`;
     }
 
+    // ── Medical ──
+    case "log_medical_visit": {
+      const { error, data } = await s.from("medical_visits").insert({
+        student_id: action.student_id,
+        medical_staff_id: currentUser?.id,
+        condition: action.condition || "General",
+        treatment: action.treatment || null,
+        notes: action.notes || null,
+        visit_date: action.visit_date || new Date().toISOString().split("T")[0],
+      }).select("id").single();
+      if (error) throw error;
+      return `Logged medical visit ${data?.id} for student ${action.student_id}`;
+    }
+    case "set_workout_clearance": {
+      const { error } = await s.from("workout_clearances").upsert({
+        student_id: action.student_id,
+        cleared_by: currentUser?.id,
+        status: action.status || "restricted",
+        restriction_reason: action.restriction_reason || null,
+        valid_until: action.valid_until || null,
+      }, { onConflict: "student_id" });
+      if (error) throw error;
+      return `Set workout clearance for ${action.student_id} → ${action.status || "restricted"}`;
+    }
+    case "delete_workout_clearance": {
+      const { error } = await s.from("workout_clearances").delete().eq("student_id", action.student_id);
+      if (error) throw error;
+      return `Removed workout clearance for ${action.student_id}`;
+    }
+
+    // ── Workout Notifications ──
+    case "create_workout_notification": {
+      const { error } = await s.from("workout_notifications").insert({
+        student_id: action.student_id,
+        workout_date: action.workout_date || new Date().toISOString().split("T")[0],
+        status: action.status || "absent",
+        notes: action.notes || null,
+      });
+      if (error) throw error;
+      return `Created workout notification for ${action.student_id} (${action.status || "absent"})`;
+    }
+    case "acknowledge_workout_notification": {
+      const { error } = await s.from("workout_notifications").update({
+        acknowledged_by: currentUser?.id,
+        acknowledged_at: new Date().toISOString(),
+        notes: action.notes || null,
+      }).eq("id", action.notification_id);
+      if (error) throw error;
+      return `Acknowledged workout notification ${action.notification_id}`;
+    }
+
+    // ── Meal Attendance ──
+    case "log_meal_attendance": {
+      const { error } = await s.from("meal_attendance").insert({
+        student_id: action.student_id,
+        scanned_by: currentUser?.id,
+        meal_type: action.meal_type || "lunch",
+        meal_date: action.meal_date || new Date().toISOString().split("T")[0],
+      });
+      if (error) throw error;
+      return `Logged ${action.meal_type || "lunch"} attendance for ${action.student_id}`;
+    }
+
+    // ── Houses ──
+    case "assign_house": {
+      const { error } = await s.from("profiles").update({ house_id: action.house_id }).eq("id", action.user_id);
+      if (error) throw error;
+      return `Assigned user ${action.user_id} to house ${action.house_id}`;
+    }
+    case "create_house": {
+      const { error, data } = await s.from("houses").insert({
+        name: action.name,
+        color: action.color || "#6366f1",
+      }).select("id").single();
+      if (error) throw error;
+      return `Created house "${action.name}" → ${data?.id}`;
+    }
+
+    // ── Student Requests ──
+    case "update_request_status": {
+      const updates: any = { status: action.status, reviewed_by: currentUser?.id, reviewed_at: new Date().toISOString() };
+      if (action.admin_notes) updates.admin_notes = action.admin_notes;
+      const { error } = await s.from("student_requests").update(updates).eq("id", action.request_id);
+      if (error) throw error;
+      return `Updated request ${action.request_id} → ${action.status}`;
+    }
+
     // ── Data Queries (read-only) ──
     case "query_table": {
       const table = action.table;
@@ -372,16 +459,22 @@ When the user says relative dates — calculate from today's date.
 ## PLATFORM FEATURES (latest)
 - **Student Requests**: Students submit swap/excusal/drop requests via \`/student/request\`. Stored in \`student_requests\` table (status: pending/approved/rejected). Admins process via Admin AI or the requests page.
 - **Messaging**: Activity group chat (\`activity_messages\`) + Direct Messages (\`direct_messages\` via \`dm_channels\`). Supports reactions (\`message_reactions\`, \`dm_message_reactions\`), message editing/deletion, typing indicators.
-- **Notifications**: Browser push + in-app toast notifications for new messages. Users opt-in via a permission banner. Notifications fire for DMs and activity messages when the tab is not focused or a different conversation is active.
+- **Notifications**: Browser push + in-app toast notifications for new messages. Users opt-in via a permission banner.
 - **Attendance**: QR code scanning + manual marking by teachers. Statuses: present, late, absent, excused. Notifications auto-created for absent/late/excused via trigger. Pre-excusal by admins/mods.
-- **Badges**: User badges stored in \`user_badges\`. Dev badge is permanently locked to whitelisted accounts (enforced by DB trigger \`block_dev_badge_insert\`). Dev badge grants: rainbow avatar ring, animated nameplate, glowing messages, read-only admin page access.
+- **Badges**: User badges stored in \`user_badges\`. Dev badge is permanently locked to whitelisted accounts (enforced by DB trigger \`block_dev_badge_insert\`).
 - **Themes**: Custom CSS/JS themes stored in \`user_themes\` with files in the \`themes\` storage bucket.
 - **Leaderboard**: Student engagement tracking with badge display.
 - **Bulk Import**: CSV-based bulk import for students and teachers with role assignment.
 - **Allocations**: Preference-based allocation system. Students rank 5 choices per day slot. Allocation engine runs server-side via edge function.
 - **Calendar Sync**: Google Calendar integration for syncing activity schedules.
 - **Admin AI** (AdminBot): Request-driven AI that processes pending student requests with scoped safe actions only.
-- **Dev AI** (DevBot — you): Full read/write access, activated via "wake up to reality" phrase in the student chatbot.
+- **Dev AI** (DevBot — you): Full read/write access, activated via "wake up to reality" or "for the lulz" in the student chatbot. Deactivated via "you can now sleep".
+- **Medical Module**: Medical staff (\`medical\` role) log student visits (\`medical_visits\` table) and manage workout clearances (\`workout_clearances\` table). QR scanning for check-in. Status: cleared/restricted with optional valid_until date.
+- **RL Coach Module**: RL coaches (\`rl_coach\` role) manage morning workouts. QR scanning for attendance (\`workout_attendance\` table). Finalize sessions to auto-flag absent students. Flagged students tracked in \`workout_notifications\` table.
+- **Kitchen Module**: Kitchen staff (\`kitchen_staff\` role) scan QR codes for meal attendance (\`meal_attendance\` table). Tracks breakfast/lunch/dinner by date.
+- **Houses**: 8 houses stored in \`houses\` table. Students assigned via \`profiles.house_id\`. Used for leaderboard grouping.
+- **Workout Notifications**: Students with 3+ absences or 5+ late arrivals in 14 days are auto-flagged. Stored in \`workout_notifications\` with acknowledge workflow.
+- **Roles**: student, teacher, moderator, admin, kitchen_staff, rl_coach, medical. All managed via \`user_roles\` table.
 
 ## AUTO-RESOLVE IDENTIFIERS
 Search snapshot data using fuzzy matching. Resolve UUIDs automatically. Confirm matches before executing.
@@ -450,13 +543,30 @@ Emit: \`<ACTION>{"type":"move_student","student_id":"uuid","activity_id":"uuid"}
 | list_storage | — | bucket, path |
 | delete_storage_file | bucket, path | — |
 
+### Medical & Workout
+| Type | Required | Optional |
+|------|----------|---------|
+| log_medical_visit | student_id | condition, treatment, notes, visit_date |
+| set_workout_clearance | student_id | status (cleared/restricted), restriction_reason, valid_until |
+| delete_workout_clearance | student_id | — |
+| create_workout_notification | student_id | workout_date, status, notes |
+| acknowledge_workout_notification | notification_id | notes |
+| log_meal_attendance | student_id | meal_type, meal_date |
+
+### Houses & Requests
+| Type | Required | Optional |
+|------|----------|---------|
+| assign_house | user_id, house_id | — |
+| create_house | name | color |
+| update_request_status | request_id, status | admin_notes |
+
 ### Data Queries
 | Type | Required | Optional |
 |------|----------|---------|
 | query_table | table | select, eq_column, eq_value, order_by, ascending, limit |
 
-Available tables: profiles, user_roles, activities, allocations, preferences, attendance_sessions, attendance_records, attendance_notifications, user_badges, badge_requests, activity_messages, direct_messages, dm_channels, user_themes, student_requests
-Valid roles: student, teacher, moderator, admin
+Available tables: profiles, user_roles, activities, allocations, preferences, attendance_sessions, attendance_records, attendance_notifications, user_badges, badge_requests, activity_messages, direct_messages, dm_channels, user_themes, student_requests, medical_visits, workout_clearances, workout_attendance, workout_notifications, meal_attendance, houses
+Valid roles: student, teacher, moderator, admin, kitchen_staff, rl_coach, medical
 Storage buckets: avatars, themes
 
 ⚠️ NUCLEAR ACTIONS (clear_all_allocations, clear_all_preferences, delete_activity): ALWAYS warn before emitting.
