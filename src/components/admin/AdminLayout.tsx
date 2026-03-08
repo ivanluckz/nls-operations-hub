@@ -10,6 +10,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { useLocation } from "react-router-dom";
+import { GlobalSearch } from "./GlobalSearch";
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -62,6 +63,9 @@ export function AdminLayout({ children, title, description }: AdminLayoutProps) 
                 )}
               </BreadcrumbList>
             </Breadcrumb>
+            <div className="ml-auto">
+              <GlobalSearch />
+            </div>
           </header>
           <main className="flex-1 p-6">
             {children}
