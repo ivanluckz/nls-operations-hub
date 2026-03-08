@@ -20,6 +20,9 @@ import {
 } from "lucide-react";
 import FloatingChatButton from "@/components/student/FloatingChatButton";
 import MealQRScanner from "@/components/kitchen/MealQRScanner";
+import AttendanceChart from "@/components/dashboard/AttendanceChart";
+import TodayScheduleWidget from "@/components/dashboard/TodayScheduleWidget";
+import RecentActivityFeed from "@/components/dashboard/RecentActivityFeed";
 
 interface Stats {
   totalActivities: number;
