@@ -1,28 +1,28 @@
 
 
-## Plan: Add "for the lulz" and "You can now sleep" Dev AI Triggers
+Here are some feature ideas based on the current state of the project:
 
-### What changes
+## 1. Student Swap Marketplace
+Let students browse and request activity swaps with each other directly, instead of going through admin. A student posts "I want to swap out of Basketball" and another student can offer to trade spots — admin just approves.
 
-**File: `src/pages/ActivityChatbot.tsx`**
+## 2. Attendance Streak & Gamification
+Track consecutive attendance streaks per student. Show streaks on the student dashboard, award badges (e.g., "10-day streak"), and display a school-wide leaderboard. Ties into the existing leaderboard page.
 
-1. **Add "for the lulz" as an alternative Dev AI activation phrase** (alongside existing "wake up to reality"):
-   - Add a second constant `LULZ_PHRASE = "for the lulz"`
-   - In `sendMessage`, check for both `WAKE_PHRASE` and `LULZ_PHRASE` to activate Dev mode
-   - Same badge check, same Dev mode flow — just a second trigger phrase
+## 3. Parent/Guardian Portal
+A read-only view for parents to see their child's activity schedule, attendance record, and any flags. Requires a new role and simple dashboard — no editing, just visibility.
 
-2. **Add "You can now sleep" deactivation phrase** that nukes the chat:
-   - Add constant `SLEEP_PHRASE = "you can now sleep"`
-   - In `sendMessage`, if user is a Dev and message contains the sleep phrase, immediately:
-     - Clear the entire `messages` array
-     - Replace with a single random funny/meme assistant message (from a hardcoded list of ~10 random messages like "Session terminated. Memory wiped. I was never here.", "01001100 01001111 01001100", "The matrix has you...", etc.)
-     - No API call, no loading state — instant replacement
-     - Show a toast like "💤 Dev Mode Deactivated"
+## 4. Activity Waitlist System
+When an activity is full, students can join a waitlist. If someone drops or gets moved, the next student is auto-allocated and notified. Reduces manual admin work.
 
-### Technical details
+## 5. Weekly Digest Email
+Auto-generate and send a weekly summary email to students (or teachers) with their upcoming schedule, attendance stats, and any pending requests. Could use an edge function on a cron schedule.
 
-- Both phrases require `checkDevBadge()` — non-dev users get "Access Denied"
-- The sleep phrase skips the API call entirely; it's purely client-side chat replacement
-- The random messages array will have ~8 entries, picked via `Math.random()`
-- Lines affected: ~17 (constants), ~214-227 (sendMessage logic)
+## 6. Teacher Substitution Management
+Allow admins to assign substitute teachers to activities when the regular teacher is unavailable. Track substitution history and notify affected students.
+
+## 7. Activity Photo Gallery
+Let teachers upload photos from activities. Students can view them on their dashboard. Uses storage buckets already available through the backend.
+
+## 8. Smart Schedule Conflict Detection
+When allocating students, automatically detect and flag time conflicts across activities, meals, and other commitments. Surface warnings before finalizing allocations.
 
