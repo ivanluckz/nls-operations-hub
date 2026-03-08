@@ -1104,6 +1104,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      count_allocated_students: { Args: never; Returns: number }
       get_teacher_students: {
         Args: { teacher_user_id: string }
         Returns: {

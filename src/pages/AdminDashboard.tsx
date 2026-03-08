@@ -34,20 +34,20 @@ const AdminDashboard = () => {
       const [
         { count: students },
         { count: activities },
-        { count: allocations },
+        { data: allocatedData },
         { count: preferences },
         { count: pending },
       ] = await Promise.all([
         supabase.from("user_roles").select("id", { count: "exact", head: true }).eq("role", "student"),
         supabase.from("activities").select("id", { count: "exact", head: true }).eq("is_active", true),
-        supabase.from("allocations").select("id", { count: "exact", head: true }),
+        supabase.rpc("count_allocated_students"),
         supabase.from("preferences").select("id", { count: "exact", head: true }),
         supabase.from("student_requests").select("id", { count: "exact", head: true }).eq("status", "pending"),
       ]);
       setStats({
         totalStudents: students || 0,
         totalActivities: activities || 0,
-        totalAllocations: allocations || 0,
+        totalAllocations: typeof allocatedData === 'number' ? allocatedData : 0,
         totalPreferences: preferences || 0,
         pendingRequests: pending || 0,
       });
@@ -58,7 +58,7 @@ const AdminDashboard = () => {
   const statCards = [
     { label: "Students", value: stats.totalStudents, icon: Users, color: "text-blue-500", bg: "bg-blue-500/10" },
     { label: "Activities", value: stats.totalActivities, icon: BookOpen, color: "text-emerald-500", bg: "bg-emerald-500/10" },
-    { label: "Allocations", value: stats.totalAllocations, icon: TrendingUp, color: "text-violet-500", bg: "bg-violet-500/10" },
+    { label: "Students Allocated", value: stats.totalAllocations, icon: TrendingUp, color: "text-violet-500", bg: "bg-violet-500/10" },
     { label: "Preferences", value: stats.totalPreferences, icon: ClipboardCheck, color: "text-amber-500", bg: "bg-amber-500/10" },
   ];
 
