@@ -285,13 +285,11 @@ const ActivityChatbot = () => {
 
     try {
       if (useDevMode) {
-        // Dev mode: build full system prompt once per active dev session
-        if (!devPromptRef.current) {
-          setDevPromptLoading(true);
-          const { prompt } = await buildDevSystemPrompt();
-          devPromptRef.current = prompt;
-          setDevPromptLoading(false);
-        }
+        // Dev mode: always rebuild prompt for fresh data
+        setDevPromptLoading(true);
+        const { prompt } = await buildDevSystemPrompt();
+        devPromptRef.current = prompt;
+        setDevPromptLoading(false);
         const devPrompt = devPromptRef.current;
         if (!devPrompt) throw new Error("Failed to initialize Dev prompt");
 
