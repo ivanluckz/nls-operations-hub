@@ -557,6 +557,27 @@ const RLCoachDashboard = () => {
               </CardContent>
             </Card>
 
+            {/* Medical Restrictions */}
+            {restrictedStudents.length > 0 && (
+              <Card className="border-destructive/30">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm flex items-center gap-2 text-destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    Medically Restricted ({restrictedStudents.length})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-wrap gap-2">
+                    {restrictedStudents.map((s) => (
+                      <Badge key={s.id} variant="destructive" className="text-xs">
+                        {s.name} {s.reason ? `— ${s.reason}` : ""}
+                      </Badge>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Scan Section */}
             <Card>
               <CardHeader>
@@ -595,6 +616,79 @@ const RLCoachDashboard = () => {
                 </Button>
               </CardContent>
             </Card>
+
+            {/* Finalize & Absent */}
+            <Card className="border-amber-500/30 bg-amber-500/5">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-amber-600">
+                  <CheckCircle2 className="h-5 w-5" />
+                  Finalize Workout Session
+                </CardTitle>
+                <CardDescription>
+                  Mark all un-scanned students as absent and send notifications
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Button
+                  variant="destructive"
+                  size="lg"
+                  className="w-full"
+                  onClick={finalizeWorkout}
+                  disabled={finalizing}
+                >
+                  {finalizing ? "Processing..." : "Finalize & Notify Absences"}
+                </Button>
+
+                {absentStudents.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-destructive">
+                      ⚠️ {absentStudents.length} absent student{absentStudents.length > 1 ? "s" : ""}:
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {absentStudents.map((s) => (
+                        <Badge key={s.id} variant="outline" className="text-xs border-destructive text-destructive">
+                          {s.name}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Flagged Students */}
+            {flaggedStudents.length > 0 && (
+              <Card className="border-orange-500/30">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-orange-600">
+                    <Flag className="h-5 w-5" />
+                    Flagged Students (Last 14 Days)
+                  </CardTitle>
+                  <CardDescription>Students with 3+ absences or 5+ late arrivals</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {flaggedStudents.map((s) => (
+                      <div key={s.id} className="flex items-center justify-between rounded-lg border p-3">
+                        <span className="font-medium text-sm">{s.name}</span>
+                        <div className="flex gap-2">
+                          {s.absent_count > 0 && (
+                            <Badge variant="destructive" className="text-xs">
+                              {s.absent_count} absent
+                            </Badge>
+                          )}
+                          {s.late_count > 0 && (
+                            <Badge variant="outline" className="text-xs border-amber-500 text-amber-600">
+                              {s.late_count} late
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
         </Tabs>
       </div>
