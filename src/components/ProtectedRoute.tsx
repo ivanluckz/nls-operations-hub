@@ -110,7 +110,6 @@ const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
     if (userRole === "admin") return <Navigate to="/admin" replace />;
     if (userRole === "moderator") return <Navigate to="/moderator" replace />;
     if (userRole === "teacher") return <Navigate to="/teacher" replace />;
-    if (userRole === "kitchen_staff") return <Navigate to="/kitchen" replace />;
     if (userRole === "rl_coach") return <Navigate to="/rl-coach" replace />;
     if (userRole === "medical") return <Navigate to="/medical" replace />;
     return <Navigate to="/student" replace />;
