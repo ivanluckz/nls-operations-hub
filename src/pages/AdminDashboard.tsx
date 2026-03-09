@@ -13,6 +13,13 @@ import FloatingChatButton from "@/components/student/FloatingChatButton";
 import TodayScheduleWidget from "@/components/dashboard/TodayScheduleWidget";
 import RecentActivityFeed from "@/components/dashboard/RecentActivityFeed";
 import AttendanceChart from "@/components/dashboard/AttendanceChart";
+import { useCountUp } from "@/hooks/use-count-up";
+
+const AnimatedNumber = ({ value }: { value: number }) => {
+  const display = useCountUp(value, 800);
+  return <p className="text-3xl font-bold mt-1">{display.toLocaleString()}</p>;
+};
+
 
 interface DashboardStats {
   totalStudents: number;
@@ -154,7 +161,7 @@ const AdminDashboard = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-muted-foreground group-hover:text-primary transition-colors">{s.label}</p>
-                    <p className="text-3xl font-bold mt-1">{s.value}</p>
+                    <AnimatedNumber value={s.value} />
                   </div>
                   <div className={`w-12 h-12 rounded-2xl ${s.bg} flex items-center justify-center group-hover:scale-110 transition-transform`}>
                     <s.icon className={`h-6 w-6 ${s.color}`} />
