@@ -13,6 +13,7 @@ import FloatingChatButton from "@/components/student/FloatingChatButton";
 import TodayScheduleWidget from "@/components/dashboard/TodayScheduleWidget";
 import RecentActivityFeed from "@/components/dashboard/RecentActivityFeed";
 import AttendanceChart from "@/components/dashboard/AttendanceChart";
+import { useCountUp } from "@/hooks/use-count-up";
 
 interface DashboardStats {
   totalStudents: number;
