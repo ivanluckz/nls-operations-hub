@@ -15,6 +15,12 @@ import RecentActivityFeed from "@/components/dashboard/RecentActivityFeed";
 import AttendanceChart from "@/components/dashboard/AttendanceChart";
 import { useCountUp } from "@/hooks/use-count-up";
 
+const AnimatedNumber = ({ value }: { value: number }) => {
+  const display = useCountUp(value, 800);
+  return <p className="text-3xl font-bold mt-1">{display.toLocaleString()}</p>;
+};
+
+
 interface DashboardStats {
   totalStudents: number;
   totalActivities: number;
