@@ -319,7 +319,7 @@ const RLCoachDashboard = () => {
       description: `${profile?.full_name || "Student"} → ${mealLabels[selectedMeal]}`,
     });
     fetchMealCounts();
-  }, [selectedMeal, userId, toast]);
+  }, [selectedMeal, selectedDinnerHouse, userId, toast]);
 
   const handleWorkoutScan = useCallback(async (studentId: string) => {
     if (!userId) return;
