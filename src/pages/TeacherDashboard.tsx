@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -8,12 +8,13 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
-import { LogOut, GraduationCap, ClipboardCheck, AlertTriangle, Users, BookOpen, MessageSquare } from "lucide-react";
+import { LogOut, GraduationCap, ClipboardCheck, AlertTriangle, Users, BookOpen, MessageSquare, QrCode, UtensilsCrossed } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import ActivityMessaging from "@/components/teacher/ActivityMessaging";
 import FloatingChatButton from "@/components/student/FloatingChatButton";
 import AttendanceChart from "@/components/dashboard/AttendanceChart";
 import TodayScheduleWidget from "@/components/dashboard/TodayScheduleWidget";
+import MealQRScanner from "@/components/kitchen/MealQRScanner";
 
 interface ActivityData {
   id: string;
