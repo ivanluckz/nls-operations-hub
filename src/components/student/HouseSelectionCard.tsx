@@ -65,6 +65,9 @@ const HouseSelectionCard = () => {
 
   if (loading) return null;
 
+  // Once chosen, it's final — card disappears
+  if (selectedHouseId) return null;
+
   const currentHouse = houses.find(h => h.id === selectedHouseId);
 
   return (

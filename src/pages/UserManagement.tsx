@@ -26,11 +26,18 @@ import { Checkbox } from "@/components/ui/checkbox";
 
 type AppRole = "student" | "moderator" | "admin" | "teacher" | "rl_coach" | "medical";
 
+interface House {
+  id: string;
+  name: string;
+  color: string;
+}
+
 interface Profile {
   id: string;
   email: string;
   full_name: string;
   avatar_url: string | null;
+  house_id: string | null;
   roles: Array<{ role: AppRole }>;
   banned: boolean;
   created_at: string;
@@ -44,6 +51,8 @@ const UserManagement = () => {
   const [editingUser, setEditingUser] = useState<Profile | null>(null);
   const [editName, setEditName] = useState("");
   const [editRole, setEditRole] = useState<AppRole>("student");
+  const [editHouseId, setEditHouseId] = useState<string | null>(null);
+  const [houses, setHouses] = useState<House[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
   const [bulkRoleDialogOpen, setBulkRoleDialogOpen] = useState(false);
@@ -52,6 +61,9 @@ const UserManagement = () => {
 
   useEffect(() => {
     fetchUsers();
+    (supabase as any).from("houses").select("id, name, color").order("name").then(({ data }: any) => {
+      if (data) setHouses(data);
+    });
   }, []);
 
   // Auto-open edit dialog from URL param (global search deep-link)
@@ -70,7 +82,7 @@ const UserManagement = () => {
     try {
       const { data: profilesData, error: profilesError } = await supabase
         .from("profiles")
-        .select("id, email, full_name, avatar_url, banned, created_at")
+        .select("id, email, full_name, avatar_url, house_id, banned, created_at")
         .order("created_at", { ascending: false });
 
       if (profilesError) throw profilesError;
@@ -97,6 +109,7 @@ const UserManagement = () => {
     setEditingUser(user);
     setEditName(user.full_name);
     setEditRole(user.roles[0]?.role || "student");
+    setEditHouseId(user.house_id || null);
   };
 
   const getInitials = (name: string) => {
@@ -108,7 +121,7 @@ const UserManagement = () => {
     try {
       const { error: profileError } = await supabase
         .from("profiles")
-        .update({ full_name: editName })
+        .update({ full_name: editName, house_id: editHouseId } as any)
         .eq("id", editingUser.id);
       if (profileError) throw profileError;
 
@@ -471,6 +484,20 @@ const UserManagement = () => {
                     <SelectItem value="admin">Admin</SelectItem>
                     <SelectItem value="rl_coach">RL Coach</SelectItem>
                     <SelectItem value="medical">Medical</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="house">House</Label>
+                <Select value={editHouseId || "none"} onValueChange={(v) => setEditHouseId(v === "none" ? null : v)}>
+                  <SelectTrigger><SelectValue placeholder="No house" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No house</SelectItem>
+                    {houses.map((h) => (
+                      <SelectItem key={h.id} value={h.id}>
+                        <span style={{ color: h.color }}>{h.name}</span>
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
