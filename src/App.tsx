@@ -121,8 +121,8 @@ const AppContent = () => {
           {/* Medical */}
           <Route path="/medical" element={<ProtectedRoute requiredRole="medical"><MedicalDashboard /></ProtectedRoute>} />
 
-          {/* Public */}
-          <Route path="/chatbot" element={<ActivityChatbot />} />
+          {/* Chatbot — requires auth, any role */}
+          <Route path="/chatbot" element={<ProtectedRoute><ActivityChatbot /></ProtectedRoute>} />
           <Route path="/themes" element={<ThemeManagement />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
