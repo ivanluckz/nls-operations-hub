@@ -32,13 +32,14 @@ interface AttendanceRecord {
   scanned_at?: string;
 }
 
-/** Parse a schedule string like "3:00 PM - 4:00 PM" to extract start time as Date today */
-const parseActivityStartTime = (schedule: string): Date | null => {
-  const match = schedule.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
-  if (!match) return null;
-  let hours = parseInt(match[1]);
-  const minutes = parseInt(match[2]);
-  const ampm = match[3].toUpperCase();
+/** Parse the first or last time from "3:00 PM - 4:00 PM". pass index=-1 for end time. */
+const parseScheduleTime = (schedule: string, index: 0 | -1): Date | null => {
+  const matches = [...schedule.matchAll(/(\d{1,2}):(\d{2})\s*(AM|PM)/gi)];
+  const m = index === 0 ? matches[0] : matches[matches.length - 1];
+  if (!m) return null;
+  let hours = parseInt(m[1]);
+  const minutes = parseInt(m[2]);
+  const ampm = m[3].toUpperCase();
   if (ampm === "PM" && hours !== 12) hours += 12;
   if (ampm === "AM" && hours === 12) hours = 0;
   const now = new Date();
@@ -47,15 +48,14 @@ const parseActivityStartTime = (schedule: string): Date | null => {
 
 /** Determine auto status based on scan time vs activity start */
 const getAutoStatus = (scannedAt: string, activitySchedule: string): "present" | "late" => {
-  const startTime = parseActivityStartTime(activitySchedule);
-  if (!startTime) return "present"; // Can't determine, default to present
+  const startTime = parseScheduleTime(activitySchedule, 0);
+  if (!startTime) return "present";
 
   const scanTime = new Date(scannedAt);
   const diffMinutes = (scanTime.getTime() - startTime.getTime()) / (1000 * 60);
 
   if (diffMinutes <= LATE_GRACE_PERIOD_MINUTES) return "present";
-  if (diffMinutes <= ABSENT_THRESHOLD_MINUTES) return "late";
-  return "late"; // Beyond threshold but still scanned = late, teacher can override
+  return "late"; // Scanned after grace period (including after session ended) = late
 };
 
 const TeacherAttendance = () => {
@@ -362,6 +362,10 @@ const TeacherAttendance = () => {
   const absentCount = Array.from(attendance.values()).filter(r => r.status === ATTENDANCE_STATUS.ABSENT).length;
   const excusedCount = Array.from(attendance.values()).filter(r => r.status === ATTENDANCE_STATUS.EXCUSED).length;
 
+  const sessionEnded = selectedActivityData?.schedule
+    ? (() => { const t = parseScheduleTime(selectedActivityData.schedule, -1); return t ? new Date() > t : false; })()
+    : false;
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card shadow-card">
@@ -436,7 +440,17 @@ const TeacherAttendance = () => {
 
         {selectedActivity && selectedDay && students.length > 0 && (
           <>
-            {absentCount > 0 && (
+            {sessionEnded && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  <strong>Session ended.</strong> Students not scanned are automatically marked absent.
+                  Any student who scans now will be marked <strong>late</strong>.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {!sessionEnded && absentCount > 0 && (
               <Alert>
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
@@ -460,11 +474,11 @@ const TeacherAttendance = () => {
               onStudentScanned={handleQRScanned}
             />
 
-            {selectedActivityData?.schedule && (
+            {selectedActivityData?.schedule && !sessionEnded && (
               <Alert>
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
-                  Auto-late detection active — Students scanned more than {LATE_GRACE_PERIOD_MINUTES} min after start ({selectedActivityData.schedule}) are automatically marked late.
+                  Auto-late detection active — Students scanned more than {LATE_GRACE_PERIOD_MINUTES} min after the start of {selectedActivityData.schedule} are automatically marked late.
                 </AlertDescription>
               </Alert>
             )}
