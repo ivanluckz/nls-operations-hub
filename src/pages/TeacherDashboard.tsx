@@ -13,6 +13,7 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
 import ActivityMessaging from "@/components/teacher/ActivityMessaging";
 import FloatingChatButton from "@/components/student/FloatingChatButton";
 import HouseBadge from "@/components/ui/HouseBadge";
+import HouseSelectionCard from "@/components/student/HouseSelectionCard";
 import AttendanceChart from "@/components/dashboard/AttendanceChart";
 import TodayScheduleWidget from "@/components/dashboard/TodayScheduleWidget";
 import MealQRScanner from "@/components/kitchen/MealQRScanner";
@@ -209,6 +210,8 @@ const TeacherDashboard = () => {
       </header>
 
       <main className="container mx-auto px-4 py-6 space-y-6">
+        <HouseSelectionCard />
+
         {/* Stats row */}
         <div className="grid grid-cols-3 gap-4">
           <Card className="relative overflow-hidden">

@@ -351,6 +351,9 @@ const UserManagement = () => {
   const moderatorUsers = filterBySearch(getUsersByRole("moderator"));
   const teacherUsers = filterBySearch(getUsersByRole("teacher"));
   const studentUsers = filterBySearch(getUsersByRole("student"));
+  const rlCoachUsers = filterBySearch(getUsersByRole("rl_coach"));
+  const medicalUsers = filterBySearch(getUsersByRole("medical"));
+  const kitchenUsers = filterBySearch(getUsersByRole("kitchen_staff"));
 
   return (
     <AdminLayout>
@@ -445,18 +448,24 @@ const UserManagement = () => {
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="all" className="w-full">
-              <TabsList className="grid w-full grid-cols-5">
+              <TabsList className="flex flex-wrap h-auto gap-1 bg-muted p-1">
                 <TabsTrigger value="all">All ({filteredUsers.length})</TabsTrigger>
                 <TabsTrigger value="admin">Admins ({adminUsers.length})</TabsTrigger>
                 <TabsTrigger value="moderator">Mods ({moderatorUsers.length})</TabsTrigger>
                 <TabsTrigger value="teacher">Teachers ({teacherUsers.length})</TabsTrigger>
                 <TabsTrigger value="student">Students ({studentUsers.length})</TabsTrigger>
+                <TabsTrigger value="rl_coach">RL Coaches ({rlCoachUsers.length})</TabsTrigger>
+                <TabsTrigger value="medical">Medical ({medicalUsers.length})</TabsTrigger>
+                <TabsTrigger value="kitchen_staff">Kitchen ({kitchenUsers.length})</TabsTrigger>
               </TabsList>
               <TabsContent value="all" className="mt-6">{renderUserTable(filteredUsers)}</TabsContent>
               <TabsContent value="admin" className="mt-6">{renderUserTable(adminUsers)}</TabsContent>
               <TabsContent value="moderator" className="mt-6">{renderUserTable(moderatorUsers)}</TabsContent>
               <TabsContent value="teacher" className="mt-6">{renderUserTable(teacherUsers)}</TabsContent>
               <TabsContent value="student" className="mt-6">{renderUserTable(studentUsers)}</TabsContent>
+              <TabsContent value="rl_coach" className="mt-6">{renderUserTable(rlCoachUsers)}</TabsContent>
+              <TabsContent value="medical" className="mt-6">{renderUserTable(medicalUsers)}</TabsContent>
+              <TabsContent value="kitchen_staff" className="mt-6">{renderUserTable(kitchenUsers)}</TabsContent>
             </Tabs>
           </CardContent>
         </Card>
