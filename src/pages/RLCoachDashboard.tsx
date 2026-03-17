@@ -539,14 +539,41 @@ const RLCoachDashboard = () => {
                     );
                   })}
                 </div>
+                {selectedMeal === "dinner" && (
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium flex items-center gap-2">
+                      <Home className="h-4 w-4" />
+                      Select House for Dinner
+                    </label>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {houses.map((house) => (
+                        <button
+                          key={house.id}
+                          onClick={() => setSelectedDinnerHouse(house.id)}
+                          className={`rounded-xl border-2 p-2 text-xs font-semibold transition-all hover:scale-105 ${
+                            selectedDinnerHouse === house.id
+                              ? "border-primary bg-primary/10 shadow-md"
+                              : "border-muted hover:border-primary/40"
+                          }`}
+                        >
+                          {house.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <Button
                   size="lg"
                   className="w-full"
-                  disabled={!selectedMeal}
+                  disabled={!selectedMeal || (selectedMeal === "dinner" && !selectedDinnerHouse)}
                   onClick={() => setMealScanning(true)}
                 >
                   <QrCode className="h-5 w-5 mr-2" />
-                  {selectedMeal ? `Start Scanning for ${mealLabels[selectedMeal]}` : "Select a meal first"}
+                  {!selectedMeal
+                    ? "Select a meal first"
+                    : selectedMeal === "dinner" && !selectedDinnerHouse
+                    ? "Select a house first"
+                    : `Start Scanning for ${mealLabels[selectedMeal]}${selectedMeal === "dinner" ? ` (${houses.find(h => h.id === selectedDinnerHouse)?.name || ""})` : ""}`}
                 </Button>
               </CardContent>
             </Card>
