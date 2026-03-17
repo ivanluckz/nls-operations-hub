@@ -99,6 +99,11 @@ const RLCoachDashboard = () => {
     setMealCounts(counts);
   };
 
+  const fetchHouses = async () => {
+    const { data } = await (supabase as any).from("houses").select("id, name, color").order("name");
+    setHouses(data || []);
+  };
+
   const fetchWorkoutCount = async () => {
     const today = new Date().toISOString().split("T")[0];
     const { count } = await (supabase as any)
