@@ -499,6 +499,7 @@ export type Database = {
       meal_attendance: {
         Row: {
           created_at: string
+          house_id: string | null
           id: string
           meal_date: string
           meal_type: string
@@ -508,6 +509,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          house_id?: string | null
           id?: string
           meal_date?: string
           meal_type: string
@@ -517,6 +519,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          house_id?: string | null
           id?: string
           meal_date?: string
           meal_type?: string
@@ -525,6 +528,13 @@ export type Database = {
           student_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "meal_attendance_house_id_fkey"
+            columns: ["house_id"]
+            isOneToOne: false
+            referencedRelation: "houses"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "meal_attendance_student_id_fkey"
             columns: ["student_id"]
@@ -815,6 +825,8 @@ export type Database = {
           full_name: string
           house_id: string | null
           id: string
+          mentor_id: string | null
+          student_class: string | null
           updated_at: string
           workout_location: string | null
         }
@@ -826,6 +838,8 @@ export type Database = {
           full_name: string
           house_id?: string | null
           id: string
+          mentor_id?: string | null
+          student_class?: string | null
           updated_at?: string
           workout_location?: string | null
         }
@@ -837,6 +851,8 @@ export type Database = {
           full_name?: string
           house_id?: string | null
           id?: string
+          mentor_id?: string | null
+          student_class?: string | null
           updated_at?: string
           workout_location?: string | null
         }
