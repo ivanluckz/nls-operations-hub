@@ -288,14 +288,19 @@ const RLCoachDashboard = () => {
       return;
     }
 
+    const insertData: any = {
+      student_id: studentId,
+      scanned_by: userId,
+      meal_type: selectedMeal,
+      meal_date: today,
+    };
+    if (selectedMeal === "dinner" && selectedDinnerHouse) {
+      insertData.house_id = selectedDinnerHouse;
+    }
+
     const { error } = await (supabase as any)
       .from("meal_attendance")
-      .insert({
-        student_id: studentId,
-        scanned_by: userId,
-        meal_type: selectedMeal,
-        meal_date: today,
-      });
+      .insert(insertData);
 
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
