@@ -108,12 +108,22 @@ serve(async (req) => {
 
     const userRole = roleData?.role || 'student';
 
-    // Fetch user profile
+    // Fetch user profile + house
     const { data: profileData } = await supabase
       .from('profiles')
-      .select('full_name, email')
+      .select('full_name, email, house_id')
       .eq('id', user.id)
       .single();
+
+    let houseName: string | null = null;
+    if ((profileData as any)?.house_id) {
+      const { data: houseData } = await (supabase as any)
+        .from('houses')
+        .select('name, color')
+        .eq('id', (profileData as any).house_id)
+        .single();
+      houseName = houseData?.name || null;
+    }
 
     // Fetch all active activities
     const { data: activities } = await supabase
@@ -163,6 +173,12 @@ serve(async (req) => {
         const summaryStr = Object.entries(attendanceSummary).map(([s, c]) => `${s}: ${c}`).join(', ');
         personalContext += `\n\n**Your Recent Attendance (last 10 sessions):** ${summaryStr}`;
       }
+
+      if (houseName) {
+        personalContext += `\n\n**Your House:** ${houseName}`;
+      } else {
+        personalContext += `\n\n**Your House:** Not selected yet — you can choose your house from your dashboard.`;
+      }
     } else if (userRole === 'teacher') {
       // Fetch teacher's activities
       const teacherActivities = activities?.filter(a => a.teacher_in_charge === profileData?.full_name) || [];
@@ -170,6 +186,39 @@ serve(async (req) => {
         const taInfo = teacherActivities.map(a => `  - ${a.title} (${a.current_enrollment}/${a.capacity} enrolled)`).join('\n');
         personalContext += `\n\n**Your Activities:**\n${taInfo}`;
       }
+    } else if (userRole === 'rl_coach') {
+      const today = new Date().toISOString().split('T')[0];
+      const { data: todayWorkouts } = await (supabase as any)
+        .from('workout_attendance')
+        .select('student_id, status')
+        .eq('workout_date', today)
+        .limit(200);
+      const { count: pendingNotifications } = await (supabase as any)
+        .from('workout_notifications')
+        .select('*', { count: 'exact', head: true })
+        .is('acknowledged_by', null);
+      personalContext += `\n\n**Today's Workout Attendance:** ${todayWorkouts?.length || 0} scans recorded.`;
+      if (pendingNotifications) personalContext += `\n**Pending Workout Notifications:** ${pendingNotifications} unacknowledged.`;
+    } else if (userRole === 'medical') {
+      const today = new Date().toISOString().split('T')[0];
+      const { data: todayVisits } = await (supabase as any)
+        .from('medical_visits')
+        .select('student_id, condition')
+        .eq('visit_date', today)
+        .limit(50);
+      const { count: restrictedStudents } = await (supabase as any)
+        .from('workout_clearances')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'restricted');
+      personalContext += `\n\n**Today's Medical Visits:** ${todayVisits?.length || 0} visit(s).`;
+      if (restrictedStudents) personalContext += `\n**Students with Workout Restrictions:** ${restrictedStudents}.`;
+    } else if (userRole === 'kitchen_staff') {
+      const today = new Date().toISOString().split('T')[0];
+      const { count: todayMeals } = await (supabase as any)
+        .from('meal_attendance')
+        .select('*', { count: 'exact', head: true })
+        .eq('meal_date', today);
+      personalContext += `\n\n**Today's Meal Scans:** ${todayMeals || 0} total across all meal types.`;
     } else if (userRole === 'admin' || userRole === 'moderator') {
       // Provide system overview stats
       const { count: totalStudents } = await supabase
@@ -182,14 +231,19 @@ serve(async (req) => {
         .select('*', { count: 'exact', head: true });
 
       personalContext += `\n\n**System Overview:** ${totalStudents || 0} students, ${activities?.length || 0} active activities, ${totalAllocations || 0} total allocations.`;
+
+      if (houseName) personalContext += `\n**Your House:** ${houseName}`;
     }
 
     // Role-specific system prompts
     const roleInstructions: Record<string, string> = {
-      student: `You are speaking with a student named ${profileData?.full_name || 'Student'}. Help them understand their schedule, activities, attendance, and how to submit preferences. Be encouraging and supportive.`,
+      student: `You are speaking with a student named ${profileData?.full_name || 'Student'}${houseName ? ` of House ${houseName}` : ''}. Help them understand their schedule, activities, attendance, house, and how to submit preferences. Be encouraging and supportive.`,
       teacher: `You are speaking with a teacher named ${profileData?.full_name || 'Teacher'}. Help them with managing their activities, taking attendance, understanding student rosters, and sending messages to activity groups.`,
       moderator: `You are speaking with a moderator named ${profileData?.full_name || 'Moderator'}. Help them with overseeing activities, managing allocations, reviewing attendance reports, and handling student issues. You can provide system-level insights.`,
-      admin: `You are speaking with an administrator named ${profileData?.full_name || 'Admin'}. Help them with full system management including user roles, activity creation, bulk imports, allocation runs, and system configuration. Provide detailed technical guidance when needed.`,
+      admin: `You are speaking with an administrator named ${profileData?.full_name || 'Admin'}${houseName ? ` of House ${houseName}` : ''}. Help them with full system management including user roles, activity creation, bulk imports, allocation runs, house assignments, and system configuration. Provide detailed technical guidance when needed.`,
+      rl_coach: `You are speaking with an RL Coach named ${profileData?.full_name || 'RL Coach'}. Help them manage morning workouts, scan student attendance, review workout notifications, handle meal scanning (breakfast and dinner), and view student workout clearances from the medical team.`,
+      medical: `You are speaking with a medical staff member named ${profileData?.full_name || 'Medical Staff'}. Help them log student medical visits, manage workout clearances (cleared or restricted), and track student health records. You have access to today's visit count and restriction data.`,
+      kitchen_staff: `You are speaking with kitchen staff named ${profileData?.full_name || 'Kitchen Staff'}. Help them with meal attendance tracking via QR scanning and viewing daily meal statistics.`,
     };
 
     const systemPrompt = `You are the NLS Co-Curricular Activity Assistant — a smart, friendly helper for Ntare-Louisenlund School's co-curricular program.
@@ -206,6 +260,8 @@ ${personalContext}
 - Attendance is tracked via **QR code scanning** or manual marking by teachers
 - Students can be marked as: ✅ Present, ⏰ Late, ❌ Absent, or 🔵 Excused
 - Only admins and moderators can pre-excuse students
+- **Houses**: There are 8 houses (Amistad, Altruismo, Sollevare, Nukumori, Protos, Onraka, Reveur, Isibindi). House selection is **one-time and permanent** — once chosen it cannot be changed by the student. Only admins can reassign a student's house via User Management.
+- **Roles**: student, teacher, moderator, admin, rl_coach (morning workouts + meals), medical (health records + workout clearances), kitchen_staff (meal scanning)
 
 ## Response Guidelines
 - Use **markdown formatting** for clarity (bold, lists, headers)

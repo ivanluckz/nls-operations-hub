@@ -55,7 +55,7 @@ const SAFE_ACTION_TYPES = new Set([
   "move_student", "remove_allocation", "add_allocation",
   "excuse_attendance", "create_attendance_session", "mark_attendance",
   "update_activity", "send_activity_message", "send_dm",
-  "query_table", "create_academic_excuse",
+  "query_table", "create_academic_excuse", "assign_house",
 ]);
 
 const executeAction = async (action: ParsedAction): Promise<string> => {
@@ -151,6 +151,11 @@ const executeAction = async (action: ParsedAction): Promise<string> => {
       if (error) throw error;
       return `Sent DM to ${action.recipient_id || channelId}`;
     }
+    case "assign_house": {
+      const { error } = await s.from("profiles").update({ house_id: action.house_id || null }).eq("id", action.user_id);
+      if (error) throw error;
+      return `Assigned user ${action.user_id} to house ${action.house_id || "none"}`;
+    }
     default:
       return `Unknown action: ${action.type}`;
   }
@@ -241,7 +246,7 @@ const AdminAI = () => {
       s.from("activities").select("id, title, category, capacity, current_enrollment, days_of_week, is_active").limit(150),
       s.from("allocations").select("student_id, activity_id, day_of_week, slot_number").limit(1000),
       s.from("user_roles").select("user_id").eq("role", "student").limit(1000),
-      s.from("user_roles").select("user_id, role").in("role", ["teacher", "admin", "moderator"]).limit(200),
+      s.from("user_roles").select("user_id, role").in("role", ["teacher", "admin", "moderator", "rl_coach", "medical", "kitchen_staff"]).limit(200),
     ]);
 
     const allStudentIds: string[] = (studentRoles || []).map((r: any) => r.user_id);
@@ -310,14 +315,14 @@ You help admins:
 - **Medical Module**: Medical staff log visits (\`medical_visits\`) and manage workout clearances (\`workout_clearances\`: cleared/restricted). QR scanning for check-in.
 - **RL Coach Module**: RL coaches manage morning workouts via QR scanning (\`workout_attendance\`). Auto-flag absent students in \`workout_notifications\` (3+ absences or 5+ late in 14 days).
 - **Meal Attendance**: RL coaches handle breakfast/dinner, moderators handle lunch. QR scanning into \`meal_attendance\` table.
-- **Houses**: 8 houses in \`houses\` table. Students assigned via \`profiles.house_id\`.
-- **Roles**: student, teacher, moderator, admin, rl_coach, medical.
+- **Houses**: 8 houses (Amistad, Altruismo, Sollevare, Nukumori, Protos, Onraka, Reveur, Isibindi) in \`houses\` table. Students assigned via \`profiles.house_id\`. House selection is **one-time and permanent** for students — only admins can reassign via \`assign_house\` action.
+- **Roles**: student, teacher, moderator, admin, rl_coach (workouts + meals), medical (health + clearances), kitchen_staff (meal scanning).
 
 ## PENDING STUDENT REQUESTS
 ${pendingContext}
 
 ## CAPABILITIES (SAFE ACTIONS ONLY)
-You can: move_student, add_allocation, remove_allocation, excuse_attendance, create_academic_excuse, update_activity, send_activity_message, send_dm, query_table.
+You can: move_student, add_allocation, remove_allocation, excuse_attendance, create_academic_excuse, update_activity, send_activity_message, send_dm, query_table, assign_house.
 You CANNOT: clear_all_allocations, clear_all_preferences, delete_activity, ban/unban users, change roles, manage badges, manage storage. Those require Dev AI.
 
 ## AUTO-RESOLVE
@@ -337,6 +342,7 @@ When a name/email is mentioned, resolve from the snapshot below. Confirm match b
 | update_activity | activity_id | capacity, title, teacher_in_charge |
 | send_activity_message | activity_id, content | message_type |
 | send_dm | content, recipient_id | channel_id |
+| assign_house | user_id, house_id | — |
 | query_table | table | select, eq_column, eq_value, order_by, limit |
 
 ## PROCESSING REQUESTS

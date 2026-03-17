@@ -157,6 +157,7 @@ export const executeAction = async (action: ParsedAction): Promise<string> => {
       if (action.full_name) updates.full_name = action.full_name;
       if (action.email) updates.email = action.email;
       if (action.avatar_url) updates.avatar_url = action.avatar_url;
+      if (action.house_id !== undefined) updates.house_id = action.house_id || null;
       const { error } = await s.from("profiles").update(updates).eq("id", action.user_id);
       if (error) throw error;
       return `Updated profile for ${action.user_id}: ${JSON.stringify(updates)}`;
@@ -381,7 +382,7 @@ export const buildDevSystemPrompt = async (): Promise<{ prompt: string; stats: D
     s.from("allocations").select("student_id, activity_id, day_of_week, slot_number, status, preference_rank").limit(1000),
     s.from("user_badges").select("user_id, badge_name").limit(500),
     s.from("user_roles").select("user_id").eq("role", "student").limit(1000),
-    s.from("user_roles").select("user_id, role").in("role", ["teacher", "admin", "moderator", "rl_coach", "medical"]).limit(200),
+    s.from("user_roles").select("user_id, role").in("role", ["teacher", "admin", "moderator", "rl_coach", "medical", "kitchen_staff"]).limit(200),
     s.from("attendance_records").select("*", { count: "exact", head: true }),
     s.from("preferences").select("*", { count: "exact", head: true }),
     s.from("attendance_sessions").select("id, activity_id, teacher_id, session_date, day_of_week, slot_number, status").order("session_date", { ascending: false }).limit(30),
@@ -510,9 +511,9 @@ When the user says relative dates — calculate from today's date.
 - **Medical Module**: Medical staff (\`medical\` role) log student visits (\`medical_visits\` table) and manage workout clearances (\`workout_clearances\` table). QR scanning for check-in. Status: cleared/restricted with optional valid_until date.
 - **RL Coach Module**: RL coaches (\`rl_coach\` role) manage morning workouts. QR scanning for attendance (\`workout_attendance\` table). Finalize sessions to auto-flag absent students. Flagged students tracked in \`workout_notifications\` table.
 - **Meal Attendance**: RL coaches handle breakfast/dinner scanning, moderators handle lunch scanning. All via QR codes into \`meal_attendance\` table.
-- **Houses**: 8 houses stored in \`houses\` table. Students assigned via \`profiles.house_id\`. Used for leaderboard grouping.
+- **Houses**: 8 houses stored in \`houses\` table (Amistad, Altruismo, Sollevare, Nukumori, Protos, Onraka, Reveur, Isibindi). Students assigned via \`profiles.house_id\`. House selection is **one-time and permanent** for students — once chosen the card disappears. Only admins can reassign via UserManagement or via \`assign_house\` action.
 - **Workout Notifications**: Students with 3+ absences or 5+ late arrivals in 14 days are auto-flagged. Stored in \`workout_notifications\` with acknowledge workflow.
-- **Roles**: student, teacher, moderator, admin, rl_coach, medical. All managed via \`user_roles\` table.
+- **Roles**: student, teacher, moderator, admin, rl_coach, medical, kitchen_staff. All managed via \`user_roles\` table.
 
 ## AUTO-RESOLVE IDENTIFIERS
 Search snapshot data using fuzzy matching. Resolve UUIDs automatically. Confirm matches before executing.
@@ -554,7 +555,7 @@ Emit: \`<ACTION>{"type":"move_student","student_id":"uuid","activity_id":"uuid"}
 | change_user_role | user_id, role | — |
 | ban_user | user_id | — |
 | unban_user | user_id | — |
-| update_profile | user_id | full_name, email, avatar_url |
+| update_profile | user_id | full_name, email, avatar_url, house_id |
 
 ### Preferences
 | Type | Required | Optional |
