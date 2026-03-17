@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import FloatingChatButton from "@/components/student/FloatingChatButton";
 import HouseBadge from "@/components/ui/HouseBadge";
+import HouseSelectionCard from "@/components/student/HouseSelectionCard";
 import TodayScheduleWidget from "@/components/dashboard/TodayScheduleWidget";
 import RecentActivityFeed from "@/components/dashboard/RecentActivityFeed";
 import AttendanceChart from "@/components/dashboard/AttendanceChart";
@@ -176,6 +177,9 @@ const AdminDashboard = () => {
             </Card>
           ))}
         </div>
+
+        {/* House Selection */}
+        <HouseSelectionCard />
 
         {/* Quick Actions */}
         <div>
