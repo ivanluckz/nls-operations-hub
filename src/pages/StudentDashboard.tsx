@@ -13,6 +13,8 @@ import MessagesCard from "@/components/student/MessagesCard";
 import HouseSelectionCard from "@/components/student/HouseSelectionCard";
 import WorkoutSelectionCard from "@/components/student/WorkoutSelectionCard";
 import WorkoutNotificationsCard from "@/components/student/WorkoutNotificationsCard";
+import ClassSelectionCard from "@/components/student/ClassSelectionCard";
+import MentorSelectionCard from "@/components/student/MentorSelectionCard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Activity, ArrowRight, KeyRound, FileText } from "lucide-react";
 
