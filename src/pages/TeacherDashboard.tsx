@@ -68,10 +68,10 @@ const TeacherDashboard = () => {
       setStudents(studentsData || []);
 
       // Check if this teacher has mentees
-      const { count } = await supabase
+      const { count } = await (supabase as any)
         .from("profiles")
         .select("id", { count: "exact", head: true })
-        .eq("mentor_id" as any, user.id);
+        .eq("mentor_id", user.id);
       setHasMentees((count || 0) > 0);
 
       // Fetch today's lunch count
