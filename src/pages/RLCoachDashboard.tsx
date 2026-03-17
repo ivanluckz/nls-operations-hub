@@ -50,6 +50,8 @@ const RLCoachDashboard = () => {
   const [mealScanning, setMealScanning] = useState(false);
   const [mealCounts, setMealCounts] = useState<Record<MealType, number>>({ breakfast: 0, lunch: 0, dinner: 0 });
   const [lastMealScanned, setLastMealScanned] = useState<{ name: string; meal: string } | null>(null);
+  const [selectedDinnerHouse, setSelectedDinnerHouse] = useState<string | null>(null);
+  const [houses, setHouses] = useState<Array<{ id: string; name: string; color: string }>>([]);
 
   // Workout state
   const [selectedLocation, setSelectedLocation] = useState<WorkoutLocation>("Courts");
