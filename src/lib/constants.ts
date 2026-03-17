@@ -25,6 +25,17 @@ export const HOUSES = [
 ] as const;
 export type HouseName = typeof HOUSES[number];
 
+export const HOUSE_IMAGES: Record<string, string> = {
+  Amistad: '/house-images/Amistad.png',
+  Altruismo: '/house-images/Altruismo.png',
+  Sollevare: '/house-images/Sollevare.png',
+  Nukumori: '/house-images/Nukumori.png',
+  Protos: '/house-images/Protos.png',
+  Onraka: '/house-images/Onraka.png',
+  Reveur: '/house-images/Reveur.png',
+  Isibindi: '/house-images/Isibindi.png',
+};
+
 export const MEAL_TYPES = ['breakfast', 'lunch', 'dinner'] as const;
 export type MealType = typeof MEAL_TYPES[number];
 

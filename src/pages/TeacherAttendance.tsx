@@ -74,8 +74,12 @@ const TeacherAttendance = () => {
   const canExcuseStudents = userRole === USER_ROLES.ADMIN || userRole === USER_ROLES.MODERATOR;
 
   const selectedActivityData = activities.find(a => a.id === selectedActivity);
+
+  // "Wednesday Slot 1" → "Wednesday", "Monday" → "Monday"
+  const normalizeDay = (d: string) => d.replace(/\s+Slot\s+\d+$/, "");
+
   const daySlotCount = selectedActivityData && selectedDay
-    ? selectedActivityData.days_of_week.filter(d => d === selectedDay).length
+    ? selectedActivityData.days_of_week.filter(d => normalizeDay(d) === selectedDay).length
     : 0;
 
   useEffect(() => {
@@ -89,8 +93,11 @@ const TeacherAttendance = () => {
 
   useEffect(() => {
     if (selectedActivity && selectedDay) {
-      fetchStudents();
-      createOrLoadSession();
+      const init = async () => {
+        await fetchStudents();
+        await createOrLoadSession();
+      };
+      init();
     }
   }, [selectedActivity, selectedDay, selectedSlot]);
 
@@ -225,14 +232,16 @@ const TeacherAttendance = () => {
         .eq("session_id", sid);
 
       if (data && data.length > 0) {
-        const newAttendance = new Map(attendance);
-        data.forEach(record => {
-          newAttendance.set(record.student_id, {
-            student_id: record.student_id,
-            status: record.status as "present" | "late" | "absent" | "excused"
+        setAttendance(prev => {
+          const updated = new Map(prev);
+          data.forEach(record => {
+            updated.set(record.student_id, {
+              student_id: record.student_id,
+              status: record.status as "present" | "late" | "absent" | "excused"
+            });
           });
+          return updated;
         });
-        setAttendance(newAttendance);
       }
     } catch (error) {
       console.error("Error loading attendance:", error);
@@ -396,7 +405,7 @@ const TeacherAttendance = () => {
                     <SelectValue placeholder="Select day" />
                   </SelectTrigger>
                   <SelectContent>
-                    {[...new Set(selectedActivityData?.days_of_week || [])].map(day => (
+                    {[...new Set((selectedActivityData?.days_of_week || []).map(normalizeDay))].map(day => (
                       <SelectItem key={day} value={day}>
                         {day}
                       </SelectItem>

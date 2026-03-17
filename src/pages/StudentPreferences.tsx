@@ -192,13 +192,11 @@ const StudentPreferences = () => {
         updates[`${day}_${choice}`] = value;
       } else {
         selectedActivity.days_of_week.forEach(availableDay => {
-          const dayLower = availableDay.toLowerCase();
-          
-          if (availableDay === 'Wednesday') {
-            updates[`${dayLower}_slot1_${choiceRank}`] = value;
-            updates[`${dayLower}_slot2_${choiceRank}`] = value;
+          const wedSlotMatch = availableDay.match(/^Wednesday Slot (\d+)$/);
+          if (wedSlotMatch) {
+            updates[`wednesday_slot${wedSlotMatch[1]}_${choiceRank}`] = value;
           } else {
-            updates[`${dayLower}_${choiceRank}`] = value;
+            updates[`${availableDay.toLowerCase()}_${choiceRank}`] = value;
           }
         });
       }

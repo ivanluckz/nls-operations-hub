@@ -10,6 +10,7 @@ import {
   UtensilsCrossed, MessageSquare, Award, Dumbbell, HeartPulse, Mail
 } from "lucide-react";
 import FloatingChatButton from "@/components/student/FloatingChatButton";
+import HouseBadge from "@/components/ui/HouseBadge";
 import TodayScheduleWidget from "@/components/dashboard/TodayScheduleWidget";
 import RecentActivityFeed from "@/components/dashboard/RecentActivityFeed";
 import AttendanceChart from "@/components/dashboard/AttendanceChart";
@@ -144,11 +145,14 @@ const AdminDashboard = () => {
       <div className="space-y-8">
         {/* Header */}
         <div>
-          <div className="flex items-center gap-3 mb-1">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-              <Activity className="h-5 w-5 text-primary" />
+          <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Activity className="h-5 w-5 text-primary" />
+              </div>
+              <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
             </div>
-            <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+            <HouseBadge />
           </div>
           <p className="text-sm text-muted-foreground ml-[52px]">Co-curricular activities overview</p>
         </div>

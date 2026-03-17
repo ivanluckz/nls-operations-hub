@@ -38,6 +38,7 @@ import {
 import MealQRScanner from "@/components/kitchen/MealQRScanner";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import AttendanceChart from "@/components/dashboard/AttendanceChart";
+import HouseBadge from "@/components/ui/HouseBadge";
 
 interface Visit {
   id: string;
@@ -249,6 +250,7 @@ const MedicalDashboard = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <HouseBadge />
             <ThemeToggle />
             <Button variant="ghost" size="icon" onClick={handleLogout}>
               <LogOut className="h-4 w-4" />

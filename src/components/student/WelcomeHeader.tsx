@@ -3,6 +3,7 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { ThemePicker } from "./ThemePicker";
 import { LogOut, Sparkles } from "lucide-react";
 import devBadgeImg from "@/assets/dev.png";
+import HouseBadge from "@/components/ui/HouseBadge";
 
 const BADGE_EMOJI: Record<string, string> = {
   "Growing": "🌱",
@@ -84,7 +85,8 @@ const WelcomeHeader = ({ name, onLogout, badges = [] }: WelcomeHeaderProps) => {
             </div>
           </div>
           
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-2">
+            <HouseBadge />
             <ThemePicker />
             <ThemeToggle />
             <Button

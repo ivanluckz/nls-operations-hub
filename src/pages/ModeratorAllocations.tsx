@@ -44,8 +44,7 @@ const ModeratorAllocations = () => {
         profiles: profileMap[l.triggered_by] || null,
       }));
 
-      if (error) throw error;
-      setAuditLogs(data || []);
+      setAuditLogs(data);
     } catch (error) {
       console.error("Error fetching audit logs:", error);
     } finally {

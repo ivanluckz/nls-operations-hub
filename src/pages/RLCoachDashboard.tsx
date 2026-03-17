@@ -14,6 +14,7 @@ import { MEAL_TYPES, WORKOUT_LOCATIONS, HOUSES, type MealType, type WorkoutLocat
 import MealTrendChart from "@/components/dashboard/MealTrendChart";
 import MealQRScanner from "@/components/kitchen/MealQRScanner";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import HouseBadge from "@/components/ui/HouseBadge";
 import {
   Select,
   SelectContent,
@@ -465,6 +466,7 @@ const RLCoachDashboard = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <HouseBadge />
             <ThemeToggle />
             <Button variant="outline" size="sm" onClick={() => navigate("/rl-coach/reports")} className="gap-2">
               <BarChart3 className="h-4 w-4" />

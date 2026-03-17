@@ -12,6 +12,7 @@ import { LogOut, GraduationCap, ClipboardCheck, AlertTriangle, Users, BookOpen, 
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import ActivityMessaging from "@/components/teacher/ActivityMessaging";
 import FloatingChatButton from "@/components/student/FloatingChatButton";
+import HouseBadge from "@/components/ui/HouseBadge";
 import AttendanceChart from "@/components/dashboard/AttendanceChart";
 import TodayScheduleWidget from "@/components/dashboard/TodayScheduleWidget";
 import MealQRScanner from "@/components/kitchen/MealQRScanner";
@@ -198,6 +199,7 @@ const TeacherDashboard = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <HouseBadge />
             <ThemeToggle />
             <Button variant="ghost" size="icon" onClick={handleLogout}>
               <LogOut className="w-4 h-4" />
@@ -264,6 +266,10 @@ const TeacherDashboard = () => {
           <Button variant="outline" onClick={() => navigate("/teacher/attendance-reports")} className="gap-2">
             <AlertTriangle className="w-4 h-4" />
             Reports
+          </Button>
+          <Button variant="outline" onClick={() => navigate("/teacher/dms")} className="gap-2">
+            <MessageSquare className="w-4 h-4" />
+            Direct Messages
           </Button>
         </div>
 

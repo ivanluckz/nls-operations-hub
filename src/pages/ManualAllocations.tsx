@@ -187,7 +187,8 @@ const ManualAllocations = () => {
         .from("allocations")
         .select("*", { count: "exact", head: true })
         .eq("activity_id", activityId)
-        .eq("day_of_week", day);
+        .eq("day_of_week", day)
+        .eq("slot_number", slot);
       if (liveCount !== null && liveCount >= activity.capacity) {
         toast({
           variant: "destructive",

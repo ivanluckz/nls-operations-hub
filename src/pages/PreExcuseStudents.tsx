@@ -25,6 +25,7 @@ interface Allocation {
   student_id: string;
   activity_id: string;
   day_of_week: string;
+  slot_number: number;
   student_name: string;
   activity_title: string;
 }
@@ -147,6 +148,7 @@ const PreExcuseStudents = () => {
           student_id,
           activity_id,
           day_of_week,
+          slot_number,
           activities (title)
         `)
         .eq("student_id", studentId);
@@ -159,6 +161,7 @@ const PreExcuseStudents = () => {
         student_id: item.student_id as string,
         activity_id: item.activity_id as string,
         day_of_week: item.day_of_week as string,
+        slot_number: (item.slot_number as number) || 1,
         student_name: studentName,
         activity_title: (item.activities as { title?: string })?.title || "Unknown",
       }));
@@ -201,6 +204,8 @@ const PreExcuseStudents = () => {
 
       // First, check if a session exists for this date/activity/day or create one
       let sessionId: string;
+      const allocation = allocations.find(a => a.activity_id === selectedActivity && a.day_of_week === selectedDay);
+      const slotNumber = allocation?.slot_number || 1;
 
       const { data: existingSession } = await supabase
         .from("attendance_sessions")
@@ -208,6 +213,7 @@ const PreExcuseStudents = () => {
         .eq("activity_id", selectedActivity)
         .eq("session_date", excuseDate)
         .eq("day_of_week", selectedDay)
+        .eq("slot_number", slotNumber)
         .maybeSingle();
 
       if (existingSession) {
@@ -228,7 +234,7 @@ const PreExcuseStudents = () => {
             teacher_id: activityData?.teacher_id || user.id,
             session_date: excuseDate,
             day_of_week: selectedDay,
-            slot_number: 1,
+            slot_number: slotNumber,
             status: SESSION_STATUS.DRAFT
           })
           .select()

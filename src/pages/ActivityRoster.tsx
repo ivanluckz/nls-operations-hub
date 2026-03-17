@@ -152,9 +152,15 @@ const ActivityRoster = () => {
     const win = window.open("", "_blank");
     if (!win) return;
     const rows = filteredActivities.map(a => {
+      const daySlots = new Map<string, Set<number>>();
+      a.students.forEach(s => {
+        if (!daySlots.has(s.day_of_week)) daySlots.set(s.day_of_week, new Set());
+        daySlots.get(s.day_of_week)!.add(s.slot_number);
+      });
+      const multiSlotDays = new Set([...daySlots.entries()].filter(([, slots]) => slots.size > 1).map(([d]) => d));
       const sorted = [...a.students].sort((x, y) => x.student_name.localeCompare(y.student_name));
       const studentRows = sorted.map((s, i) =>
-        `<tr><td>${i + 1}</td><td>${s.student_name}</td><td>${s.student_email}</td><td>${s.day_of_week}${a.days_of_week.filter(d => d === s.day_of_week).length > 1 ? ` (Slot ${s.slot_number})` : ""}</td></tr>`
+        `<tr><td>${i + 1}</td><td>${s.student_name}</td><td>${s.student_email}</td><td>${s.day_of_week}${multiSlotDays.has(s.day_of_week) ? ` (Slot ${s.slot_number})` : ""}</td></tr>`
       ).join("");
       return `
         <div class="activity">
@@ -192,9 +198,15 @@ const ActivityRoster = () => {
 
   const exportActivityCSV = (activity: ActivityWithStudents) => {
     const sorted = [...activity.students].sort((a, b) => a.student_name.localeCompare(b.student_name) || a.slot_number - b.slot_number);
+    const daySlots = new Map<string, Set<number>>();
+    activity.students.forEach(s => {
+      if (!daySlots.has(s.day_of_week)) daySlots.set(s.day_of_week, new Set());
+      daySlots.get(s.day_of_week)!.add(s.slot_number);
+    });
+    const multiSlotDaysCSV = new Set([...daySlots.entries()].filter(([, slots]) => slots.size > 1).map(([d]) => d));
     const header = ["#", "Name", "Email", "Day / Slot"].join(",");
     const rows = sorted.map((s, i) => {
-      const multiSlotDay = activity.days_of_week.filter(d => d === s.day_of_week).length > 1;
+      const multiSlotDay = multiSlotDaysCSV.has(s.day_of_week);
       const day = multiSlotDay ? `${s.day_of_week} (Slot ${s.slot_number})` : s.day_of_week;
       return [i + 1, `"${s.student_name}"`, `"${s.student_email}"`, `"${day}"`].join(",");
     });
@@ -212,8 +224,14 @@ const ActivityRoster = () => {
     const win = window.open("", "_blank");
     if (!win) return;
     const sorted = [...activity.students].sort((a, b) => a.student_name.localeCompare(b.student_name) || a.slot_number - b.slot_number);
+    const daySlotsPDF = new Map<string, Set<number>>();
+    activity.students.forEach(s => {
+      if (!daySlotsPDF.has(s.day_of_week)) daySlotsPDF.set(s.day_of_week, new Set());
+      daySlotsPDF.get(s.day_of_week)!.add(s.slot_number);
+    });
+    const multiSlotDaysPDF = new Set([...daySlotsPDF.entries()].filter(([, slots]) => slots.size > 1).map(([d]) => d));
     const studentRows = sorted.map((s, i) => {
-      const multiSlotDay = activity.days_of_week.filter(d => d === s.day_of_week).length > 1;
+      const multiSlotDay = multiSlotDaysPDF.has(s.day_of_week);
       const day = multiSlotDay ? `${s.day_of_week} (Slot ${s.slot_number})` : s.day_of_week;
       return `<tr><td>${i + 1}</td><td>${s.student_name}</td><td>${s.student_email}</td><td>${day}</td></tr>`;
     }).join("");

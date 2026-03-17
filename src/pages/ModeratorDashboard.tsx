@@ -17,9 +17,11 @@ import {
   ListChecks,
   QrCode,
   Sun,
+  MessageSquare,
 } from "lucide-react";
 import FloatingChatButton from "@/components/student/FloatingChatButton";
 import MealQRScanner from "@/components/kitchen/MealQRScanner";
+import HouseBadge from "@/components/ui/HouseBadge";
 import AttendanceChart from "@/components/dashboard/AttendanceChart";
 import TodayScheduleWidget from "@/components/dashboard/TodayScheduleWidget";
 import RecentActivityFeed from "@/components/dashboard/RecentActivityFeed";
@@ -193,6 +195,7 @@ const ModeratorDashboard = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <HouseBadge />
             <Button variant="ghost" size="icon" onClick={handleLogout}>
               <LogOut className="w-4 h-4" />
             </Button>
@@ -339,6 +342,20 @@ const ModeratorDashboard = () => {
                 <span className="font-semibold">Attendance Reports</span>
               </div>
               <span className="text-xs font-normal">View absent, late, and excused students</span>
+            </Button>
+
+            <Button
+              onClick={() => navigate("/moderator/dms")}
+              variant="outline"
+              className="h-auto py-4 flex flex-col items-start gap-2"
+            >
+              <div className="flex items-center gap-2">
+                <MessageSquare className="w-5 h-5" />
+                <span className="font-semibold">Direct Messages</span>
+              </div>
+              <span className="text-xs font-normal">
+                Message students and staff directly
+              </span>
             </Button>
           </CardContent>
         </Card>

@@ -4,23 +4,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Home, Check } from "lucide-react";
+import { HOUSE_IMAGES } from "@/lib/constants";
 
 interface House {
   id: string;
   name: string;
   color: string;
 }
-
-const HOUSE_EMOJIS: Record<string, string> = {
-  Amistad: "🤝",
-  Altruismo: "💛",
-  Sollevare: "🌊",
-  Nukumori: "🔥",
-  Protos: "⚡",
-  Onraka: "🎵",
-  Reveur: "💭",
-  Isibindi: "🦁",
-};
 
 const HouseSelectionCard = () => {
   const { toast } = useToast();
@@ -108,7 +98,15 @@ const HouseSelectionCard = () => {
                     <Check className="h-3 w-3 text-primary-foreground" />
                   </div>
                 )}
-                <span className="text-2xl">{HOUSE_EMOJIS[house.name] || "🏠"}</span>
+                {HOUSE_IMAGES[house.name] ? (
+                  <img
+                    src={HOUSE_IMAGES[house.name]}
+                    alt={house.name}
+                    className="w-10 h-10 rounded-lg object-cover"
+                  />
+                ) : (
+                  <span className="text-2xl">🏠</span>
+                )}
                 <span className="text-xs font-semibold" style={{ color: house.color }}>
                   {house.name}
                 </span>

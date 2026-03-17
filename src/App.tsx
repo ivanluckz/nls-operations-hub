@@ -85,6 +85,7 @@ const AppContent = () => {
           <Route path="/moderator/pre-excuse" element={<ProtectedRoute requiredRole="moderator"><PreExcuseStudents /></ProtectedRoute>} />
           <Route path="/moderator/weekly-summary" element={<ProtectedRoute requiredRole="moderator"><WeeklySummary /></ProtectedRoute>} />
           <Route path="/moderator/activity-roster" element={<ProtectedRoute requiredRole="moderator"><ActivityRoster /></ProtectedRoute>} />
+          <Route path="/moderator/dms" element={<ProtectedRoute requiredRole="moderator"><DirectMessages /></ProtectedRoute>} />
 
           {/* Admin */}
           <Route path="/admin" element={<ProtectedRoute requiredRole="admin"><AdminDashboard /></ProtectedRoute>} />
@@ -111,6 +112,7 @@ const AppContent = () => {
           <Route path="/teacher" element={<ProtectedRoute requiredRole="teacher"><TeacherDashboard /></ProtectedRoute>} />
           <Route path="/teacher/attendance" element={<ProtectedRoute requiredRole="teacher"><TeacherAttendance /></ProtectedRoute>} />
           <Route path="/teacher/attendance-reports" element={<ProtectedRoute requiredRole="teacher"><AttendanceReports /></ProtectedRoute>} />
+          <Route path="/teacher/dms" element={<ProtectedRoute requiredRole="teacher"><DirectMessages /></ProtectedRoute>} />
 
           {/* RL Coach */}
           <Route path="/rl-coach" element={<ProtectedRoute requiredRole="rl_coach"><RLCoachDashboard /></ProtectedRoute>} />

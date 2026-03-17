@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -87,6 +87,7 @@ export function UserProfileCard({
   currentActivityTitle, isAdminViewing, onBadgeGranted, onBadgeRemoved,
 }: Props) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const [activities, setActivities] = useState<UserActivity[]>([]);
   const [localBadges, setLocalBadges] = useState<string[]>(badges);
@@ -168,9 +169,14 @@ export function UserProfileCard({
 
   const earnedBadges = BADGE_OPTIONS.filter(b => localBadges.includes(b.name));
 
-  const dmPath = isAdminViewing
-    ? `/admin/dms?user=${senderId}&name=${encodeURIComponent(senderName)}`
-    : `/student/dms?user=${senderId}&name=${encodeURIComponent(senderName)}`;
+  const dmBase = location.pathname.startsWith("/admin")
+    ? "/admin"
+    : location.pathname.startsWith("/teacher")
+    ? "/teacher"
+    : location.pathname.startsWith("/moderator")
+    ? "/moderator"
+    : "/student";
+  const dmPath = `${dmBase}/dms?user=${senderId}&name=${encodeURIComponent(senderName)}`;
 
   return (
     <Dialog open={open} onOpenChange={onClose}>

@@ -104,7 +104,7 @@ const Leaderboard = () => {
     const filteredBadges = rawBadges.filter(b => {
       if (timeFilter === "all") return true;
       const d = new Date(b.awarded_at);
-      if (timeFilter === "month") return d >= new Date(now.getFullYear(), now.getMonth(), 1);
+      if (timeFilter === "month") { const cutoff = new Date(now); cutoff.setDate(now.getDate() - 30); return d >= cutoff; }
       const ws = new Date(now); ws.setDate(now.getDate() - now.getDay()); ws.setHours(0, 0, 0, 0);
       return d >= ws;
     });

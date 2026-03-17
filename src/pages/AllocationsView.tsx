@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Search, FileDown, FileSpreadsheet, ChevronDown } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface StudentAllocation {
   student_id: string;
@@ -30,6 +31,8 @@ const AllocationsView = () => {
   const [allocations, setAllocations] = useState<StudentAllocation[]>([]);
   const [filteredAllocations, setFilteredAllocations] = useState<StudentAllocation[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [activityFilter, setActivityFilter] = useState<string>("all");
+  const [activityOptions, setActivityOptions] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState<string>("");
   const [activeTab, setActiveTab] = useState("all");
@@ -39,12 +42,22 @@ const AllocationsView = () => {
   }, []);
 
   useEffect(() => {
-    const filtered = allocations.filter(alloc =>
+    let filtered = allocations.filter(alloc =>
       alloc.student_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       alloc.student_email.toLowerCase().includes(searchTerm.toLowerCase())
     );
+    if (activityFilter !== "all") {
+      filtered = filtered.filter(alloc =>
+        alloc.monday_activity === activityFilter ||
+        alloc.tuesday_activity === activityFilter ||
+        alloc.wednesday_slot1_activity === activityFilter ||
+        alloc.wednesday_slot2_activity === activityFilter ||
+        alloc.thursday_activity === activityFilter ||
+        alloc.friday_activity === activityFilter
+      );
+    }
     setFilteredAllocations(filtered);
-  }, [searchTerm, allocations]);
+  }, [searchTerm, activityFilter, allocations]);
 
   const fetchData = async () => {
     try {
@@ -96,6 +109,11 @@ const AllocationsView = () => {
           friday_activity: studentAllocs.find(a => a.day_of_week === 'Friday')?.activities?.title || null,
         };
       });
+
+      const uniqueActivities = [...new Set(
+        (allAllocations || []).map(a => (a.activities as any)?.title).filter(Boolean) as string[]
+      )].sort();
+      setActivityOptions(uniqueActivities);
 
       setAllocations(studentAllocations);
       setFilteredAllocations(studentAllocations);
@@ -214,14 +232,27 @@ const AllocationsView = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-              <Input
-                placeholder="Search students..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
+            <div className="flex gap-3 flex-col sm:flex-row">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                <Input
+                  placeholder="Search students..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <Select value={activityFilter} onValueChange={setActivityFilter}>
+                <SelectTrigger className="w-full sm:w-[220px]">
+                  <SelectValue placeholder="All Activities" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Activities</SelectItem>
+                  {activityOptions.map(act => (
+                    <SelectItem key={act} value={act}>{act}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="flex justify-end gap-2">

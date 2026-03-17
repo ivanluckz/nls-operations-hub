@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -26,7 +26,9 @@ interface SummaryData {
 
 const WeeklySummary = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
+  const backPath = location.pathname.startsWith("/moderator") ? "/moderator" : "/admin";
   const [loading, setLoading] = useState(false);
   const [summaryData, setSummaryData] = useState<SummaryData | null>(null);
 
@@ -64,7 +66,7 @@ const WeeklySummary = () => {
     <div className="min-h-screen bg-background p-4 md:p-8">
       <div className="max-w-4xl mx-auto space-y-6">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/admin")}>
+          <Button variant="ghost" size="icon" onClick={() => navigate(backPath)}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>

@@ -126,7 +126,9 @@ const DirectMessages = () => {
 
   const [userId, setUserId] = useState("");
   const [myName, setMyName] = useState("");
+  const [myRole, setMyRole] = useState<string>("");
   const myNameRef = useRef("");
+  const myRoleRef = useRef("");
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConv, setSelectedConv] = useState<Conversation | null>(null);
@@ -175,7 +177,9 @@ const DirectMessages = () => {
   });
 
   const isAdmin = location.pathname.startsWith("/admin");
-  const backPath = isAdmin ? "/admin" : "/student";
+  const isTeacher = location.pathname.startsWith("/teacher");
+  const isMod = location.pathname.startsWith("/moderator");
+  const backPath = isAdmin ? "/admin" : isTeacher ? "/teacher" : isMod ? "/moderator" : "/student";
 
   useEffect(() => { selectedConvRef.current = selectedConv; }, [selectedConv]);
   useEffect(() => { myNameRef.current = myName; }, [myName]);
@@ -194,17 +198,33 @@ const DirectMessages = () => {
       if (!user) return;
       setUserId(user.id);
 
-      const { data: profile } = await supabase
-        .from("profiles").select("full_name").eq("id", user.id).single();
+      const [{ data: profile }, { data: roleRow }] = await Promise.all([
+        supabase.from("profiles").select("full_name").eq("id", user.id).single(),
+        supabase.from("user_roles").select("role").eq("user_id", user.id).maybeSingle(),
+      ]);
       const name = profile?.full_name || "";
+      const role = roleRow?.role || "student";
       setMyName(name);
+      setMyRole(role);
       myNameRef.current = name;
+      myRoleRef.current = role;
 
       await loadConversations(user.id);
 
       const targetUserId = params.get("user");
       const targetName = params.get("name") || "Unknown";
       if (targetUserId && targetUserId !== user.id) {
+        // Students can only DM staff
+        if (myRoleRef.current === "student") {
+          const { data: targetRole } = await supabase
+            .from("user_roles").select("role").eq("user_id", targetUserId).maybeSingle();
+          const tRole = targetRole?.role || "student";
+          if (tRole === "student") {
+            toast({ variant: "destructive", title: "Not allowed", description: "Students can only DM teachers or admins." });
+            setLoadingConvs(false);
+            return;
+          }
+        }
         await openOrCreateDM(user.id, targetUserId, targetName);
       }
       setLoadingConvs(false);
@@ -525,11 +545,25 @@ const DirectMessages = () => {
     if (query.length < 2) { setUserResults([]); return; }
     setSearchingUsers(true);
     try {
-      const { data } = await supabase
+      let staffIds: string[] | null = null;
+      if (myRoleRef.current === "student") {
+        const { data: staffRoles } = await supabase
+          .from("user_roles")
+          .select("user_id")
+          .in("role", ["teacher", "moderator", "admin"]);
+        staffIds = (staffRoles || []).map((r: any) => r.user_id);
+        if (staffIds.length === 0) { setUserResults([]); return; }
+      }
+
+      let q = supabase
         .from("profiles")
         .select("id, full_name, email")
         .or(`full_name.ilike.%${query}%,email.ilike.%${query}%`)
         .limit(10);
+
+      if (staffIds) q = q.in("id", staffIds);
+
+      const { data } = await q;
       setUserResults((data || []).filter((u: UserResult) => u.id !== userId));
     } catch (err) {
       console.error(err);

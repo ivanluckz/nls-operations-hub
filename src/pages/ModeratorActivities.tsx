@@ -187,6 +187,15 @@ const ModeratorActivities = () => {
       return;
     }
 
+    if (formData.days_of_week.length === 0) {
+      toast({
+        variant: "destructive",
+        title: "Missing Days",
+        description: "Please select at least one day or time slot",
+      });
+      return;
+    }
+
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
