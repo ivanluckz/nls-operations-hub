@@ -74,6 +74,7 @@ const RLCoachDashboard = () => {
     fetchTotalStudents();
     fetchFlaggedStudents();
     fetchRestrictedStudents();
+    fetchHouses();
   }, []);
 
   const fetchTotalStudents = async () => {
