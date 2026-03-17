@@ -55,6 +55,9 @@ const ClassSelectionCard = () => {
 
   if (loading) return null;
 
+  // Once chosen, it's final — card disappears
+  if (selectedClass) return null;
+
   return (
     <Card className="border-2 hover:shadow-lg transition-shadow">
       <CardHeader className="pb-3">

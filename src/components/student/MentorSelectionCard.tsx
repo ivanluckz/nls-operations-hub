@@ -4,6 +4,41 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { UserCheck, Check } from "lucide-react";
 
+const TEACHER_EMAILS = [
+  "alina.herzog@ntare-louisenlund.org",
+  "alphonse.maniraguha@ntare-louisenlund.org",
+  "bhatia.sakshi@ntare-louisenlund.org",
+  "caleb.asiso@ntare-louisenlund.org",
+  "christoph.frickhinger@ntare-louisenlund.org",
+  "david.nishimwe@ntare-louisenlund.org",
+  "david.niyitegeka@ntare-louisenlund.org",
+  "davis.omondi@ntare-louisenlund.org",
+  "edagbo.blessing@ntare-louisenlund.org",
+  "francine.mukankusi@ntare-louisenlund.org",
+  "gloria.mutoni@ntare-louisenlund.org",
+  "irene.gashagaza@ntare-louisenlund.org",
+  "jean.mbarushimana@ntare-louisenlund.org",
+  "jean.murenzi@ntare-louisenlund.org",
+  "jean.nyabyenda@ntare-louisenlund.org",
+  "kathleen.challenor@ntare-louisenlund.org",
+  "kennedy.koja@ntare-louisenlund.org",
+  "linnet.chebet@ntare-louisenlund.org",
+  "lisa.rucyaha@ntare-louisenlund.org",
+  "mauritz.viljoen@ntare-louisenlund.org",
+  "mildred.nabunje@ntare-louisenlund.org",
+  "patrick.muhire@ntare-louisenlund.org",
+  "pierre.niyibigira@ntare-louisenlund.org",
+  "piotr-tomaszczuk@ntare-louisenlund.org",
+  "pontien.ntirenganya@ntare-louisenlund.org",
+  "praveen.rana@ntare-louisenlund.org",
+  "robert.tugume@ntare-louisenlund.org",
+  "scovia.kabanyana@ntare-louisenlund.org",
+  "sebastian.wagner@ntare-louisenlund.org",
+  "solange.uwiduhaye@ntare-louisenlund.org",
+  "stacy.hill@ntare-louisenlund.org",
+  "welford.mclellan@ntare-louisenlund.org",
+];
+
 interface Teacher {
   id: string;
   full_name: string;
@@ -34,21 +69,14 @@ const MentorSelectionCard = () => {
 
       setSelectedMentorId((profile as any)?.mentor_id || null);
 
-      // Get all teachers (and moderators who could be mentors)
-      const { data: teacherRoles } = await supabase
-        .from("user_roles")
-        .select("user_id")
-        .in("role", ["teacher", "moderator"] as any[]);
+      // Fetch teachers by known email list — works even before role migration runs
+      const { data: teacherProfiles } = await supabase
+        .from("profiles")
+        .select("id, full_name")
+        .in("email" as any, TEACHER_EMAILS)
+        .order("full_name");
 
-      if (teacherRoles && teacherRoles.length > 0) {
-        const { data: teacherProfiles } = await supabase
-          .from("profiles")
-          .select("id, full_name")
-          .in("id", teacherRoles.map(r => r.user_id))
-          .order("full_name");
-
-        setTeachers(teacherProfiles || []);
-      }
+      setTeachers((teacherProfiles || []).filter(t => t.full_name));
     } finally {
       setLoading(false);
     }
@@ -75,6 +103,9 @@ const MentorSelectionCard = () => {
   };
 
   if (loading) return null;
+
+  // Once chosen, it's final — card disappears
+  if (selectedMentorId) return null;
 
   const currentMentor = teachers.find(t => t.id === selectedMentorId);
 
