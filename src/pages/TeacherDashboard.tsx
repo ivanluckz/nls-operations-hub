@@ -41,6 +41,11 @@ const TeacherDashboard = () => {
   const [activities, setActivities] = useState<ActivityData[]>([]);
   const [students, setStudents] = useState<StudentAllocation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [hasMentees, setHasMentees] = useState(false);
+  const [lunchScanning, setLunchScanning] = useState(false);
+  const [lunchCount, setLunchCount] = useState(0);
+  const [lastLunchScanned, setLastLunchScanned] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchData();
