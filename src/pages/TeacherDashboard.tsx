@@ -145,6 +145,41 @@ const TeacherDashboard = () => {
     );
   }
 
+  // Lunch scanning view for mentors
+  if (lunchScanning) {
+    return (
+      <div className="min-h-screen bg-background p-4">
+        <div className="max-w-lg mx-auto space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold flex items-center gap-2">
+              <QrCode className="h-5 w-5" />
+              Scanning: Lunch
+            </h2>
+            <Button variant="outline" onClick={() => setLunchScanning(false)}>Done</Button>
+          </div>
+          {lastLunchScanned && (
+            <Card className="border-primary/30 bg-primary/5">
+              <CardContent className="py-3 text-center">
+                <p className="text-lg font-semibold text-primary">✅ {lastLunchScanned}</p>
+                <p className="text-sm text-muted-foreground">Checked in for Lunch</p>
+              </CardContent>
+            </Card>
+          )}
+          <Card>
+            <CardContent className="p-4">
+              <MealQRScanner onScan={handleLunchScan} isActive={true} />
+            </CardContent>
+          </Card>
+          <div className="text-center">
+            <Badge variant="secondary" className="text-lg px-4 py-2">
+              {lunchCount} checked in today
+            </Badge>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
