@@ -372,6 +372,25 @@ const TeacherDashboard = () => {
           <TodayScheduleWidget />
         </div>
 
+        {/* Mentor Lunch Scanning */}
+        {hasMentees && (
+          <Card className="border-2 border-primary/20 bg-primary/5">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2">
+                <UtensilsCrossed className="h-5 w-5 text-primary" />
+                Mentor Lunch Attendance
+              </CardTitle>
+              <CardDescription>You have mentees — scan lunch QR codes for your students</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button size="lg" className="w-full gap-2" onClick={() => setLunchScanning(true)}>
+                <QrCode className="h-5 w-5" />
+                Start Lunch Scanning ({lunchCount} today)
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
         <ActivityMessaging />
       </main>
       <FloatingChatButton />
