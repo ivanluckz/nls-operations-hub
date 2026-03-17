@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -30,15 +31,19 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import {
   QrCode, LogOut, Stethoscope, ClipboardList, ShieldCheck,
-  Users, AlertTriangle, CheckCircle2, Send
+  Users, AlertTriangle, Search, AlertCircle, UserCheck, Calendar,
 } from "lucide-react";
 import MealQRScanner from "@/components/kitchen/MealQRScanner";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import AttendanceChart from "@/components/dashboard/AttendanceChart";
 import HouseBadge from "@/components/ui/HouseBadge";
+import { format } from "date-fns";
+import { SESSION_STATUS, ATTENDANCE_STATUS } from "@/lib/constants";
 
 interface Visit {
   id: string;
@@ -60,6 +65,22 @@ interface Clearance {
   created_at: string;
   student_name?: string;
 }
+
+interface Student {
+  id: string;
+  full_name: string;
+  email: string;
+}
+
+interface Allocation {
+  student_id: string;
+  activity_id: string;
+  day_of_week: string;
+  slot_number: number;
+  activity_title: string;
+}
+
+type ExcuseType = "cocurricular" | "workout";
 
 const MedicalDashboard = () => {
   const navigate = useNavigate();
@@ -89,12 +110,45 @@ const MedicalDashboard = () => {
   const [activeClearances, setActiveClearances] = useState<Clearance[]>([]);
   const [todayWorkoutCount, setTodayWorkoutCount] = useState(0);
 
+  // Excuse tab state
+  const [allStudents, setAllStudents] = useState<Student[]>([]);
+  const [excuseType, setExcuseType] = useState<ExcuseType>("cocurricular");
+  const [excuseSearch, setExcuseSearch] = useState("");
+  const [excuseStudentId, setExcuseStudentId] = useState("");
+  const [excuseAllocations, setExcuseAllocations] = useState<Allocation[]>([]);
+  const [excuseLoadingAllocs, setExcuseLoadingAllocs] = useState(false);
+  const [excuseActivityId, setExcuseActivityId] = useState("");
+  const [excuseDay, setExcuseDay] = useState("");
+  const [excuseDate, setExcuseDate] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [excuseReason, setExcuseReason] = useState("");
+  const [excuseLoading, setExcuseLoading] = useState(false);
+
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user) setUserId(user.id);
     });
     fetchData();
+    fetchAllStudents();
   }, []);
+
+  useEffect(() => {
+    if (excuseStudentId && excuseType === "cocurricular") {
+      fetchStudentAllocations(excuseStudentId);
+      setExcuseActivityId("");
+      setExcuseDay("");
+    } else {
+      setExcuseAllocations([]);
+    }
+  }, [excuseStudentId, excuseType]);
+
+  // Auto-select day when only one option
+  useEffect(() => {
+    if (excuseActivityId && excuseAllocations.length > 0) {
+      const matching = excuseAllocations.filter(a => a.activity_id === excuseActivityId);
+      if (matching.length === 1) setExcuseDay(matching[0].day_of_week);
+      else if (!matching.find(a => a.day_of_week === excuseDay)) setExcuseDay("");
+    }
+  }, [excuseActivityId, excuseAllocations]);
 
   const fetchData = async () => {
     const today = new Date().toISOString().split("T")[0];
@@ -105,7 +159,6 @@ const MedicalDashboard = () => {
       (supabase as any).from("workout_attendance").select("id", { count: "exact", head: true }).eq("workout_date", today),
     ]);
 
-    // Get student names
     const studentIds = new Set<string>();
     (visits || []).forEach((v: any) => studentIds.add(v.student_id));
     (clearances || []).forEach((c: any) => studentIds.add(c.student_id));
@@ -122,6 +175,43 @@ const MedicalDashboard = () => {
     setTodayVisits((visits || []).map((v: any) => ({ ...v, student_name: nameMap[v.student_id] || "Unknown" })));
     setActiveClearances((clearances || []).map((c: any) => ({ ...c, student_name: nameMap[c.student_id] || "Unknown" })));
     setTodayWorkoutCount(workoutCount || 0);
+  };
+
+  const fetchAllStudents = async () => {
+    const { data: studentRoles } = await supabase
+      .from("user_roles")
+      .select("user_id")
+      .eq("role", "student")
+      .limit(500);
+    const ids = (studentRoles || []).map(r => r.user_id);
+    if (ids.length === 0) return;
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("id, full_name, email")
+      .in("id", ids)
+      .order("full_name");
+    setAllStudents(profiles || []);
+  };
+
+  const fetchStudentAllocations = async (studentId: string) => {
+    setExcuseLoadingAllocs(true);
+    try {
+      const { data } = await supabase
+        .from("allocations")
+        .select("student_id, activity_id, day_of_week, slot_number, activities(title)")
+        .eq("student_id", studentId);
+
+      const formatted: Allocation[] = (data || []).map((item: any) => ({
+        student_id: item.student_id,
+        activity_id: item.activity_id,
+        day_of_week: item.day_of_week,
+        slot_number: item.slot_number || 1,
+        activity_title: item.activities?.title || "Unknown",
+      }));
+      setExcuseAllocations(formatted);
+    } finally {
+      setExcuseLoadingAllocs(false);
+    }
   };
 
   const handleScan = useCallback(async (studentId: string) => {
@@ -143,7 +233,6 @@ const MedicalDashboard = () => {
   const saveVisit = async () => {
     if (!scannedStudentId || !userId || !condition.trim()) return;
     setSaving(true);
-
     try {
       const { error } = await (supabase as any).from("medical_visits").insert({
         student_id: scannedStudentId,
@@ -152,9 +241,7 @@ const MedicalDashboard = () => {
         treatment: treatment.trim() || null,
         notes: visitNotes.trim() || null,
       });
-
       if (error) throw error;
-
       toast({ title: "✅ Visit Recorded", description: `${scannedStudentName} - ${condition}` });
       setVisitDialogOpen(false);
       fetchData();
@@ -177,13 +264,9 @@ const MedicalDashboard = () => {
   const saveClearance = async () => {
     if (!scannedStudentId || !userId) return;
     setSaving(true);
-
     try {
-      // Upsert clearance - delete existing first
       await (supabase as any).from("workout_clearances").delete().eq("student_id", scannedStudentId);
-
       if (clearanceStatus === "cleared") {
-        // Remove restriction (just deleted above)
         toast({ title: "✅ Student Cleared", description: `${scannedStudentName} is cleared for workouts` });
       } else {
         const { error } = await (supabase as any).from("workout_clearances").insert({
@@ -196,7 +279,6 @@ const MedicalDashboard = () => {
         if (error) throw error;
         toast({ title: "⚠️ Student Restricted", description: `${scannedStudentName} restricted from workouts` });
       }
-
       setClearanceDialogOpen(false);
       fetchData();
     } catch (err: any) {
@@ -206,12 +288,129 @@ const MedicalDashboard = () => {
     }
   };
 
+  const handleExcuseCoCurricular = async () => {
+    if (!excuseStudentId || !excuseActivityId || !excuseDay || !excuseDate || !userId) return;
+    setExcuseLoading(true);
+    try {
+      const allocation = excuseAllocations.find(a => a.activity_id === excuseActivityId && a.day_of_week === excuseDay);
+      const slotNumber = allocation?.slot_number || 1;
+
+      // Find or create session
+      let sessionId: string;
+      const { data: existingSession } = await supabase
+        .from("attendance_sessions")
+        .select("id")
+        .eq("activity_id", excuseActivityId)
+        .eq("session_date", excuseDate)
+        .eq("day_of_week", excuseDay)
+        .eq("slot_number", slotNumber)
+        .maybeSingle();
+
+      if (existingSession) {
+        sessionId = existingSession.id;
+      } else {
+        const { data: activityData } = await supabase
+          .from("activities")
+          .select("teacher_id")
+          .eq("id", excuseActivityId)
+          .single();
+
+        const { data: newSession, error: sessionError } = await supabase
+          .from("attendance_sessions")
+          .insert({
+            activity_id: excuseActivityId,
+            teacher_id: activityData?.teacher_id || userId,
+            session_date: excuseDate,
+            day_of_week: excuseDay,
+            slot_number: slotNumber,
+            status: SESSION_STATUS.DRAFT,
+          })
+          .select()
+          .single();
+
+        if (sessionError) throw new Error(`Failed to create session: ${sessionError.message}`);
+        sessionId = newSession!.id;
+      }
+
+      // Upsert attendance record
+      const { data: existingRecord } = await supabase
+        .from("attendance_records")
+        .select("id")
+        .eq("session_id", sessionId)
+        .eq("student_id", excuseStudentId)
+        .maybeSingle();
+
+      if (existingRecord) {
+        await supabase.from("attendance_records").update({ status: ATTENDANCE_STATUS.EXCUSED, marked_by: userId }).eq("id", existingRecord.id);
+      } else {
+        await supabase.from("attendance_records").insert({ session_id: sessionId, student_id: excuseStudentId, status: ATTENDANCE_STATUS.EXCUSED, marked_by: userId });
+      }
+
+      // Notification
+      await supabase.from("attendance_notifications").upsert({
+        session_id: sessionId,
+        student_id: excuseStudentId,
+        activity_id: excuseActivityId,
+        status: ATTENDANCE_STATUS.EXCUSED,
+        notes: excuseReason || "Excused by medical staff",
+        acknowledged_by: userId,
+        acknowledged_at: new Date().toISOString(),
+      }, { onConflict: "session_id,student_id,activity_id" });
+
+      const studentName = allStudents.find(s => s.id === excuseStudentId)?.full_name || "Student";
+      const activityName = excuseAllocations.find(a => a.activity_id === excuseActivityId)?.activity_title || "activity";
+      toast({ title: "✅ Student Excused", description: `${studentName} excused from ${activityName} on ${format(new Date(excuseDate), "MMM d")}` });
+
+      setExcuseStudentId("");
+      setExcuseActivityId("");
+      setExcuseDay("");
+      setExcuseReason("");
+      setExcuseAllocations([]);
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally {
+      setExcuseLoading(false);
+    }
+  };
+
+  const handleExcuseWorkout = async () => {
+    if (!excuseStudentId || !excuseDate || !userId) return;
+    setExcuseLoading(true);
+    try {
+      const { data: existing } = await (supabase as any)
+        .from("workout_attendance")
+        .select("id")
+        .eq("student_id", excuseStudentId)
+        .eq("workout_date", excuseDate)
+        .maybeSingle();
+
+      if (existing) {
+        await (supabase as any).from("workout_attendance").update({ status: "excused" }).eq("id", existing.id);
+      } else {
+        await (supabase as any).from("workout_attendance").insert({
+          student_id: excuseStudentId,
+          workout_date: excuseDate,
+          status: "excused",
+        });
+      }
+
+      const studentName = allStudents.find(s => s.id === excuseStudentId)?.full_name || "Student";
+      toast({ title: "✅ Workout Excused", description: `${studentName} excused from workout on ${format(new Date(excuseDate), "MMM d")}` });
+
+      setExcuseStudentId("");
+      setExcuseReason("");
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally {
+      setExcuseLoading(false);
+    }
+  };
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate("/auth");
   };
 
-  // Scanning view
   if (scanning) {
     return (
       <div className="min-h-screen bg-background p-4">
@@ -234,6 +433,22 @@ const MedicalDashboard = () => {
   }
 
   const restrictedCount = activeClearances.filter(c => c.status === "restricted").length;
+
+  const filteredStudents = allStudents.filter(s =>
+    s.full_name.toLowerCase().includes(excuseSearch.toLowerCase()) ||
+    s.email.toLowerCase().includes(excuseSearch.toLowerCase())
+  );
+
+  const studentActivities = excuseAllocations.reduce((acc, alloc) => {
+    if (!acc.find(a => a.activity_id === alloc.activity_id)) {
+      acc.push({ activity_id: alloc.activity_id, activity_title: alloc.activity_title });
+    }
+    return acc;
+  }, [] as { activity_id: string; activity_title: string }[]);
+
+  const availableDays = excuseAllocations
+    .filter(a => a.activity_id === excuseActivityId)
+    .map(a => a.day_of_week);
 
   return (
     <div className="min-h-screen bg-background">
@@ -295,9 +510,10 @@ const MedicalDashboard = () => {
         <AttendanceChart title="Workout Attendance (Last 7 Days)" />
 
         <Tabs defaultValue="visits" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="visits"><ClipboardList className="h-4 w-4 mr-2" /> Visits</TabsTrigger>
             <TabsTrigger value="clearances"><ShieldCheck className="h-4 w-4 mr-2" /> Clearances</TabsTrigger>
+            <TabsTrigger value="excuse"><UserCheck className="h-4 w-4 mr-2" /> Excuse</TabsTrigger>
           </TabsList>
 
           {/* VISITS TAB */}
@@ -378,6 +594,196 @@ const MedicalDashboard = () => {
                     </TableBody>
                   </Table>
                 </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* EXCUSE TAB */}
+          <TabsContent value="excuse">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <UserCheck className="h-5 w-5 text-primary" />
+                  Excuse a Student
+                </CardTitle>
+                <CardDescription>Excuse from a co-curricular activity or morning workout</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                {/* Type selector */}
+                <div className="space-y-2">
+                  <Label>Excuse Type</Label>
+                  <div className="flex gap-2">
+                    <Button
+                      variant={excuseType === "cocurricular" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => { setExcuseType("cocurricular"); setExcuseActivityId(""); setExcuseDay(""); setExcuseAllocations([]); }}
+                    >
+                      Co-curricular Activity
+                    </Button>
+                    <Button
+                      variant={excuseType === "workout" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => { setExcuseType("workout"); setExcuseActivityId(""); setExcuseDay(""); setExcuseAllocations([]); }}
+                    >
+                      Morning Workout
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Student search */}
+                <div className="space-y-2">
+                  <Label>Search Student</Label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search by name or email..."
+                      value={excuseSearch}
+                      onChange={(e) => setExcuseSearch(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+
+                {/* Student select */}
+                <div className="space-y-2">
+                  <Label>Select Student *</Label>
+                  <Select value={excuseStudentId} onValueChange={setExcuseStudentId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose a student" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {filteredStudents.map(s => (
+                        <SelectItem key={s.id} value={s.id}>
+                          {s.full_name} ({s.email})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Co-curricular: show student's allocations */}
+                {excuseType === "cocurricular" && excuseStudentId && (
+                  <>
+                    {excuseLoadingAllocs && (
+                      <div className="flex gap-2 flex-wrap">
+                        <Skeleton className="h-6 w-32" />
+                        <Skeleton className="h-6 w-28" />
+                        <Skeleton className="h-6 w-36" />
+                      </div>
+                    )}
+
+                    {!excuseLoadingAllocs && excuseAllocations.length > 0 && (
+                      <div className="space-y-2">
+                        <Label>Student's Activities (tap to select)</Label>
+                        <div className="flex flex-wrap gap-2">
+                          {excuseAllocations.map((alloc, idx) => (
+                            <Badge
+                              key={idx}
+                              variant={excuseActivityId === alloc.activity_id && excuseDay === alloc.day_of_week ? "default" : "outline"}
+                              className="cursor-pointer hover:bg-muted transition-colors"
+                              onClick={() => { setExcuseActivityId(alloc.activity_id); setExcuseDay(alloc.day_of_week); }}
+                            >
+                              {alloc.activity_title} — {alloc.day_of_week}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {!excuseLoadingAllocs && excuseAllocations.length === 0 && (
+                      <Alert>
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription>This student has no activity allocations.</AlertDescription>
+                      </Alert>
+                    )}
+
+                    {/* Activity + Day dropdowns */}
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Activity *</Label>
+                        <Select
+                          value={excuseActivityId}
+                          onValueChange={(v) => { setExcuseActivityId(v); setExcuseDay(""); }}
+                          disabled={!excuseStudentId || excuseAllocations.length === 0}
+                        >
+                          <SelectTrigger><SelectValue placeholder="Select activity" /></SelectTrigger>
+                          <SelectContent>
+                            {studentActivities.map(a => (
+                              <SelectItem key={a.activity_id} value={a.activity_id}>{a.activity_title}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Day *</Label>
+                        <Select
+                          value={excuseDay}
+                          onValueChange={setExcuseDay}
+                          disabled={!excuseActivityId || availableDays.length === 0}
+                        >
+                          <SelectTrigger><SelectValue placeholder="Select day" /></SelectTrigger>
+                          <SelectContent>
+                            {availableDays.map(day => (
+                              <SelectItem key={day} value={day}>{day}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {/* Date */}
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4" />
+                    Excuse Date *
+                  </Label>
+                  <Input
+                    type="date"
+                    value={excuseDate}
+                    onChange={(e) => setExcuseDate(e.target.value)}
+                  />
+                </div>
+
+                {/* Reason */}
+                <div className="space-y-2">
+                  <Label>Reason (Optional)</Label>
+                  <Textarea
+                    placeholder="e.g., Fever, ankle injury, medical appointment..."
+                    value={excuseReason}
+                    onChange={(e) => setExcuseReason(e.target.value)}
+                    rows={2}
+                  />
+                </div>
+
+                {/* Quick reason chips */}
+                <div className="flex flex-wrap gap-2">
+                  {["Medical appointment", "Injury", "Illness", "Post-surgery recovery"].map(chip => (
+                    <Badge
+                      key={chip}
+                      variant="outline"
+                      className="cursor-pointer hover:bg-muted"
+                      onClick={() => setExcuseReason(chip)}
+                    >
+                      {chip}
+                    </Badge>
+                  ))}
+                </div>
+
+                {/* Submit */}
+                <Button
+                  className="w-full"
+                  disabled={
+                    excuseLoading ||
+                    !excuseStudentId ||
+                    !excuseDate ||
+                    (excuseType === "cocurricular" && (!excuseActivityId || !excuseDay))
+                  }
+                  onClick={excuseType === "cocurricular" ? handleExcuseCoCurricular : handleExcuseWorkout}
+                >
+                  {excuseLoading ? "Processing..." : `Excuse from ${excuseType === "cocurricular" ? "Activity" : "Workout"}`}
+                </Button>
               </CardContent>
             </Card>
           </TabsContent>
