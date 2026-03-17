@@ -8,8 +8,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, UserCheck, Calendar, Search, AlertCircle } from "lucide-react";
+import { ArrowLeft, UserCheck, Calendar, Search, AlertCircle, Users } from "lucide-react";
 import { format, differenceInDays, parseISO } from "date-fns";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -30,9 +31,14 @@ interface Allocation {
   activity_title: string;
 }
 
+const BULK_REASON_CHIPS = ["Field trip", "School event", "Medical", "Sports competition", "Family emergency"];
+
 const PreExcuseStudents = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [mode, setMode] = useState<"single" | "bulk">("single");
+
+  // Single mode state
   // Issue #50: Add loading state to prevent duplicate submissions
   const [loading, setLoading] = useState(false);
   const [loadingAllocations, setLoadingAllocations] = useState(false);
@@ -46,6 +52,13 @@ const PreExcuseStudents = () => {
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [userRole, setUserRole] = useState<string>(USER_ROLES.ADMIN);
   const [dateError, setDateError] = useState<string | null>(null);
+
+  // Bulk mode state
+  const [bulkDate, setBulkDate] = useState<string>(format(new Date(), "yyyy-MM-dd"));
+  const [bulkSearch, setBulkSearch] = useState<string>("");
+  const [bulkSelected, setBulkSelected] = useState<Set<string>>(new Set());
+  const [bulkReason, setBulkReason] = useState<string>("");
+  const [bulkLoading, setBulkLoading] = useState(false);
 
   useEffect(() => {
     fetchInitialData();
@@ -328,7 +341,112 @@ const PreExcuseStudents = () => {
     }
   };
 
-  const filteredStudents = students.filter(s => 
+  const handleBulkExcuse = async () => {
+    if (bulkSelected.size === 0 || !bulkDate) return;
+    setBulkLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      const dayOfWeek = format(parseISO(bulkDate), "EEEE"); // e.g. "Monday"
+      let totalRecords = 0;
+      let studentsExcused = 0;
+
+      for (const studentId of bulkSelected) {
+        // Get student's allocations for that day of week
+        const { data: allocs } = await supabase
+          .from("allocations")
+          .select("activity_id, day_of_week, slot_number")
+          .eq("student_id", studentId)
+          .eq("day_of_week", dayOfWeek);
+
+        if (!allocs || allocs.length === 0) continue;
+
+        for (const alloc of allocs) {
+          // Find or create session
+          let sessionId: string;
+          const { data: existing } = await supabase
+            .from("attendance_sessions")
+            .select("id")
+            .eq("activity_id", alloc.activity_id)
+            .eq("session_date", bulkDate)
+            .eq("day_of_week", dayOfWeek)
+            .eq("slot_number", alloc.slot_number)
+            .maybeSingle();
+
+          if (existing) {
+            sessionId = existing.id;
+          } else {
+            const { data: actData } = await supabase
+              .from("activities")
+              .select("teacher_id")
+              .eq("id", alloc.activity_id)
+              .single();
+
+            const { data: newSess, error: sessErr } = await supabase
+              .from("attendance_sessions")
+              .insert({
+                activity_id: alloc.activity_id,
+                teacher_id: actData?.teacher_id || user.id,
+                session_date: bulkDate,
+                day_of_week: dayOfWeek,
+                slot_number: alloc.slot_number,
+                status: SESSION_STATUS.DRAFT,
+              })
+              .select()
+              .single();
+            if (sessErr) throw sessErr;
+            sessionId = newSess!.id;
+          }
+
+          // Upsert attendance record as excused
+          const { data: existRec } = await supabase
+            .from("attendance_records")
+            .select("id")
+            .eq("session_id", sessionId)
+            .eq("student_id", studentId)
+            .maybeSingle();
+
+          if (existRec) {
+            await supabase.from("attendance_records")
+              .update({ status: ATTENDANCE_STATUS.EXCUSED, marked_by: user.id })
+              .eq("id", existRec.id);
+          } else {
+            await supabase.from("attendance_records")
+              .insert({ session_id: sessionId, student_id: studentId, status: ATTENDANCE_STATUS.EXCUSED, marked_by: user.id });
+          }
+
+          // Notification
+          await supabase.from("attendance_notifications").upsert({
+            session_id: sessionId,
+            student_id: studentId,
+            activity_id: alloc.activity_id,
+            status: ATTENDANCE_STATUS.EXCUSED,
+            notes: bulkReason || "Bulk pre-excuse",
+            acknowledged_by: user.id,
+            acknowledged_at: new Date().toISOString(),
+          }, { onConflict: "session_id,student_id,activity_id" });
+
+          totalRecords++;
+        }
+
+        studentsExcused++;
+      }
+
+      toast({
+        title: "Bulk Excuse Complete",
+        description: `${studentsExcused} student${studentsExcused !== 1 ? "s" : ""} excused from ${dayOfWeek} activities (${totalRecords} record${totalRecords !== 1 ? "s" : ""} created)`,
+      });
+      setBulkSelected(new Set());
+      setBulkReason("");
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Error", description: err.message });
+    } finally {
+      setBulkLoading(false);
+    }
+  };
+
+  const filteredStudents = students.filter(s =>
     s.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     s.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -346,6 +464,29 @@ const PreExcuseStudents = () => {
     .filter(a => a.activity_id === selectedActivity)
     .map(a => a.day_of_week);
 
+  const bulkFilteredStudents = students.filter(s =>
+    s.full_name.toLowerCase().includes(bulkSearch.toLowerCase()) ||
+    s.email.toLowerCase().includes(bulkSearch.toLowerCase())
+  );
+
+  const bulkDayLabel = bulkDate ? format(parseISO(bulkDate), "EEEE, MMM d") : "";
+
+  const toggleBulkStudent = (id: string) => {
+    setBulkSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const selectAllBulk = () => {
+    if (bulkSelected.size === bulkFilteredStudents.length) {
+      setBulkSelected(new Set());
+    } else {
+      setBulkSelected(new Set(bulkFilteredStudents.map(s => s.id)));
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card shadow-card">
@@ -361,7 +502,147 @@ const PreExcuseStudents = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8 space-y-6">
-        <Card className="shadow-card">
+        {/* Mode toggle */}
+        <div className="flex gap-2">
+          <Button
+            variant={mode === "single" ? "default" : "outline"}
+            onClick={() => setMode("single")}
+            className="flex items-center gap-2"
+          >
+            <UserCheck className="w-4 h-4" />
+            Single Student
+          </Button>
+          <Button
+            variant={mode === "bulk" ? "default" : "outline"}
+            onClick={() => setMode("bulk")}
+            className="flex items-center gap-2"
+          >
+            <Users className="w-4 h-4" />
+            Bulk Excuse
+          </Button>
+        </div>
+
+        {/* ── BULK MODE ── */}
+        {mode === "bulk" && (
+          <Card className="shadow-card">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="w-5 h-5 text-primary" />
+                Bulk Pre-Excuse
+              </CardTitle>
+              <CardDescription>
+                Excuse multiple students from all their activities on a given day
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              {/* Date */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4" />
+                  Excuse Date *
+                </Label>
+                <Input
+                  type="date"
+                  value={bulkDate}
+                  onChange={(e) => { setBulkDate(e.target.value); setBulkSelected(new Set()); }}
+                />
+                {bulkDayLabel && (
+                  <p className="text-sm text-muted-foreground">
+                    Students will be excused from all their <strong>{format(parseISO(bulkDate), "EEEE")}</strong> activities on {bulkDayLabel}
+                  </p>
+                )}
+              </div>
+
+              {/* Student search */}
+              <div className="space-y-2">
+                <Label>Select Students *</Label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search by name or email..."
+                    value={bulkSearch}
+                    onChange={(e) => setBulkSearch(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+
+                {/* Select all row */}
+                <div className="flex items-center justify-between px-1">
+                  <button
+                    type="button"
+                    className="text-xs text-primary hover:underline"
+                    onClick={selectAllBulk}
+                  >
+                    {bulkSelected.size === bulkFilteredStudents.length && bulkFilteredStudents.length > 0
+                      ? "Deselect all"
+                      : `Select all${bulkSearch ? " matching" : ""} (${bulkFilteredStudents.length})`}
+                  </button>
+                  {bulkSelected.size > 0 && (
+                    <Badge variant="default">{bulkSelected.size} selected</Badge>
+                  )}
+                </div>
+
+                {/* Student list */}
+                <div className="border rounded-lg max-h-64 overflow-y-auto divide-y">
+                  {bulkFilteredStudents.length === 0 && (
+                    <p className="text-center text-sm text-muted-foreground py-4">No students found</p>
+                  )}
+                  {bulkFilteredStudents.map(s => (
+                    <label
+                      key={s.id}
+                      className="flex items-center gap-3 px-3 py-2 hover:bg-muted/50 cursor-pointer"
+                    >
+                      <Checkbox
+                        checked={bulkSelected.has(s.id)}
+                        onCheckedChange={() => toggleBulkStudent(s.id)}
+                      />
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate">{s.full_name}</p>
+                        <p className="text-xs text-muted-foreground truncate">{s.email}</p>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Reason */}
+              <div className="space-y-2">
+                <Label>Reason (Optional)</Label>
+                <Textarea
+                  placeholder="Enter reason for excusing these students..."
+                  value={bulkReason}
+                  onChange={(e) => setBulkReason(e.target.value)}
+                  rows={2}
+                />
+                <div className="flex flex-wrap gap-2">
+                  {BULK_REASON_CHIPS.map(chip => (
+                    <Badge
+                      key={chip}
+                      variant={bulkReason === chip ? "default" : "outline"}
+                      className="cursor-pointer hover:bg-muted"
+                      onClick={() => setBulkReason(bulkReason === chip ? "" : chip)}
+                    >
+                      {chip}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+
+              <Button
+                className="w-full"
+                disabled={bulkLoading || bulkSelected.size === 0 || !bulkDate}
+                onClick={handleBulkExcuse}
+              >
+                {bulkLoading
+                  ? "Processing..."
+                  : `Excuse ${bulkSelected.size > 0 ? bulkSelected.size : ""} Student${bulkSelected.size !== 1 ? "s" : ""} from ${bulkDate ? format(parseISO(bulkDate), "EEEE") : ""} Activities`}
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* ── SINGLE MODE ── */}
+        {mode === "single" && <Card className="shadow-card">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <UserCheck className="w-5 h-5 text-primary" />
@@ -539,7 +820,7 @@ const PreExcuseStudents = () => {
               {loading ? "Processing..." : "Pre-Excuse Student"}
             </Button>
           </CardContent>
-        </Card>
+        </Card>}
       </main>
     </div>
   );
