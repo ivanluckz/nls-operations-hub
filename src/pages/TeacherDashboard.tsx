@@ -55,6 +55,7 @@ const TeacherDashboard = () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
+      setUserId(user.id);
 
       const [{ data: profileData }, { data: activitiesData }, { data: studentsData }] = await Promise.all([
         supabase.from("profiles").select("full_name, avatar_url").eq("id", user.id).single(),
@@ -65,6 +66,22 @@ const TeacherDashboard = () => {
       setProfile(profileData);
       setActivities(activitiesData || []);
       setStudents(studentsData || []);
+
+      // Check if this teacher has mentees
+      const { count } = await supabase
+        .from("profiles")
+        .select("id", { count: "exact", head: true })
+        .eq("mentor_id" as any, user.id);
+      setHasMentees((count || 0) > 0);
+
+      // Fetch today's lunch count
+      const today = new Date().toISOString().split("T")[0];
+      const { count: lc } = await (supabase as any)
+        .from("meal_attendance")
+        .select("id", { count: "exact", head: true })
+        .eq("meal_type", "lunch")
+        .eq("meal_date", today);
+      setLunchCount(lc || 0);
     } catch (error) {
       console.error("Error fetching data:", error);
       toast({ variant: "destructive", title: "Error", description: "Failed to load dashboard data" });
@@ -72,6 +89,39 @@ const TeacherDashboard = () => {
       setLoading(false);
     }
   };
+
+  const handleLunchScan = useCallback(async (studentId: string) => {
+    if (!userId) return;
+    const today = new Date().toISOString().split("T")[0];
+
+    const { data: existing } = await (supabase as any)
+      .from("meal_attendance")
+      .select("id")
+      .eq("student_id", studentId)
+      .eq("meal_type", "lunch")
+      .eq("meal_date", today)
+      .maybeSingle();
+
+    if (existing) {
+      const { data: p } = await supabase.from("profiles").select("full_name").eq("id", studentId).single();
+      toast({ title: "Already checked in", description: `${p?.full_name || "Student"} already has lunch today`, variant: "destructive" });
+      return;
+    }
+
+    const { error } = await (supabase as any)
+      .from("meal_attendance")
+      .insert({ student_id: studentId, scanned_by: userId, meal_type: "lunch", meal_date: today });
+
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+      return;
+    }
+
+    const { data: p } = await supabase.from("profiles").select("full_name").eq("id", studentId).single();
+    setLastLunchScanned(p?.full_name || "Student");
+    setLunchCount(prev => prev + 1);
+    toast({ title: "✅ Lunch checked in!", description: `${p?.full_name || "Student"} → Lunch` });
+  }, [userId, toast]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
