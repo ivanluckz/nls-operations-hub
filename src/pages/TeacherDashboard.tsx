@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -8,12 +8,13 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
-import { LogOut, GraduationCap, ClipboardCheck, AlertTriangle, Users, BookOpen, MessageSquare } from "lucide-react";
+import { LogOut, GraduationCap, ClipboardCheck, AlertTriangle, Users, BookOpen, MessageSquare, QrCode, UtensilsCrossed } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import ActivityMessaging from "@/components/teacher/ActivityMessaging";
 import FloatingChatButton from "@/components/student/FloatingChatButton";
 import AttendanceChart from "@/components/dashboard/AttendanceChart";
 import TodayScheduleWidget from "@/components/dashboard/TodayScheduleWidget";
+import MealQRScanner from "@/components/kitchen/MealQRScanner";
 
 interface ActivityData {
   id: string;
@@ -40,6 +41,11 @@ const TeacherDashboard = () => {
   const [activities, setActivities] = useState<ActivityData[]>([]);
   const [students, setStudents] = useState<StudentAllocation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [hasMentees, setHasMentees] = useState(false);
+  const [lunchScanning, setLunchScanning] = useState(false);
+  const [lunchCount, setLunchCount] = useState(0);
+  const [lastLunchScanned, setLastLunchScanned] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -49,6 +55,7 @@ const TeacherDashboard = () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
+      setUserId(user.id);
 
       const [{ data: profileData }, { data: activitiesData }, { data: studentsData }] = await Promise.all([
         supabase.from("profiles").select("full_name, avatar_url").eq("id", user.id).single(),
@@ -59,6 +66,22 @@ const TeacherDashboard = () => {
       setProfile(profileData);
       setActivities(activitiesData || []);
       setStudents(studentsData || []);
+
+      // Check if this teacher has mentees
+      const { count } = await (supabase as any)
+        .from("profiles")
+        .select("id", { count: "exact", head: true })
+        .eq("mentor_id", user.id);
+      setHasMentees((count || 0) > 0);
+
+      // Fetch today's lunch count
+      const today = new Date().toISOString().split("T")[0];
+      const { count: lc } = await (supabase as any)
+        .from("meal_attendance")
+        .select("id", { count: "exact", head: true })
+        .eq("meal_type", "lunch")
+        .eq("meal_date", today);
+      setLunchCount(lc || 0);
     } catch (error) {
       console.error("Error fetching data:", error);
       toast({ variant: "destructive", title: "Error", description: "Failed to load dashboard data" });
@@ -66,6 +89,39 @@ const TeacherDashboard = () => {
       setLoading(false);
     }
   };
+
+  const handleLunchScan = useCallback(async (studentId: string) => {
+    if (!userId) return;
+    const today = new Date().toISOString().split("T")[0];
+
+    const { data: existing } = await (supabase as any)
+      .from("meal_attendance")
+      .select("id")
+      .eq("student_id", studentId)
+      .eq("meal_type", "lunch")
+      .eq("meal_date", today)
+      .maybeSingle();
+
+    if (existing) {
+      const { data: p } = await supabase.from("profiles").select("full_name").eq("id", studentId).single();
+      toast({ title: "Already checked in", description: `${p?.full_name || "Student"} already has lunch today`, variant: "destructive" });
+      return;
+    }
+
+    const { error } = await (supabase as any)
+      .from("meal_attendance")
+      .insert({ student_id: studentId, scanned_by: userId, meal_type: "lunch", meal_date: today });
+
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+      return;
+    }
+
+    const { data: p } = await supabase.from("profiles").select("full_name").eq("id", studentId).single();
+    setLastLunchScanned(p?.full_name || "Student");
+    setLunchCount(prev => prev + 1);
+    toast({ title: "✅ Lunch checked in!", description: `${p?.full_name || "Student"} → Lunch` });
+  }, [userId, toast]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -84,6 +140,41 @@ const TeacherDashboard = () => {
         <div className="flex flex-col items-center gap-4">
           <div className="w-16 h-16 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
           <p className="text-sm text-muted-foreground animate-pulse">Loading your portal...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Lunch scanning view for mentors
+  if (lunchScanning) {
+    return (
+      <div className="min-h-screen bg-background p-4">
+        <div className="max-w-lg mx-auto space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold flex items-center gap-2">
+              <QrCode className="h-5 w-5" />
+              Scanning: Lunch
+            </h2>
+            <Button variant="outline" onClick={() => setLunchScanning(false)}>Done</Button>
+          </div>
+          {lastLunchScanned && (
+            <Card className="border-primary/30 bg-primary/5">
+              <CardContent className="py-3 text-center">
+                <p className="text-lg font-semibold text-primary">✅ {lastLunchScanned}</p>
+                <p className="text-sm text-muted-foreground">Checked in for Lunch</p>
+              </CardContent>
+            </Card>
+          )}
+          <Card>
+            <CardContent className="p-4">
+              <MealQRScanner onScan={handleLunchScan} isActive={true} />
+            </CardContent>
+          </Card>
+          <div className="text-center">
+            <Badge variant="secondary" className="text-lg px-4 py-2">
+              {lunchCount} checked in today
+            </Badge>
+          </div>
         </div>
       </div>
     );
@@ -280,6 +371,25 @@ const TeacherDashboard = () => {
           <AttendanceChart title="My Attendance (Last 7 Days)" />
           <TodayScheduleWidget />
         </div>
+
+        {/* Mentor Lunch Scanning */}
+        {hasMentees && (
+          <Card className="border-2 border-primary/20 bg-primary/5">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2">
+                <UtensilsCrossed className="h-5 w-5 text-primary" />
+                Mentor Lunch Attendance
+              </CardTitle>
+              <CardDescription>You have mentees — scan lunch QR codes for your students</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button size="lg" className="w-full gap-2" onClick={() => setLunchScanning(true)}>
+                <QrCode className="h-5 w-5" />
+                Start Lunch Scanning ({lunchCount} today)
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
         <ActivityMessaging />
       </main>

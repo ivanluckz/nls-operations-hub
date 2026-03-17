@@ -8,9 +8,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import {
   QrCode, Users, LogOut, Sun, Coffee, Moon, Dumbbell,
-  MapPin, BarChart3, AlertTriangle, CheckCircle2, Flag
+  MapPin, BarChart3, AlertTriangle, CheckCircle2, Flag, Home
 } from "lucide-react";
-import { MEAL_TYPES, WORKOUT_LOCATIONS, type MealType, type WorkoutLocation } from "@/lib/constants";
+import { MEAL_TYPES, WORKOUT_LOCATIONS, HOUSES, type MealType, type WorkoutLocation } from "@/lib/constants";
 import MealTrendChart from "@/components/dashboard/MealTrendChart";
 import MealQRScanner from "@/components/kitchen/MealQRScanner";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
@@ -50,6 +50,8 @@ const RLCoachDashboard = () => {
   const [mealScanning, setMealScanning] = useState(false);
   const [mealCounts, setMealCounts] = useState<Record<MealType, number>>({ breakfast: 0, lunch: 0, dinner: 0 });
   const [lastMealScanned, setLastMealScanned] = useState<{ name: string; meal: string } | null>(null);
+  const [selectedDinnerHouse, setSelectedDinnerHouse] = useState<string | null>(null);
+  const [houses, setHouses] = useState<Array<{ id: string; name: string; color: string }>>([]);
 
   // Workout state
   const [selectedLocation, setSelectedLocation] = useState<WorkoutLocation>("Courts");
@@ -72,6 +74,7 @@ const RLCoachDashboard = () => {
     fetchTotalStudents();
     fetchFlaggedStudents();
     fetchRestrictedStudents();
+    fetchHouses();
   }, []);
 
   const fetchTotalStudents = async () => {
@@ -94,6 +97,11 @@ const RLCoachDashboard = () => {
       if (r.meal_type in counts) counts[r.meal_type as MealType]++;
     });
     setMealCounts(counts);
+  };
+
+  const fetchHouses = async () => {
+    const { data } = await (supabase as any).from("houses").select("id, name, color").order("name");
+    setHouses(data || []);
   };
 
   const fetchWorkoutCount = async () => {
@@ -280,14 +288,19 @@ const RLCoachDashboard = () => {
       return;
     }
 
+    const insertData: any = {
+      student_id: studentId,
+      scanned_by: userId,
+      meal_type: selectedMeal,
+      meal_date: today,
+    };
+    if (selectedMeal === "dinner" && selectedDinnerHouse) {
+      insertData.house_id = selectedDinnerHouse;
+    }
+
     const { error } = await (supabase as any)
       .from("meal_attendance")
-      .insert({
-        student_id: studentId,
-        scanned_by: userId,
-        meal_type: selectedMeal,
-        meal_date: today,
-      });
+      .insert(insertData);
 
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -306,7 +319,7 @@ const RLCoachDashboard = () => {
       description: `${profile?.full_name || "Student"} → ${mealLabels[selectedMeal]}`,
     });
     fetchMealCounts();
-  }, [selectedMeal, userId, toast]);
+  }, [selectedMeal, selectedDinnerHouse, userId, toast]);
 
   const handleWorkoutScan = useCallback(async (studentId: string) => {
     if (!userId) return;
@@ -526,14 +539,41 @@ const RLCoachDashboard = () => {
                     );
                   })}
                 </div>
+                {selectedMeal === "dinner" && (
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium flex items-center gap-2">
+                      <Home className="h-4 w-4" />
+                      Select House for Dinner
+                    </label>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {houses.map((house) => (
+                        <button
+                          key={house.id}
+                          onClick={() => setSelectedDinnerHouse(house.id)}
+                          className={`rounded-xl border-2 p-2 text-xs font-semibold transition-all hover:scale-105 ${
+                            selectedDinnerHouse === house.id
+                              ? "border-primary bg-primary/10 shadow-md"
+                              : "border-muted hover:border-primary/40"
+                          }`}
+                        >
+                          {house.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <Button
                   size="lg"
                   className="w-full"
-                  disabled={!selectedMeal}
+                  disabled={!selectedMeal || (selectedMeal === "dinner" && !selectedDinnerHouse)}
                   onClick={() => setMealScanning(true)}
                 >
                   <QrCode className="h-5 w-5 mr-2" />
-                  {selectedMeal ? `Start Scanning for ${mealLabels[selectedMeal]}` : "Select a meal first"}
+                  {!selectedMeal
+                    ? "Select a meal first"
+                    : selectedMeal === "dinner" && !selectedDinnerHouse
+                    ? "Select a house first"
+                    : `Start Scanning for ${mealLabels[selectedMeal]}${selectedMeal === "dinner" ? ` (${houses.find(h => h.id === selectedDinnerHouse)?.name || ""})` : ""}`}
                 </Button>
               </CardContent>
             </Card>

@@ -10,6 +10,12 @@ export const USER_ROLES = {
   MEDICAL: 'medical'
 } as const;
 
+export const STUDENT_CLASSES = [
+  '7A', '7B', '7C', '7D', '7E',
+  '8A', '8B', '8C', '8D', '8E', '8F',
+] as const;
+export type StudentClass = typeof STUDENT_CLASSES[number];
+
 export const WORKOUT_LOCATIONS = ['Courts', 'Pitch', 'Competition'] as const;
 export type WorkoutLocation = typeof WORKOUT_LOCATIONS[number];
 
