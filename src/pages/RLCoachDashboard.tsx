@@ -7,10 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import {
-  QrCode, Users, LogOut, Sun, Coffee, Moon, Dumbbell,
+  QrCode, Users, LogOut, Moon, Dumbbell,
   MapPin, BarChart3, AlertTriangle, CheckCircle2, Flag, Home
 } from "lucide-react";
-import { MEAL_TYPES, WORKOUT_LOCATIONS, HOUSES, type MealType, type WorkoutLocation } from "@/lib/constants";
+import { WORKOUT_LOCATIONS, type MealType, type WorkoutLocation } from "@/lib/constants";
 import MealTrendChart from "@/components/dashboard/MealTrendChart";
 import MealQRScanner from "@/components/kitchen/MealQRScanner";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
@@ -23,17 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-const mealIcons: Record<MealType, typeof Coffee> = {
-  breakfast: Coffee,
-  lunch: Sun,
-  dinner: Moon,
-};
-
-const mealLabels: Record<MealType, string> = {
-  breakfast: "Breakfast",
-  lunch: "Lunch",
-  dinner: "Dinner",
-};
+const COACH_MEAL: MealType = "dinner";
 
 const locationIcons: Record<WorkoutLocation, string> = {
   Courts: "🏀",
@@ -46,17 +36,20 @@ const RLCoachDashboard = () => {
   const { toast } = useToast();
   const [userId, setUserId] = useState<string | null>(null);
 
-  // Meal state
-  const [selectedMeal, setSelectedMeal] = useState<MealType | null>(null);
-  const [mealScanning, setMealScanning] = useState(false);
-  const [mealCounts, setMealCounts] = useState<Record<MealType, number>>({ breakfast: 0, lunch: 0, dinner: 0 });
-  const [lastMealScanned, setLastMealScanned] = useState<{ name: string; meal: string } | null>(null);
-  const [selectedDinnerHouse, setSelectedDinnerHouse] = useState<string | null>(null);
+  // House state
+  const [myHouseId, setMyHouseId] = useState<string | null>(null);
+  const [myHouseName, setMyHouseName] = useState<string | null>(null);
   const [houses, setHouses] = useState<Array<{ id: string; name: string; color: string }>>([]);
+
+  // Meal state
+  const [mealScanning, setMealScanning] = useState(false);
+  const [dinnerCount, setDinnerCount] = useState(0);
+  const [lastMealScanned, setLastMealScanned] = useState<{ name: string; meal: string } | null>(null);
 
   // Workout state
   const [selectedLocation, setSelectedLocation] = useState<WorkoutLocation>("Courts");
   const [workoutScanning, setWorkoutScanning] = useState(false);
+  const [markingLate, setMarkingLate] = useState(false);
   const [workoutCount, setWorkoutCount] = useState(0);
   const [lastWorkoutScanned, setLastWorkoutScanned] = useState<{ name: string; location: string } | null>(null);
   const [finalizing, setFinalizing] = useState(false);
@@ -66,38 +59,80 @@ const RLCoachDashboard = () => {
 
   const [totalStudents, setTotalStudents] = useState(0);
 
+  // On init: get userId and coach's house, then fetch houses list
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) setUserId(user.id);
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (!user) return;
+      setUserId(user.id);
+
+      // Fetch coach's profile to get house_id
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("house_id")
+        .eq("id", user.id)
+        .single();
+
+      const houseId = (profileData as any)?.house_id ?? null;
+      setMyHouseId(houseId);
+
+      if (houseId) {
+        // Fetch house name
+        const { data: houseData } = await (supabase as any)
+          .from("houses")
+          .select("name")
+          .eq("id", houseId)
+          .single();
+        setMyHouseName(houseData?.name ?? null);
+      }
     });
+
     fetchMealCounts();
-    fetchWorkoutCount();
-    fetchTotalStudents();
-    fetchFlaggedStudents();
-    fetchRestrictedStudents();
     fetchHouses();
   }, []);
 
+  // Fetch house-filtered data once myHouseId is known
+  useEffect(() => {
+    if (myHouseId === undefined) return; // still loading
+    fetchTotalStudents();
+    fetchWorkoutCount();
+    fetchFlaggedStudents();
+    fetchRestrictedStudents();
+  }, [myHouseId]);
+
   const fetchTotalStudents = async () => {
-    const { count } = await supabase
+    if (!myHouseId) {
+      setTotalStudents(0);
+      return;
+    }
+    // Get all student user_ids
+    const { data: studentRoles } = await supabase
       .from("user_roles")
-      .select("id", { count: "exact", head: true })
+      .select("user_id")
       .eq("role", "student");
+
+    const studentIds = (studentRoles || []).map((r) => r.user_id);
+    if (studentIds.length === 0) {
+      setTotalStudents(0);
+      return;
+    }
+
+    const { count } = await supabase
+      .from("profiles")
+      .select("id", { count: "exact", head: true })
+      .eq("house_id", myHouseId)
+      .in("id", studentIds);
+
     setTotalStudents(count || 0);
   };
 
   const fetchMealCounts = async () => {
     const today = new Date().toISOString().split("T")[0];
-    const { data } = await (supabase as any)
+    const { count } = await (supabase as any)
       .from("meal_attendance")
-      .select("meal_type")
+      .select("id", { count: "exact", head: true })
+      .eq("meal_type", "dinner")
       .eq("meal_date", today);
-
-    const counts: Record<MealType, number> = { breakfast: 0, lunch: 0, dinner: 0 };
-    (data || []).forEach((r: any) => {
-      if (r.meal_type in counts) counts[r.meal_type as MealType]++;
-    });
-    setMealCounts(counts);
+    setDinnerCount(count || 0);
   };
 
   const fetchHouses = async () => {
@@ -106,16 +141,46 @@ const RLCoachDashboard = () => {
   };
 
   const fetchWorkoutCount = async () => {
+    if (!myHouseId) {
+      setWorkoutCount(0);
+      return;
+    }
     const today = new Date().toISOString().split("T")[0];
+
+    // Get student IDs in coach's house
+    const { data: studentRoles } = await supabase
+      .from("user_roles")
+      .select("user_id")
+      .eq("role", "student");
+
+    const studentIds = (studentRoles || []).map((r) => r.user_id);
+    if (studentIds.length === 0) {
+      setWorkoutCount(0);
+      return;
+    }
+
+    const { data: houseProfiles } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("house_id", myHouseId)
+      .in("id", studentIds);
+
+    const houseStudentIds = (houseProfiles || []).map((p) => p.id);
+    if (houseStudentIds.length === 0) {
+      setWorkoutCount(0);
+      return;
+    }
+
     const { count } = await (supabase as any)
       .from("workout_attendance")
       .select("id", { count: "exact", head: true })
-      .eq("workout_date", today);
+      .eq("workout_date", today)
+      .in("student_id", houseStudentIds);
+
     setWorkoutCount(count || 0);
   };
 
   const fetchFlaggedStudents = async () => {
-    // Get last 14 days of workout notifications (absent/late)
     const twoWeeksAgo = new Date();
     twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
     const sinceDate = twoWeeksAgo.toISOString().split("T")[0];
@@ -148,18 +213,29 @@ const RLCoachDashboard = () => {
       return;
     }
 
+    // Fetch profiles and filter by house_id
     const { data: profiles } = await supabase
       .from("profiles")
-      .select("id, full_name")
-      .in("id", flaggedIds.map(f => f.id));
+      .select("id, full_name, house_id")
+      .in("id", flaggedIds.map((f) => f.id));
+
+    const houseProfiles = myHouseId
+      ? (profiles || []).filter((p) => (p as any).house_id === myHouseId)
+      : profiles || [];
 
     const nameMap: Record<string, string> = {};
-    (profiles || []).forEach(p => { nameMap[p.id] = p.full_name; });
+    houseProfiles.forEach((p) => { nameMap[p.id] = p.full_name; });
 
-    setFlaggedStudents(flaggedIds.map(f => ({
-      ...f,
-      name: nameMap[f.id] || "Unknown",
-    })));
+    const houseProfileIds = new Set(houseProfiles.map((p) => p.id));
+
+    setFlaggedStudents(
+      flaggedIds
+        .filter((f) => houseProfileIds.has(f.id))
+        .map((f) => ({
+          ...f,
+          name: nameMap[f.id] || "Unknown",
+        }))
+    );
   };
 
   const fetchRestrictedStudents = async () => {
@@ -175,32 +251,57 @@ const RLCoachDashboard = () => {
 
     const { data: profiles } = await supabase
       .from("profiles")
-      .select("id, full_name")
+      .select("id, full_name, house_id")
       .in("id", data.map((d: any) => d.student_id));
 
-    const nameMap: Record<string, string> = {};
-    (profiles || []).forEach(p => { nameMap[p.id] = p.full_name; });
+    const houseProfiles = myHouseId
+      ? (profiles || []).filter((p) => (p as any).house_id === myHouseId)
+      : profiles || [];
 
-    setRestrictedStudents(data.map((d: any) => ({
-      id: d.student_id,
-      name: nameMap[d.student_id] || "Unknown",
-      reason: d.restriction_reason,
-    })));
+    const nameMap: Record<string, string> = {};
+    houseProfiles.forEach((p) => { nameMap[p.id] = p.full_name; });
+
+    const houseProfileIds = new Set(houseProfiles.map((p) => p.id));
+
+    setRestrictedStudents(
+      data
+        .filter((d: any) => houseProfileIds.has(d.student_id))
+        .map((d: any) => ({
+          id: d.student_id,
+          name: nameMap[d.student_id] || "Unknown",
+          reason: d.restriction_reason,
+        }))
+    );
   };
 
   const finalizeWorkout = async () => {
-    if (!userId) return;
+    if (!userId || !myHouseId) return;
     setFinalizing(true);
     try {
       const today = new Date().toISOString().split("T")[0];
 
-      // Get all students
+      // Get all student user_ids
       const { data: allStudentRoles } = await supabase
         .from("user_roles")
         .select("user_id")
         .eq("role", "student");
 
-      const allStudentIds = (allStudentRoles || []).map(r => r.user_id);
+      const allRoleIds = (allStudentRoles || []).map((r) => r.user_id);
+
+      // Filter to only students in coach's house
+      const { data: houseProfiles } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("house_id", myHouseId)
+        .in("id", allRoleIds);
+
+      const allStudentIds = (houseProfiles || []).map((p) => p.id);
+
+      if (allStudentIds.length === 0) {
+        toast({ title: "No students in your house", description: "No students found for your house." });
+        setFinalizing(false);
+        return;
+      }
 
       // Get students who checked in today
       const { data: checkedIn } = await (supabase as any)
@@ -219,7 +320,7 @@ const RLCoachDashboard = () => {
       const restrictedIds = new Set((restricted || []).map((r: any) => r.student_id));
 
       // Absent = not checked in AND not medically restricted
-      const absentIds = allStudentIds.filter(id => !checkedInIds.has(id) && !restrictedIds.has(id));
+      const absentIds = allStudentIds.filter((id) => !checkedInIds.has(id) && !restrictedIds.has(id));
 
       if (absentIds.length === 0) {
         toast({ title: "All Clear! ✅", description: "All students are accounted for" });
@@ -228,7 +329,7 @@ const RLCoachDashboard = () => {
       }
 
       // Insert notifications for absent students
-      const notifications = absentIds.map(id => ({
+      const notifications = absentIds.map((id) => ({
         student_id: id,
         workout_date: today,
         status: "absent",
@@ -246,7 +347,7 @@ const RLCoachDashboard = () => {
         .select("id, full_name")
         .in("id", absentIds);
 
-      const absentList = (profiles || []).map(p => ({ id: p.id, name: p.full_name }));
+      const absentList = (profiles || []).map((p) => ({ id: p.id, name: p.full_name }));
       setAbsentStudents(absentList);
 
       toast({
@@ -264,14 +365,14 @@ const RLCoachDashboard = () => {
   };
 
   const handleMealScan = useCallback(async (studentId: string) => {
-    if (!selectedMeal || !userId) return;
+    if (!userId || !myHouseId) return;
     const today = new Date().toISOString().split("T")[0];
 
     const { data: existing } = await (supabase as any)
       .from("meal_attendance")
       .select("id")
       .eq("student_id", studentId)
-      .eq("meal_type", selectedMeal)
+      .eq("meal_type", COACH_MEAL)
       .eq("meal_date", today)
       .maybeSingle();
 
@@ -283,7 +384,7 @@ const RLCoachDashboard = () => {
         .single();
       toast({
         title: "Already checked in",
-        description: `${profile?.full_name || "Student"} already checked in for ${mealLabels[selectedMeal]}`,
+        description: `${profile?.full_name || "Student"} already checked in for Dinner`,
         variant: "destructive",
       });
       return;
@@ -292,12 +393,10 @@ const RLCoachDashboard = () => {
     const insertData: any = {
       student_id: studentId,
       scanned_by: userId,
-      meal_type: selectedMeal,
+      meal_type: COACH_MEAL,
       meal_date: today,
+      house_id: myHouseId,
     };
-    if (selectedMeal === "dinner" && selectedDinnerHouse) {
-      insertData.house_id = selectedDinnerHouse;
-    }
 
     const { error } = await (supabase as any)
       .from("meal_attendance")
@@ -314,13 +413,13 @@ const RLCoachDashboard = () => {
       .eq("id", studentId)
       .single();
 
-    setLastMealScanned({ name: profile?.full_name || "Student", meal: mealLabels[selectedMeal] });
+    setLastMealScanned({ name: profile?.full_name || "Student", meal: "Dinner" });
     toast({
       title: "✅ Checked in!",
-      description: `${profile?.full_name || "Student"} → ${mealLabels[selectedMeal]}`,
+      description: `${profile?.full_name || "Student"} → Dinner`,
     });
     fetchMealCounts();
-  }, [selectedMeal, selectedDinnerHouse, userId, toast]);
+  }, [myHouseId, userId, toast]);
 
   const handleWorkoutScan = useCallback(async (studentId: string) => {
     if (!userId) return;
@@ -347,6 +446,8 @@ const RLCoachDashboard = () => {
       return;
     }
 
+    const attendanceStatus = markingLate ? "late" : "present";
+
     const { error } = await (supabase as any)
       .from("workout_attendance")
       .insert({
@@ -354,12 +455,22 @@ const RLCoachDashboard = () => {
         scanned_by: userId,
         workout_date: today,
         location: selectedLocation,
-        status: "present",
+        status: attendanceStatus,
       });
 
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
       return;
+    }
+
+    // If late, also insert a workout_notification
+    if (markingLate) {
+      await (supabase as any)
+        .from("workout_notifications")
+        .upsert(
+          { student_id: studentId, workout_date: today, status: "late" },
+          { onConflict: "student_id,workout_date" }
+        );
     }
 
     const { data: profile } = await supabase
@@ -369,12 +480,21 @@ const RLCoachDashboard = () => {
       .single();
 
     setLastWorkoutScanned({ name: profile?.full_name || "Student", location: selectedLocation });
-    toast({
-      title: "✅ Workout recorded!",
-      description: `${profile?.full_name || "Student"} → ${selectedLocation}`,
-    });
+
+    if (markingLate) {
+      toast({
+        title: "⏰ Marked as Late!",
+        description: `${profile?.full_name || "Student"} → ${selectedLocation}`,
+      });
+    } else {
+      toast({
+        title: "✅ Workout recorded!",
+        description: `${profile?.full_name || "Student"} → ${selectedLocation}`,
+      });
+    }
+
     fetchWorkoutCount();
-  }, [selectedLocation, userId, toast]);
+  }, [selectedLocation, markingLate, userId, toast]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -382,14 +502,14 @@ const RLCoachDashboard = () => {
   };
 
   // Meal scanning view
-  if (mealScanning && selectedMeal) {
+  if (mealScanning) {
     return (
       <div className="min-h-screen bg-background p-4">
         <div className="max-w-lg mx-auto space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-bold flex items-center gap-2">
               <QrCode className="h-5 w-5" />
-              Scanning: {mealLabels[selectedMeal]}
+              Scanning: Dinner{myHouseName ? ` — ${myHouseName}` : ""}
             </h2>
             <Button variant="outline" onClick={() => setMealScanning(false)}>Done</Button>
           </div>
@@ -408,7 +528,7 @@ const RLCoachDashboard = () => {
           </Card>
           <div className="text-center">
             <Badge variant="secondary" className="text-lg px-4 py-2">
-              {mealCounts[selectedMeal]} checked in today
+              {dinnerCount} checked in today
             </Badge>
           </div>
         </div>
@@ -428,10 +548,31 @@ const RLCoachDashboard = () => {
             </h2>
             <Button variant="outline" onClick={() => setWorkoutScanning(false)}>Done</Button>
           </div>
+
+          {/* Late / Present toggle */}
+          <div className="flex gap-2">
+            <Button
+              variant={!markingLate ? "default" : "outline"}
+              className="flex-1"
+              onClick={() => setMarkingLate(false)}
+            >
+              ✅ Present
+            </Button>
+            <Button
+              variant={markingLate ? "default" : "outline"}
+              className="flex-1"
+              onClick={() => setMarkingLate(true)}
+            >
+              ⏰ Late
+            </Button>
+          </div>
+
           {lastWorkoutScanned && (
             <Card className="border-primary/30 bg-primary/5">
               <CardContent className="py-3 text-center">
-                <p className="text-lg font-semibold text-primary">✅ {lastWorkoutScanned.name}</p>
+                <p className="text-lg font-semibold text-primary">
+                  {markingLate ? "⏰" : "✅"} {lastWorkoutScanned.name}
+                </p>
                 <p className="text-sm text-muted-foreground">At {lastWorkoutScanned.location}</p>
               </CardContent>
             </Card>
@@ -462,7 +603,7 @@ const RLCoachDashboard = () => {
             </div>
             <div>
               <h1 className="text-xl font-bold">RL Coach Dashboard</h1>
-              <p className="text-sm text-muted-foreground">Meals & morning workouts</p>
+              <p className="text-sm text-muted-foreground">House workouts & dinner</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -480,11 +621,23 @@ const RLCoachDashboard = () => {
       </header>
 
       <div className="container mx-auto px-4 py-6">
+        {/* No-house warning */}
+        {myHouseId === null && (
+          <Card className="mb-6 border-amber-500/50 bg-amber-500/5">
+            <CardContent className="py-4 flex items-center gap-3">
+              <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0" />
+              <p className="text-sm text-amber-700 dark:text-amber-400">
+                No house is assigned to your profile. Contact an admin to set your house before scanning.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
         <Tabs defaultValue="meals" className="space-y-6">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="meals" className="gap-2">
-              <Coffee className="h-4 w-4" />
-              Meals
+              <Moon className="h-4 w-4" />
+              Dinner
             </TabsTrigger>
             <TabsTrigger value="workouts" className="gap-2">
               <Dumbbell className="h-4 w-4" />
@@ -494,22 +647,15 @@ const RLCoachDashboard = () => {
 
           {/* MEALS TAB */}
           <TabsContent value="meals" className="space-y-6">
-            {/* Today's meal summary */}
-            <div className="grid grid-cols-3 gap-4">
-              {MEAL_TYPES.map((meal) => {
-                const Icon = mealIcons[meal];
-                return (
-                  <Card key={meal}>
-                    <CardContent className="pt-6 text-center">
-                      <Icon className="h-8 w-8 mx-auto mb-2 text-primary" />
-                      <p className="text-2xl font-bold">{mealCounts[meal]}</p>
-                      <p className="text-sm text-muted-foreground">{mealLabels[meal]}</p>
-                      <p className="text-xs text-muted-foreground mt-1">of {totalStudents} students</p>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
+            {/* Today's dinner summary — single card */}
+            <Card>
+              <CardContent className="pt-6 text-center">
+                <Moon className="h-8 w-8 mx-auto mb-2 text-primary" />
+                <p className="text-2xl font-bold">{dinnerCount}</p>
+                <p className="text-sm text-muted-foreground">Dinner</p>
+                <p className="text-xs text-muted-foreground mt-1">of {totalStudents} students</p>
+              </CardContent>
+            </Card>
 
             {/* Meal Trend Chart */}
             <MealTrendChart />
@@ -521,61 +667,19 @@ const RLCoachDashboard = () => {
                   <QrCode className="h-5 w-5" />
                   Scan Student QR Codes
                 </CardTitle>
-                <CardDescription>Select a meal type, then start scanning</CardDescription>
+                <CardDescription>
+                  Scanning Dinner{myHouseName ? ` for ${myHouseName}` : ""}
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-3 gap-3">
-                  {MEAL_TYPES.map((meal) => {
-                    const Icon = mealIcons[meal];
-                    const isSelected = selectedMeal === meal;
-                    return (
-                      <Button
-                        key={meal}
-                        variant={isSelected ? "default" : "outline"}
-                        className="h-20 flex-col gap-2"
-                        onClick={() => setSelectedMeal(meal)}
-                      >
-                        <Icon className="h-6 w-6" />
-                        {mealLabels[meal]}
-                      </Button>
-                    );
-                  })}
-                </div>
-                {selectedMeal === "dinner" && (
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium flex items-center gap-2">
-                      <Home className="h-4 w-4" />
-                      Select House for Dinner
-                    </label>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                      {houses.map((house) => (
-                        <button
-                          key={house.id}
-                          onClick={() => setSelectedDinnerHouse(house.id)}
-                          className={`rounded-xl border-2 p-2 text-xs font-semibold transition-all hover:scale-105 ${
-                            selectedDinnerHouse === house.id
-                              ? "border-primary bg-primary/10 shadow-md"
-                              : "border-muted hover:border-primary/40"
-                          }`}
-                        >
-                          {house.name}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
                 <Button
                   size="lg"
                   className="w-full"
-                  disabled={!selectedMeal || (selectedMeal === "dinner" && !selectedDinnerHouse)}
+                  disabled={!myHouseId}
                   onClick={() => setMealScanning(true)}
                 >
                   <QrCode className="h-5 w-5 mr-2" />
-                  {!selectedMeal
-                    ? "Select a meal first"
-                    : selectedMeal === "dinner" && !selectedDinnerHouse
-                    ? "Select a house first"
-                    : `Start Scanning for ${mealLabels[selectedMeal]}${selectedMeal === "dinner" ? ` (${houses.find(h => h.id === selectedDinnerHouse)?.name || ""})` : ""}`}
+                  {!myHouseId ? "Set your house first" : "Start Scanning Dinner"}
                 </Button>
               </CardContent>
             </Card>
@@ -682,7 +786,7 @@ const RLCoachDashboard = () => {
                   size="lg"
                   className="w-full"
                   onClick={finalizeWorkout}
-                  disabled={finalizing}
+                  disabled={finalizing || !myHouseId}
                 >
                   {finalizing ? "Processing..." : "Finalize & Notify Absences"}
                 </Button>

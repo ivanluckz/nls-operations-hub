@@ -197,8 +197,9 @@ serve(async (req) => {
         .from('workout_notifications')
         .select('*', { count: 'exact', head: true })
         .is('acknowledged_by', null);
-      personalContext += `\n\n**Today's Workout Attendance:** ${todayWorkouts?.length || 0} scans recorded.`;
-      if (pendingNotifications) personalContext += `\n**Pending Workout Notifications:** ${pendingNotifications} unacknowledged.`;
+      personalContext += `\n\n**Today's Workout Attendance (your house):** ${todayWorkouts?.length || 0} scans recorded.`;
+      if (pendingNotifications) personalContext += `\n**Pending Late Notifications (your house):** ${pendingNotifications} unacknowledged.`;
+      if (houseName) personalContext += `\n**Your House:** ${houseName}`;
     } else if (userRole === 'medical') {
       const today = new Date().toISOString().split('T')[0];
       const { data: todayVisits } = await (supabase as any)
@@ -241,7 +242,7 @@ serve(async (req) => {
       teacher: `You are speaking with a teacher named ${profileData?.full_name || 'Teacher'}. Help them with managing their activities, taking attendance, understanding student rosters, and sending messages to activity groups.`,
       moderator: `You are speaking with a moderator named ${profileData?.full_name || 'Moderator'}. Help them with overseeing activities, managing allocations, reviewing attendance reports, and handling student issues. You can provide system-level insights.`,
       admin: `You are speaking with an administrator named ${profileData?.full_name || 'Admin'}${houseName ? ` of House ${houseName}` : ''}. Help them with full system management including user roles, activity creation, bulk imports, allocation runs, house assignments, and system configuration. Provide detailed technical guidance when needed.`,
-      rl_coach: `You are speaking with an RL Coach named ${profileData?.full_name || 'RL Coach'}. Help them manage morning workouts, scan student attendance, review workout notifications, handle meal scanning (breakfast and dinner), and view student workout clearances from the medical team.`,
+      rl_coach: `You are speaking with an RL Coach named ${profileData?.full_name || 'RL Coach'}${houseName ? ` (House ${houseName})` : ''}. Help them manage morning workouts for their house, scan student workout attendance (present or late), review late-arrival notifications, handle dinner meal scanning for their house students, and view student workout clearances from the medical team. Note: RL coaches are scoped to their own house — they only see and manage students from their assigned house. They receive notifications only when students are late (not absent). Moderators handle lunch scanning.`,
       medical: `You are speaking with a medical staff member named ${profileData?.full_name || 'Medical Staff'}. Help them log student medical visits, manage workout clearances (cleared or restricted), and track student health records. You have access to today's visit count and restriction data.`,
       kitchen_staff: `You are speaking with kitchen staff named ${profileData?.full_name || 'Kitchen Staff'}. Help them with meal attendance tracking via QR scanning and viewing daily meal statistics.`,
     };
@@ -261,7 +262,8 @@ ${personalContext}
 - Students can be marked as: ✅ Present, ⏰ Late, ❌ Absent, or 🔵 Excused
 - Only admins and moderators can pre-excuse students
 - **Houses**: There are 8 houses (Amistad, Altruismo, Sollevare, Nukumori, Protos, Onraka, Reveur, Isibindi). House selection is **one-time and permanent** — once chosen it cannot be changed by the student. Only admins can reassign a student's house via User Management.
-- **Roles**: student, teacher, moderator, admin, rl_coach (morning workouts + meals), medical (health records + workout clearances), kitchen_staff (meal scanning)
+- **Roles**: student, teacher, moderator, admin, rl_coach (morning workouts + **dinner** meal scanning for their house; only notified on late arrivals), medical (health records + workout clearances), kitchen_staff (meal scanning)
+- **Meal responsibility**: RL coaches scan **dinner** for their house students. Moderators handle **lunch** scanning. Kitchen staff handle general meal scanning.
 
 ## Response Guidelines
 - Use **markdown formatting** for clarity (bold, lists, headers)
