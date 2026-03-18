@@ -277,12 +277,29 @@ const UserManagement = () => {
   };
 
   const filterBySearch = (userList: Profile[]) => {
-    if (!searchQuery.trim()) return userList;
-    const query = searchQuery.toLowerCase();
-    return userList.filter(user =>
-      user.full_name?.toLowerCase().includes(query) ||
-      user.email?.toLowerCase().includes(query)
-    );
+    let result = userList;
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(user =>
+        user.full_name?.toLowerCase().includes(query) ||
+        user.email?.toLowerCase().includes(query)
+      );
+    }
+    if (filterClass !== "all") {
+      if (filterClass === "none") {
+        result = result.filter(user => !(user as any).student_class);
+      } else {
+        result = result.filter(user => (user as any).student_class === filterClass);
+      }
+    }
+    if (filterMentor !== "all") {
+      if (filterMentor === "none") {
+        result = result.filter(user => !(user as any).mentor_id);
+      } else {
+        result = result.filter(user => (user as any).mentor_id === filterMentor);
+      }
+    }
+    return result;
   };
 
   const getUsersByRole = (role: string) => {
