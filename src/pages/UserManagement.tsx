@@ -339,7 +339,7 @@ const UserManagement = () => {
         <TableBody>
           {filteredUsers.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={8} className="text-center text-muted-foreground">
+              <TableCell colSpan={10} className="text-center text-muted-foreground">
                 No users found in this category
               </TableCell>
             </TableRow>
