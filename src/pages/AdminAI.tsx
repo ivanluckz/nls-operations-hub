@@ -313,9 +313,11 @@ You help admins:
 - **Allocations**: 5-ranked preference system per day slot. Allocation engine runs server-side.
 - **Bulk Import**: CSV-based bulk import for students and teachers.
 - **Medical Module**: Medical staff log visits (\`medical_visits\`) and manage workout clearances (\`workout_clearances\`: cleared/restricted). QR scanning for check-in.
-- **RL Coach Module**: RL coaches manage morning workouts via QR scanning (\`workout_attendance\`). Auto-flag absent students in \`workout_notifications\` (3+ absences or 5+ late in 14 days).
-- **Meal Attendance**: RL coaches handle breakfast/dinner, moderators handle lunch. QR scanning into \`meal_attendance\` table.
+- **RL Coach Module**: RL coaches manage morning workouts via QR scanning (\`workout_attendance\`). Auto-flag absent students in \`workout_notifications\` (3+ absences or 5+ late in 14 days). Workout attendance restricted to specific authorized users.
+- **Meal Attendance**: RL coaches handle breakfast + **house-based dinner** (must select a target house before scanning). Moderators handle lunch. Mentor teachers also scan lunch for their mentees. QR scanning into \`meal_attendance\` table (includes \`house_id\` for dinner scans).
 - **Houses**: 8 houses (Amistad, Altruismo, Sollevare, Nukumori, Protos, Onraka, Reveur, Isibindi) in \`houses\` table. Students assigned via \`profiles.house_id\`. House selection is **one-time and permanent** for students — only admins can reassign via \`assign_house\` action.
+- **Class Selection**: Students choose their class (7A-E, 8A-F) on first login. Stored in \`profiles.student_class\`. One-time selection — only admins can change via User Management.
+- **Mentor System**: Students select a mentor teacher from a predefined list. Stored in \`profiles.mentor_id\` (references teacher's profile ID). Mentor teachers gain lunch attendance scanning capability on their Teacher Dashboard.
 - **Roles**: student, teacher, moderator, admin, rl_coach (workouts + meals), medical (health + clearances), kitchen_staff (meal scanning).
 
 ## PENDING STUDENT REQUESTS

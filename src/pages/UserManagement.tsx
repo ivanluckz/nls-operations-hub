@@ -102,7 +102,7 @@ const UserManagement = () => {
     (supabase as any).from("houses").select("id, name, color").order("name").then(({ data }: any) => {
       if (data) setHouses(data);
     });
-    supabase.from("profiles").select("id, full_name").in("email" as any, TEACHER_EMAILS).order("full_name").then(({ data }: any) => {
+    (supabase as any).from("profiles").select("id, full_name").in("email", TEACHER_EMAILS).order("full_name").then(({ data }: any) => {
       if (data) setTeachers(data.filter((t: any) => t.full_name));
     });
   }, []);
@@ -132,10 +132,10 @@ const UserManagement = () => {
         .from("user_roles")
         .select("user_id, role");
 
-      const usersWithRoles: Profile[] = profilesData?.map(profile => ({
+      const usersWithRoles: Profile[] = (profilesData || []).map((profile: any) => ({
         ...profile,
         roles: (rolesData || []).filter((r) => r.user_id === profile.id) as any
-      })) || [];
+      }));
 
       setUsers(usersWithRoles);
     } catch (error) {
