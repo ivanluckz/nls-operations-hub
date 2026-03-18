@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Users, Shield, UserCog, GraduationCap, UserX, Trash2, Edit, Search, CheckSquare } from "lucide-react";
+import { Users, Shield, UserCog, GraduationCap, UserX, Trash2, Edit, Search, CheckSquare, Filter } from "lucide-react";
 import StudentBulkImport from "@/components/StudentBulkImport";
 import TeacherBulkImport from "@/components/TeacherBulkImport";
 import { AdminLayout } from "@/components/admin/AdminLayout";
