@@ -32,12 +32,48 @@ interface House {
   color: string;
 }
 
+const TEACHER_EMAILS = [
+  "alina.herzog@ntare-louisenlund.org",
+  "alphonse.maniraguha@ntare-louisenlund.org",
+  "bhatia.sakshi@ntare-louisenlund.org",
+  "caleb.asiso@ntare-louisenlund.org",
+  "christoph.frickhinger@ntare-louisenlund.org",
+  "david.nishimwe@ntare-louisenlund.org",
+  "david.niyitegeka@ntare-louisenlund.org",
+  "davis.omondi@ntare-louisenlund.org",
+  "edagbo.blessing@ntare-louisenlund.org",
+  "francine.mukankusi@ntare-louisenlund.org",
+  "gloria.mutoni@ntare-louisenlund.org",
+  "irene.gashagaza@ntare-louisenlund.org",
+  "jean.mbarushimana@ntare-louisenlund.org",
+  "jean.murenzi@ntare-louisenlund.org",
+  "jean.nyabyenda@ntare-louisenlund.org",
+  "kathleen.challenor@ntare-louisenlund.org",
+  "kennedy.koja@ntare-louisenlund.org",
+  "linnet.chebet@ntare-louisenlund.org",
+  "lisa.rucyaha@ntare-louisenlund.org",
+  "mauritz.viljoen@ntare-louisenlund.org",
+  "mildred.nabunje@ntare-louisenlund.org",
+  "patrick.muhire@ntare-louisenlund.org",
+  "pierre.niyibigira@ntare-louisenlund.org",
+  "piotr-tomaszczuk@ntare-louisenlund.org",
+  "pontien.ntirenganya@ntare-louisenlund.org",
+  "praveen.rana@ntare-louisenlund.org",
+  "robert.tugume@ntare-louisenlund.org",
+  "scovia.kabanyana@ntare-louisenlund.org",
+  "sebastian.wagner@ntare-louisenlund.org",
+  "solange.uwiduhaye@ntare-louisenlund.org",
+  "stacy.hill@ntare-louisenlund.org",
+  "welford.mclellan@ntare-louisenlund.org",
+];
+
 interface Profile {
   id: string;
   email: string;
   full_name: string;
   avatar_url: string | null;
   house_id: string | null;
+  mentor_id: string | null;
   roles: Array<{ role: AppRole }>;
   banned: boolean;
   created_at: string;
@@ -52,7 +88,9 @@ const UserManagement = () => {
   const [editName, setEditName] = useState("");
   const [editRole, setEditRole] = useState<AppRole>("student");
   const [editHouseId, setEditHouseId] = useState<string | null>(null);
+  const [editMentorId, setEditMentorId] = useState<string | null>(null);
   const [houses, setHouses] = useState<House[]>([]);
+  const [teachers, setTeachers] = useState<{ id: string; full_name: string }[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
   const [bulkRoleDialogOpen, setBulkRoleDialogOpen] = useState(false);
@@ -63,6 +101,9 @@ const UserManagement = () => {
     fetchUsers();
     (supabase as any).from("houses").select("id, name, color").order("name").then(({ data }: any) => {
       if (data) setHouses(data);
+    });
+    supabase.from("profiles").select("id, full_name").in("email" as any, TEACHER_EMAILS).order("full_name").then(({ data }: any) => {
+      if (data) setTeachers(data.filter((t: any) => t.full_name));
     });
   }, []);
 
@@ -82,7 +123,7 @@ const UserManagement = () => {
     try {
       const { data: profilesData, error: profilesError } = await supabase
         .from("profiles")
-        .select("id, email, full_name, avatar_url, house_id, banned, created_at")
+        .select("id, email, full_name, avatar_url, house_id, mentor_id, banned, created_at" as any)
         .order("created_at", { ascending: false });
 
       if (profilesError) throw profilesError;
@@ -110,6 +151,7 @@ const UserManagement = () => {
     setEditName(user.full_name);
     setEditRole(user.roles[0]?.role || "student");
     setEditHouseId(user.house_id || null);
+    setEditMentorId((user as any).mentor_id || null);
   };
 
   const getInitials = (name: string) => {
@@ -121,7 +163,7 @@ const UserManagement = () => {
     try {
       const { error: profileError } = await supabase
         .from("profiles")
-        .update({ full_name: editName, house_id: editHouseId } as any)
+        .update({ full_name: editName, house_id: editHouseId, mentor_id: editMentorId } as any)
         .eq("id", editingUser.id);
       if (profileError) throw profileError;
 
@@ -510,6 +552,20 @@ const UserManagement = () => {
                   </SelectContent>
                 </Select>
               </div>
+              {editRole === "student" && (
+                <div className="grid gap-2">
+                  <Label htmlFor="mentor">Mentor Teacher</Label>
+                  <Select value={editMentorId || "none"} onValueChange={(v) => setEditMentorId(v === "none" ? null : v)}>
+                    <SelectTrigger><SelectValue placeholder="No mentor" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No mentor</SelectItem>
+                      {teachers.map((t) => (
+                        <SelectItem key={t.id} value={t.id}>{t.full_name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setEditingUser(null)}>Cancel</Button>
