@@ -92,6 +92,8 @@ const UserManagement = () => {
   const [houses, setHouses] = useState<House[]>([]);
   const [teachers, setTeachers] = useState<{ id: string; full_name: string }[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [filterClass, setFilterClass] = useState<string>("all");
+  const [filterMentor, setFilterMentor] = useState<string>("all");
   const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
   const [bulkRoleDialogOpen, setBulkRoleDialogOpen] = useState(false);
   const [bulkRole, setBulkRole] = useState<AppRole>("student");
