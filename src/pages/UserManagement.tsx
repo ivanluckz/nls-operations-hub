@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Users, Shield, UserCog, GraduationCap, UserX, Trash2, Edit, Search, CheckSquare } from "lucide-react";
+import { Users, Shield, UserCog, GraduationCap, UserX, Trash2, Edit, Search, CheckSquare, Filter } from "lucide-react";
 import StudentBulkImport from "@/components/StudentBulkImport";
 import TeacherBulkImport from "@/components/TeacherBulkImport";
 import { AdminLayout } from "@/components/admin/AdminLayout";
@@ -92,6 +92,8 @@ const UserManagement = () => {
   const [houses, setHouses] = useState<House[]>([]);
   const [teachers, setTeachers] = useState<{ id: string; full_name: string }[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [filterClass, setFilterClass] = useState<string>("all");
+  const [filterMentor, setFilterMentor] = useState<string>("all");
   const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
   const [bulkRoleDialogOpen, setBulkRoleDialogOpen] = useState(false);
   const [bulkRole, setBulkRole] = useState<AppRole>("student");
@@ -275,12 +277,29 @@ const UserManagement = () => {
   };
 
   const filterBySearch = (userList: Profile[]) => {
-    if (!searchQuery.trim()) return userList;
-    const query = searchQuery.toLowerCase();
-    return userList.filter(user =>
-      user.full_name?.toLowerCase().includes(query) ||
-      user.email?.toLowerCase().includes(query)
-    );
+    let result = userList;
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(user =>
+        user.full_name?.toLowerCase().includes(query) ||
+        user.email?.toLowerCase().includes(query)
+      );
+    }
+    if (filterClass !== "all") {
+      if (filterClass === "none") {
+        result = result.filter(user => !(user as any).student_class);
+      } else {
+        result = result.filter(user => (user as any).student_class === filterClass);
+      }
+    }
+    if (filterMentor !== "all") {
+      if (filterMentor === "none") {
+        result = result.filter(user => !(user as any).mentor_id);
+      } else {
+        result = result.filter(user => (user as any).mentor_id === filterMentor);
+      }
+    }
+    return result;
   };
 
   const getUsersByRole = (role: string) => {
@@ -311,15 +330,16 @@ const UserManagement = () => {
             <TableHead>Name</TableHead>
             <TableHead>Email</TableHead>
             <TableHead>Role</TableHead>
+            <TableHead>Class</TableHead>
+            <TableHead>Mentor</TableHead>
             <TableHead>Status</TableHead>
-            <TableHead>Created</TableHead>
             <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {filteredUsers.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={8} className="text-center text-muted-foreground">
+              <TableCell colSpan={10} className="text-center text-muted-foreground">
                 No users found in this category
               </TableCell>
             </TableRow>
@@ -348,6 +368,20 @@ const UserManagement = () => {
                   </Badge>
                 </TableCell>
                 <TableCell>
+                  {(user as any).student_class ? (
+                    <Badge variant="secondary">{(user as any).student_class}</Badge>
+                  ) : (
+                    <span className="text-muted-foreground text-xs">—</span>
+                  )}
+                </TableCell>
+                <TableCell>
+                  {(user as any).mentor_id ? (
+                    <span className="text-sm">{teachers.find(t => t.id === (user as any).mentor_id)?.full_name || "Unknown"}</span>
+                  ) : (
+                    <span className="text-muted-foreground text-xs">—</span>
+                  )}
+                </TableCell>
+                <TableCell>
                   {user.banned ? (
                     <Badge variant="destructive">Banned</Badge>
                   ) : (
@@ -355,9 +389,6 @@ const UserManagement = () => {
                       Active
                     </Badge>
                   )}
-                </TableCell>
-                <TableCell>
-                  {new Date(user.created_at).toLocaleDateString()}
                 </TableCell>
                 <TableCell>
                   <div className="flex gap-2">
@@ -478,14 +509,40 @@ const UserManagement = () => {
             <CardDescription>
               Browse and manage users organized by their role. Select users with checkboxes for bulk role changes.
             </CardDescription>
-            <div className="relative mt-4">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search by name or email..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
+            <div className="flex flex-col sm:flex-row gap-3 mt-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search by name or email..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <Select value={filterClass} onValueChange={setFilterClass}>
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue placeholder="Class" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Classes</SelectItem>
+                  <SelectItem value="none">No Class</SelectItem>
+                  {["7A","7B","7C","7D","7E","8A","8B","8C","8D","8E","8F"].map(c => (
+                    <SelectItem key={c} value={c}>{c}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={filterMentor} onValueChange={setFilterMentor}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Mentor" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Mentors</SelectItem>
+                  <SelectItem value="none">No Mentor</SelectItem>
+                  {teachers.map(t => (
+                    <SelectItem key={t.id} value={t.id}>{t.full_name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </CardHeader>
           <CardContent>
