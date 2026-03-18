@@ -368,6 +368,20 @@ const UserManagement = () => {
                   </Badge>
                 </TableCell>
                 <TableCell>
+                  {(user as any).student_class ? (
+                    <Badge variant="secondary">{(user as any).student_class}</Badge>
+                  ) : (
+                    <span className="text-muted-foreground text-xs">—</span>
+                  )}
+                </TableCell>
+                <TableCell>
+                  {(user as any).mentor_id ? (
+                    <span className="text-sm">{teachers.find(t => t.id === (user as any).mentor_id)?.full_name || "Unknown"}</span>
+                  ) : (
+                    <span className="text-muted-foreground text-xs">—</span>
+                  )}
+                </TableCell>
+                <TableCell>
                   {user.banned ? (
                     <Badge variant="destructive">Banned</Badge>
                   ) : (
@@ -375,9 +389,6 @@ const UserManagement = () => {
                       Active
                     </Badge>
                   )}
-                </TableCell>
-                <TableCell>
-                  {new Date(user.created_at).toLocaleDateString()}
                 </TableCell>
                 <TableCell>
                   <div className="flex gap-2">
