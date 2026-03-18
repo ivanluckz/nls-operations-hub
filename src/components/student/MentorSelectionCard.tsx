@@ -70,10 +70,10 @@ const MentorSelectionCard = () => {
       setSelectedMentorId((profile as any)?.mentor_id || null);
 
       // Fetch teachers by known email list — works even before role migration runs
-      const { data: teacherProfiles } = await supabase
+      const { data: teacherProfiles } = await (supabase as any)
         .from("profiles")
         .select("id, full_name")
-        .in("email" as any, TEACHER_EMAILS)
+        .in("email", TEACHER_EMAILS)
         .order("full_name");
 
       setTeachers((teacherProfiles || []).filter(t => t.full_name));

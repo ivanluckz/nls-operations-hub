@@ -132,10 +132,10 @@ const UserManagement = () => {
         .from("user_roles")
         .select("user_id, role");
 
-      const usersWithRoles: Profile[] = profilesData?.map(profile => ({
+      const usersWithRoles: Profile[] = (profilesData || []).map((profile: any) => ({
         ...profile,
         roles: (rolesData || []).filter((r) => r.user_id === profile.id) as any
-      })) || [];
+      }));
 
       setUsers(usersWithRoles);
     } catch (error) {
