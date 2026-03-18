@@ -509,14 +509,40 @@ const UserManagement = () => {
             <CardDescription>
               Browse and manage users organized by their role. Select users with checkboxes for bulk role changes.
             </CardDescription>
-            <div className="relative mt-4">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search by name or email..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
+            <div className="flex flex-col sm:flex-row gap-3 mt-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search by name or email..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <Select value={filterClass} onValueChange={setFilterClass}>
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue placeholder="Class" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Classes</SelectItem>
+                  <SelectItem value="none">No Class</SelectItem>
+                  {["7A","7B","7C","7D","7E","8A","8B","8C","8D","8E","8F"].map(c => (
+                    <SelectItem key={c} value={c}>{c}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={filterMentor} onValueChange={setFilterMentor}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Mentor" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Mentors</SelectItem>
+                  <SelectItem value="none">No Mentor</SelectItem>
+                  {teachers.map(t => (
+                    <SelectItem key={t.id} value={t.id}>{t.full_name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </CardHeader>
           <CardContent>
