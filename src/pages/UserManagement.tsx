@@ -330,8 +330,9 @@ const UserManagement = () => {
             <TableHead>Name</TableHead>
             <TableHead>Email</TableHead>
             <TableHead>Role</TableHead>
+            <TableHead>Class</TableHead>
+            <TableHead>Mentor</TableHead>
             <TableHead>Status</TableHead>
-            <TableHead>Created</TableHead>
             <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>
