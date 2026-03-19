@@ -1,28 +1,69 @@
 
 
-## Plan: Add "for the lulz" and "You can now sleep" Dev AI Triggers
+# Attendance Streaks & Gamification
 
-### What changes
+## Overview
+Add attendance streak tracking and gamification to the platform. Students earn points and badges based on consistent attendance across co-curricular activities, meals, and workouts. Streaks and stats feed into the existing Leaderboard.
 
-**File: `src/pages/ActivityChatbot.tsx`**
+## Database Changes
 
-1. **Add "for the lulz" as an alternative Dev AI activation phrase** (alongside existing "wake up to reality"):
-   - Add a second constant `LULZ_PHRASE = "for the lulz"`
-   - In `sendMessage`, check for both `WAKE_PHRASE` and `LULZ_PHRASE` to activate Dev mode
-   - Same badge check, same Dev mode flow — just a second trigger phrase
+**New table: `attendance_streaks`**
+- `id` (uuid, PK)
+- `student_id` (uuid, references profiles)
+- `streak_type` (text: 'activity', 'meal', 'workout')
+- `current_streak` (integer, default 0)
+- `longest_streak` (integer, default 0)
+- `last_recorded_date` (date)
+- `updated_at` (timestamptz)
 
-2. **Add "You can now sleep" deactivation phrase** that nukes the chat:
-   - Add constant `SLEEP_PHRASE = "you can now sleep"`
-   - In `sendMessage`, if user is a Dev and message contains the sleep phrase, immediately:
-     - Clear the entire `messages` array
-     - Replace with a single random funny/meme assistant message (from a hardcoded list of ~10 random messages like "Session terminated. Memory wiped. I was never here.", "01001100 01001111 01001100", "The matrix has you...", etc.)
-     - No API call, no loading state — instant replacement
-     - Show a toast like "💤 Dev Mode Deactivated"
+RLS: Students read own rows; admins/mods read all; system updates via trigger.
 
-### Technical details
+**New table: `streak_milestones`**
+- `id` (uuid, PK)
+- `student_id` (uuid)
+- `milestone_type` (text: '7_day', '14_day', '30_day', '50_day', '100_day')
+- `streak_type` (text)
+- `achieved_at` (timestamptz)
+- Unique constraint on (student_id, milestone_type, streak_type)
 
-- Both phrases require `checkDevBadge()` — non-dev users get "Access Denied"
-- The sleep phrase skips the API call entirely; it's purely client-side chat replacement
-- The random messages array will have ~8 entries, picked via `Math.random()`
-- Lines affected: ~17 (constants), ~214-227 (sendMessage logic)
+RLS: Students read own; admins/mods read all.
+
+**Database function: `update_attendance_streak()`**
+A trigger function on `attendance_records`, `meal_attendance`, and `workout_attendance` INSERT that:
+1. Checks if the student has a streak row for the type
+2. If last_recorded_date = yesterday, increment current_streak
+3. If last_recorded_date = today, no-op
+4. Otherwise, reset current_streak to 1
+5. Update longest_streak if current > longest
+6. Auto-insert milestone rows at 7, 14, 30, 50, 100 days
+7. Auto-award badges ("On Fire" at 7-day, "Star Student" at 30-day) via user_badges insert
+
+## UI Changes
+
+### 1. Student Dashboard - Streak Widget (`src/components/student/StreakCard.tsx`)
+- Shows current streaks for activity, meal, workout with flame icons
+- Displays longest streak and next milestone progress bar
+- Compact card added to the "choose" section of StudentDashboard
+
+### 2. Leaderboard Enhancement (`src/pages/Leaderboard.tsx`)
+- Add streak score to the leaderboard formula: `score = badges*3 + activities + longest_streak`
+- Add a "Streaks" column showing flame icon + current streak
+- New filter option: "Sort by Streak"
+
+### 3. Streak Milestone Notifications
+- When a milestone is hit, show a celebratory toast on next dashboard load
+- Store seen milestones in localStorage (same pattern as request reviews)
+
+## Files to Create/Modify
+- **Create:** `src/components/student/StreakCard.tsx`
+- **Modify:** `src/pages/StudentDashboard.tsx` (add StreakCard)
+- **Modify:** `src/pages/Leaderboard.tsx` (add streak data to score + display)
+- **Modify:** `src/lib/constants.ts` (add streak constants)
+- **Migration:** Create tables, function, and triggers
+
+## Technical Notes
+- Triggers use SECURITY DEFINER to bypass RLS for streak updates
+- Streak calculation is done server-side in triggers, not client-side
+- The streak function handles idempotency (multiple scans same day = no double-count)
+- Badge auto-awards respect the existing `block_dev_badge_insert` trigger
 
