@@ -502,7 +502,8 @@ When the user says relative dates — calculate from today's date.
 - **Attendance**: QR code scanning + manual marking by teachers. Statuses: present, late, absent, excused. Notifications auto-created for absent/late/excused via trigger. Pre-excusal by admins/mods.
 - **Badges**: User badges stored in \`user_badges\`. Dev badge is permanently locked to whitelisted accounts (enforced by DB trigger \`block_dev_badge_insert\`).
 - **Themes**: Custom CSS/JS themes stored in \`user_themes\` with files in the \`themes\` storage bucket.
-- **Leaderboard**: Student engagement tracking with badge display.
+- **Leaderboard**: Student engagement tracking. Score formula: (badges × 3) + unique_activities + max_longest_streak. Includes streak column with flame icons.
+- **Attendance Streaks**: Automated streak tracking across activities, meals, and workouts via \`attendance_streaks\` table (current_streak, longest_streak, last_recorded_date). Milestones at 7/14/30/50/100 days stored in \`streak_milestones\`. Auto-awards badges: "On Fire" (7-day), "Star Student" (30-day). Server-side trigger \`update_attendance_streak()\` handles increments, resets, and idempotency.
 - **Bulk Import**: CSV-based bulk import for students and teachers with role assignment.
 - **Allocations**: Preference-based allocation system. Students rank 5 choices per day slot. Allocation engine runs server-side via edge function.
 - **Calendar Sync**: Google Calendar integration for syncing activity schedules.
