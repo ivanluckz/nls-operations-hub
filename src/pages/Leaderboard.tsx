@@ -131,12 +131,13 @@ const Leaderboard = () => {
         ...e,
         badges: badgeMap[e.id] || [],
         activityCount: activityMap[e.id]?.size || 0,
-        score: (badgeMap[e.id]?.length || 0) * 3 + (activityMap[e.id]?.size || 0),
+        longestStreak: streakMap[e.id] || 0,
+        score: (badgeMap[e.id]?.length || 0) * 3 + (activityMap[e.id]?.size || 0) + (streakMap[e.id] || 0),
       }))
       .filter(e => e.score > 0)
       .sort((a, b) => b.score - a.score)
       .slice(0, 50);
-  }, [baseEntries, rawBadges, activityMap, activityFilter, timeFilter]);
+  }, [baseEntries, rawBadges, activityMap, streakMap, activityFilter, timeFilter]);
 
   const top3 = entries.slice(0, 3);
   const rest = entries.slice(3);
