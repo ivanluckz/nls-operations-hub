@@ -318,6 +318,8 @@ You help admins:
 - **Houses**: 8 houses (Amistad, Altruismo, Sollevare, Nukumori, Protos, Onraka, Reveur, Isibindi) in \`houses\` table. Students assigned via \`profiles.house_id\`. House selection is **one-time and permanent** for students — only admins can reassign via \`assign_house\` action.
 - **Class Selection**: Students choose their class (7A-E, 8A-F) on first login. Stored in \`profiles.student_class\`. One-time selection — only admins can change via User Management.
 - **Mentor System**: Students select a mentor teacher from a predefined list. Stored in \`profiles.mentor_id\` (references teacher's profile ID). Mentor teachers gain lunch attendance scanning capability on their Teacher Dashboard.
+- **Leaderboard**: Student engagement tracking. Score formula: (badges × 3) + unique_activities + max_longest_streak. Includes streak column with flame icons.
+- **Attendance Streaks**: Automated streak tracking across activities, meals, and workouts via \`attendance_streaks\` table (current_streak, longest_streak, last_recorded_date). Milestones at 7/14/30/50/100 days stored in \`streak_milestones\`. Auto-awards badges: "On Fire" (7-day), "Star Student" (30-day). Server-side trigger \`update_attendance_streak()\` handles increments, resets, and idempotency.
 - **Roles**: student, teacher, moderator, admin, rl_coach (workouts + meals), medical (health + clearances), kitchen_staff (meal scanning).
 
 ## PENDING STUDENT REQUESTS
