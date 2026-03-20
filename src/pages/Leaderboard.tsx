@@ -72,11 +72,12 @@ const Leaderboard = () => {
       const studentIds = (studentRoles || []).map(r => r.user_id);
       if (studentIds.length === 0) { setLoading(false); return; }
 
-      const [profilesRes, badgesRes, allocsRes, activitiesRes] = await Promise.all([
+      const [profilesRes, badgesRes, allocsRes, activitiesRes, streaksRes] = await Promise.all([
         supabase.from("profiles").select("id, full_name").in("id", studentIds),
         supabase.from("user_badges").select("user_id, badge_name, awarded_at").in("user_id", studentIds).limit(2000),
         supabase.from("allocations").select("student_id, activity_id").in("student_id", studentIds).limit(5000),
         supabase.from("activities").select("id, title").order("title").limit(200),
+        supabase.from("attendance_streaks" as any).select("student_id, current_streak, longest_streak, streak_type").in("student_id", studentIds).limit(2000),
       ]);
 
       const profileMap = new Map((profilesRes.data || []).map(p => [p.id, p.full_name]));
