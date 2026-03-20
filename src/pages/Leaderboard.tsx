@@ -88,6 +88,12 @@ const Leaderboard = () => {
         aMap[a.student_id].add(a.activity_id);
       });
 
+      // Build streak map: student_id -> max longest_streak across types
+      const sMap: Record<string, number> = {};
+      ((streaksRes.data || []) as unknown as StreakRow[]).forEach(s => {
+        sMap[s.student_id] = Math.max(sMap[s.student_id] || 0, s.longest_streak);
+      });
+
       const entries: BaseEntry[] = studentIds
         .filter(id => profileMap.has(id))
         .map(id => ({ id, name: profileMap.get(id) || "Unknown" }));
@@ -95,6 +101,7 @@ const Leaderboard = () => {
       setBaseEntries(entries);
       setRawBadges((badgesRes.data || []) as RawBadge[]);
       setActivityMap(aMap);
+      setStreakMap(sMap);
       setAllActivities(activitiesRes.data || []);
       setLoading(false);
     };
