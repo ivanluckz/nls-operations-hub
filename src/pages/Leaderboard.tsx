@@ -278,7 +278,7 @@ const Leaderboard = () => {
             </div>
 
             <p className="text-center text-xs text-muted-foreground mt-6">
-              Score = badges × 3 + activities. Top 50 students shown.
+              Score = badges × 3 + activities + longest streak. Top 50 shown.
             </p>
           </>
         )}

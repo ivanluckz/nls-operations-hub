@@ -168,6 +168,7 @@ const StudentDashboard = () => {
 
             {/* House & Workout Selection */}
             <div className="grid grid-cols-1 gap-5 w-full max-w-lg mx-auto">
+              <StreakCard />
               <ClassSelectionCard />
               <MentorSelectionCard />
               <HouseSelectionCard />

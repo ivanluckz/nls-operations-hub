@@ -99,3 +99,13 @@ export const DATE_RANGE_LIMITS = {
   MAX_DAYS_PAST: 30,
   MAX_DAYS_FUTURE: 30
 } as const;
+
+export const STREAK_TYPES = ['activity', 'meal', 'workout'] as const;
+export type StreakType = typeof STREAK_TYPES[number];
+
+export const STREAK_MILESTONES = [7, 14, 30, 50, 100] as const;
+
+export const STREAK_BADGE_AWARDS: Record<number, string> = {
+  7: 'On Fire',
+  30: 'Star Student',
+} as const;
