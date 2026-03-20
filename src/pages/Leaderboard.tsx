@@ -51,6 +51,7 @@ const Leaderboard = () => {
   const [baseEntries, setBaseEntries] = useState<BaseEntry[]>([]);
   const [rawBadges, setRawBadges] = useState<RawBadge[]>([]);
   const [activityMap, setActivityMap] = useState<Record<string, Set<string>>>({});
+  const [streakMap, setStreakMap] = useState<Record<string, number>>({});
   const [allActivities, setAllActivities] = useState<{ id: string; title: string }[]>([]);
   const [currentUserId, setCurrentUserId] = useState("");
   const [loading, setLoading] = useState(true);
