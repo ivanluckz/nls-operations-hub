@@ -268,6 +268,7 @@ const Leaderboard = () => {
                       </div>
                       <p className="text-xs text-muted-foreground">
                         {entry.badges.length} badge{entry.badges.length !== 1 ? "s" : ""} · {entry.activityCount} activit{entry.activityCount !== 1 ? "ies" : "y"}
+                        {entry.longestStreak > 0 && <> · 🔥{entry.longestStreak}d</>}
                       </p>
                     </div>
                     <span className="text-sm font-bold text-muted-foreground shrink-0">{entry.score}pts</span>
