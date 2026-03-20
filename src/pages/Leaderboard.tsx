@@ -37,6 +37,7 @@ function getInitials(name: string) {
 
 interface RawBadge { user_id: string; badge_name: string; awarded_at: string; }
 interface BaseEntry { id: string; name: string; }
+interface StreakRow { student_id: string; current_streak: number; longest_streak: number; streak_type: string; }
 type TimePeriod = "all" | "month" | "week";
 
 const PODIUM_MEDALS = ["🥇", "🥈", "🥉"];
@@ -50,6 +51,7 @@ const Leaderboard = () => {
   const [baseEntries, setBaseEntries] = useState<BaseEntry[]>([]);
   const [rawBadges, setRawBadges] = useState<RawBadge[]>([]);
   const [activityMap, setActivityMap] = useState<Record<string, Set<string>>>({});
+  const [streakMap, setStreakMap] = useState<Record<string, number>>({});
   const [allActivities, setAllActivities] = useState<{ id: string; title: string }[]>([]);
   const [currentUserId, setCurrentUserId] = useState("");
   const [loading, setLoading] = useState(true);
@@ -70,11 +72,12 @@ const Leaderboard = () => {
       const studentIds = (studentRoles || []).map(r => r.user_id);
       if (studentIds.length === 0) { setLoading(false); return; }
 
-      const [profilesRes, badgesRes, allocsRes, activitiesRes] = await Promise.all([
+      const [profilesRes, badgesRes, allocsRes, activitiesRes, streaksRes] = await Promise.all([
         supabase.from("profiles").select("id, full_name").in("id", studentIds),
         supabase.from("user_badges").select("user_id, badge_name, awarded_at").in("user_id", studentIds).limit(2000),
         supabase.from("allocations").select("student_id, activity_id").in("student_id", studentIds).limit(5000),
         supabase.from("activities").select("id, title").order("title").limit(200),
+        supabase.from("attendance_streaks" as any).select("student_id, current_streak, longest_streak, streak_type").in("student_id", studentIds).limit(2000),
       ]);
 
       const profileMap = new Map((profilesRes.data || []).map(p => [p.id, p.full_name]));
@@ -85,6 +88,12 @@ const Leaderboard = () => {
         aMap[a.student_id].add(a.activity_id);
       });
 
+      // Build streak map: student_id -> max longest_streak across types
+      const sMap: Record<string, number> = {};
+      ((streaksRes.data || []) as unknown as StreakRow[]).forEach(s => {
+        sMap[s.student_id] = Math.max(sMap[s.student_id] || 0, s.longest_streak);
+      });
+
       const entries: BaseEntry[] = studentIds
         .filter(id => profileMap.has(id))
         .map(id => ({ id, name: profileMap.get(id) || "Unknown" }));
@@ -92,6 +101,7 @@ const Leaderboard = () => {
       setBaseEntries(entries);
       setRawBadges((badgesRes.data || []) as RawBadge[]);
       setActivityMap(aMap);
+      setStreakMap(sMap);
       setAllActivities(activitiesRes.data || []);
       setLoading(false);
     };
@@ -121,12 +131,13 @@ const Leaderboard = () => {
         ...e,
         badges: badgeMap[e.id] || [],
         activityCount: activityMap[e.id]?.size || 0,
-        score: (badgeMap[e.id]?.length || 0) * 3 + (activityMap[e.id]?.size || 0),
+        longestStreak: streakMap[e.id] || 0,
+        score: (badgeMap[e.id]?.length || 0) * 3 + (activityMap[e.id]?.size || 0) + (streakMap[e.id] || 0),
       }))
       .filter(e => e.score > 0)
       .sort((a, b) => b.score - a.score)
       .slice(0, 50);
-  }, [baseEntries, rawBadges, activityMap, activityFilter, timeFilter]);
+  }, [baseEntries, rawBadges, activityMap, streakMap, activityFilter, timeFilter]);
 
   const top3 = entries.slice(0, 3);
   const rest = entries.slice(3);
@@ -257,6 +268,7 @@ const Leaderboard = () => {
                       </div>
                       <p className="text-xs text-muted-foreground">
                         {entry.badges.length} badge{entry.badges.length !== 1 ? "s" : ""} · {entry.activityCount} activit{entry.activityCount !== 1 ? "ies" : "y"}
+                        {entry.longestStreak > 0 && <> · 🔥{entry.longestStreak}d</>}
                       </p>
                     </div>
                     <span className="text-sm font-bold text-muted-foreground shrink-0">{entry.score}pts</span>
@@ -266,7 +278,7 @@ const Leaderboard = () => {
             </div>
 
             <p className="text-center text-xs text-muted-foreground mt-6">
-              Score = badges × 3 + activities. Top 50 students shown.
+              Score = badges × 3 + activities + longest streak. Top 50 shown.
             </p>
           </>
         )}

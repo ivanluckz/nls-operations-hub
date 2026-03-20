@@ -318,6 +318,44 @@ export type Database = {
           },
         ]
       }
+      attendance_streaks: {
+        Row: {
+          current_streak: number
+          id: string
+          last_recorded_date: string | null
+          longest_streak: number
+          streak_type: string
+          student_id: string
+          updated_at: string
+        }
+        Insert: {
+          current_streak?: number
+          id?: string
+          last_recorded_date?: string | null
+          longest_streak?: number
+          streak_type: string
+          student_id: string
+          updated_at?: string
+        }
+        Update: {
+          current_streak?: number
+          id?: string
+          last_recorded_date?: string | null
+          longest_streak?: number
+          streak_type?: string
+          student_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_streaks_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       badge_requests: {
         Row: {
           badge_name: string
@@ -862,6 +900,38 @@ export type Database = {
             columns: ["house_id"]
             isOneToOne: false
             referencedRelation: "houses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      streak_milestones: {
+        Row: {
+          achieved_at: string
+          id: string
+          milestone_type: string
+          streak_type: string
+          student_id: string
+        }
+        Insert: {
+          achieved_at?: string
+          id?: string
+          milestone_type: string
+          streak_type: string
+          student_id: string
+        }
+        Update: {
+          achieved_at?: string
+          id?: string
+          milestone_type?: string
+          streak_type?: string
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "streak_milestones_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
