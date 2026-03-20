@@ -37,6 +37,7 @@ function getInitials(name: string) {
 
 interface RawBadge { user_id: string; badge_name: string; awarded_at: string; }
 interface BaseEntry { id: string; name: string; }
+interface StreakRow { student_id: string; current_streak: number; longest_streak: number; streak_type: string; }
 type TimePeriod = "all" | "month" | "week";
 
 const PODIUM_MEDALS = ["🥇", "🥈", "🥉"];
