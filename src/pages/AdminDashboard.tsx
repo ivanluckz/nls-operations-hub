@@ -68,7 +68,7 @@ const AdminDashboard = () => {
         { count: dms },
         { count: clearances },
       ] = await Promise.all([
-        supabase.from("user_roles").select("id", { count: "exact", head: true }).eq("role", "student"),
+        supabase.from("user_roles").select("id, profiles!inner(banned)", { count: "exact", head: true }).eq("role", "student").eq("profiles.banned", false),
         supabase.from("activities").select("id", { count: "exact", head: true }).eq("is_active", true),
         supabase.rpc("count_allocated_students"),
         supabase.from("preferences").select("id", { count: "exact", head: true }),
