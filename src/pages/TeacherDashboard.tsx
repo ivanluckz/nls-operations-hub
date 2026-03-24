@@ -17,6 +17,7 @@ import HouseSelectionCard from "@/components/student/HouseSelectionCard";
 import AttendanceChart from "@/components/dashboard/AttendanceChart";
 import TodayScheduleWidget from "@/components/dashboard/TodayScheduleWidget";
 import MealQRScanner from "@/components/kitchen/MealQRScanner";
+import { UserProfileCard } from "@/components/chat/UserProfileCard";
 
 interface ActivityData {
   id: string;
@@ -48,6 +49,8 @@ const TeacherDashboard = () => {
   const [lunchCount, setLunchCount] = useState(0);
   const [lastLunchScanned, setLastLunchScanned] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
+  const [profileCard, setProfileCard] = useState<{ studentId: string; studentName: string } | null>(null);
+  const [studentBadges, setStudentBadges] = useState<Record<string, string[]>>({});
 
   useEffect(() => {
     fetchData();
@@ -67,7 +70,21 @@ const TeacherDashboard = () => {
 
       setProfile(profileData);
       setActivities(activitiesData || []);
-      setStudents(studentsData || []);
+      const studentsList = studentsData || [];
+      setStudents(studentsList);
+
+      // Fetch badges for all students
+      const studentIds = [...new Set(studentsList.map((s: any) => s.student_id))];
+      if (studentIds.length > 0) {
+        const { data: badgeRows } = await (supabase as any)
+          .from("user_badges").select("user_id, badge_name").in("user_id", studentIds);
+        const bMap: Record<string, string[]> = {};
+        (badgeRows || []).forEach((b: any) => {
+          if (!bMap[b.user_id]) bMap[b.user_id] = [];
+          bMap[b.user_id].push(b.badge_name);
+        });
+        setStudentBadges(bMap);
+      }
 
       // Check if this teacher has mentees
       const { count } = await (supabase as any)
@@ -356,7 +373,14 @@ const TeacherDashboard = () => {
                         <TableBody>
                           {dayStudents.map((student) => (
                             <TableRow key={`${student.student_id}-${student.activity_title}`}>
-                              <TableCell className="font-medium">{student.student_name}</TableCell>
+                              <TableCell className="font-medium">
+                                <button
+                                  className="hover:underline hover:text-primary transition-colors cursor-pointer text-left"
+                                  onClick={() => setProfileCard({ studentId: student.student_id, studentName: student.student_name })}
+                                >
+                                  {student.student_name}
+                                </button>
+                              </TableCell>
                               <TableCell className="text-muted-foreground">{student.student_email}</TableCell>
                               <TableCell>
                                 <Badge variant="outline">{student.activity_title}</Badge>
@@ -403,6 +427,30 @@ const TeacherDashboard = () => {
         <ActivityMessaging />
       </main>
       <FloatingChatButton />
+      {profileCard && (
+        <UserProfileCard
+          open={!!profileCard}
+          onClose={() => setProfileCard(null)}
+          senderId={profileCard.studentId}
+          senderName={profileCard.studentName}
+          isAdmin={false}
+          isTeacher={false}
+          badges={studentBadges[profileCard.studentId] || []}
+          isAdminViewing={true}
+          onBadgeGranted={(badgeName) => {
+            setStudentBadges(prev => ({
+              ...prev,
+              [profileCard.studentId]: [...(prev[profileCard.studentId] || []), badgeName],
+            }));
+          }}
+          onBadgeRemoved={(badgeName) => {
+            setStudentBadges(prev => ({
+              ...prev,
+              [profileCard.studentId]: (prev[profileCard.studentId] || []).filter(b => b !== badgeName),
+            }));
+          }}
+        />
+      )}
     </div>
   );
 };
