@@ -70,7 +70,21 @@ const TeacherDashboard = () => {
 
       setProfile(profileData);
       setActivities(activitiesData || []);
-      setStudents(studentsData || []);
+      const studentsList = studentsData || [];
+      setStudents(studentsList);
+
+      // Fetch badges for all students
+      const studentIds = [...new Set(studentsList.map((s: any) => s.student_id))];
+      if (studentIds.length > 0) {
+        const { data: badgeRows } = await (supabase as any)
+          .from("user_badges").select("user_id, badge_name").in("user_id", studentIds);
+        const bMap: Record<string, string[]> = {};
+        (badgeRows || []).forEach((b: any) => {
+          if (!bMap[b.user_id]) bMap[b.user_id] = [];
+          bMap[b.user_id].push(b.badge_name);
+        });
+        setStudentBadges(bMap);
+      }
 
       // Check if this teacher has mentees
       const { count } = await (supabase as any)
