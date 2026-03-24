@@ -427,6 +427,30 @@ const TeacherDashboard = () => {
         <ActivityMessaging />
       </main>
       <FloatingChatButton />
+      {profileCard && (
+        <UserProfileCard
+          open={!!profileCard}
+          onClose={() => setProfileCard(null)}
+          senderId={profileCard.studentId}
+          senderName={profileCard.studentName}
+          isAdmin={false}
+          isTeacher={false}
+          badges={studentBadges[profileCard.studentId] || []}
+          isAdminViewing={true}
+          onBadgeGranted={(badgeName) => {
+            setStudentBadges(prev => ({
+              ...prev,
+              [profileCard.studentId]: [...(prev[profileCard.studentId] || []), badgeName],
+            }));
+          }}
+          onBadgeRemoved={(badgeName) => {
+            setStudentBadges(prev => ({
+              ...prev,
+              [profileCard.studentId]: (prev[profileCard.studentId] || []).filter(b => b !== badgeName),
+            }));
+          }}
+        />
+      )}
     </div>
   );
 };
