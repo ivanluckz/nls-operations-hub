@@ -17,6 +17,7 @@ import HouseSelectionCard from "@/components/student/HouseSelectionCard";
 import AttendanceChart from "@/components/dashboard/AttendanceChart";
 import TodayScheduleWidget from "@/components/dashboard/TodayScheduleWidget";
 import MealQRScanner from "@/components/kitchen/MealQRScanner";
+import { UserProfileCard } from "@/components/chat/UserProfileCard";
 
 interface ActivityData {
   id: string;

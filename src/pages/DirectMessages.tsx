@@ -916,7 +916,7 @@ const DirectMessages = () => {
           isAdmin={profileCard.isAdmin}
           isTeacher={profileCard.isTeacher}
           badges={userBadges[profileCard.senderId] || []}
-          isAdminViewing={isAdmin}
+          isAdminViewing={isAdmin || isTeacher}
           onBadgeGranted={(badgeName) => {
             setUserBadges(prev => ({
               ...prev,
