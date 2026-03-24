@@ -373,7 +373,14 @@ const TeacherDashboard = () => {
                         <TableBody>
                           {dayStudents.map((student) => (
                             <TableRow key={`${student.student_id}-${student.activity_title}`}>
-                              <TableCell className="font-medium">{student.student_name}</TableCell>
+                              <TableCell className="font-medium">
+                                <button
+                                  className="hover:underline hover:text-primary transition-colors cursor-pointer text-left"
+                                  onClick={() => setProfileCard({ studentId: student.student_id, studentName: student.student_name })}
+                                >
+                                  {student.student_name}
+                                </button>
+                              </TableCell>
                               <TableCell className="text-muted-foreground">{student.student_email}</TableCell>
                               <TableCell>
                                 <Badge variant="outline">{student.activity_title}</Badge>
