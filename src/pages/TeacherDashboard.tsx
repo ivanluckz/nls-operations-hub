@@ -49,6 +49,8 @@ const TeacherDashboard = () => {
   const [lunchCount, setLunchCount] = useState(0);
   const [lastLunchScanned, setLastLunchScanned] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
+  const [profileCard, setProfileCard] = useState<{ studentId: string; studentName: string } | null>(null);
+  const [studentBadges, setStudentBadges] = useState<Record<string, string[]>>({});
 
   useEffect(() => {
     fetchData();
