@@ -52,8 +52,12 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     const fetchStats = async () => {
+      // Pre-fetch student user IDs to exclude banned
+      const { data: studentRoleRows } = await supabase.from("user_roles").select("user_id").eq("role", "student");
+      const studentIds = studentRoleRows?.map(r => r.user_id) || [];
+      const { count: students } = await supabase.from("profiles").select("id", { count: "exact", head: true }).eq("banned", false).in("id", studentIds);
+
       const [
-        { count: students },
         { count: activities },
         { data: allocatedData },
         { count: preferences },
@@ -68,7 +72,6 @@ const AdminDashboard = () => {
         { count: dms },
         { count: clearances },
       ] = await Promise.all([
-        supabase.from("user_roles").select("id", { count: "exact", head: true }).eq("role", "student"),
         supabase.from("activities").select("id", { count: "exact", head: true }).eq("is_active", true),
         supabase.rpc("count_allocated_students"),
         supabase.from("preferences").select("id", { count: "exact", head: true }),
