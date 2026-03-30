@@ -162,7 +162,7 @@ const AdminDashboard = () => {
         </div>
 
         {/* Live Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           {statCards.map((s) => (
             <Card key={s.label} className="relative overflow-hidden cursor-pointer hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5 group" onClick={() => navigate(s.url)}>
               <CardContent className="p-5">
@@ -187,7 +187,7 @@ const AdminDashboard = () => {
         {/* Quick Actions */}
         <div>
           <h2 className="text-lg font-semibold mb-4">Quick Actions</h2>
-          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          <div className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             {quickActions.map((action) => (
               <Card
                 key={action.title}
@@ -211,7 +211,7 @@ const AdminDashboard = () => {
         {/* Highlighted / AI Actions */}
         <div>
           <h2 className="text-lg font-semibold mb-4">Tools & Reports</h2>
-          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          <div className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             {highlightActions.map((action) => (
               <Card
                 key={action.title}
