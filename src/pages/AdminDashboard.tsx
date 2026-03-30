@@ -187,7 +187,7 @@ const AdminDashboard = () => {
         {/* Quick Actions */}
         <div>
           <h2 className="text-lg font-semibold mb-4">Quick Actions</h2>
-          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          <div className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             {quickActions.map((action) => (
               <Card
                 key={action.title}
@@ -211,7 +211,7 @@ const AdminDashboard = () => {
         {/* Highlighted / AI Actions */}
         <div>
           <h2 className="text-lg font-semibold mb-4">Tools & Reports</h2>
-          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          <div className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             {highlightActions.map((action) => (
               <Card
                 key={action.title}
