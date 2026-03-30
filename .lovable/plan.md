@@ -1,56 +1,36 @@
 
 
-# Allow Teachers to Award Badges to Their Students
+# Allocations View Enhancements + Capacity Warnings + DM Latency Fix
 
-## Overview
-Co-curricular teachers can award badges to students enrolled in their activities. This requires a database RLS policy change and UI updates to expose the badge-grant panel to teachers viewing their students.
+## 1. DM Latency Fix (`src/pages/DirectMessages.tsx`)
 
-## Database Changes
+**Problem**: Every incoming realtime message triggers `loadConversations(userId)` (line 262) — a full re-fetch of all channels, profiles, roles, and last messages. Plus two separate profile lookups per message (lines 245, 259).
 
-**New RLS policy on `user_badges`** — Allow teachers to INSERT badges for students in their activities:
-```sql
-CREATE POLICY "Teachers can award badges to their students"
-ON public.user_badges FOR INSERT TO public
-WITH CHECK (
-  awarded_by = auth.uid()
-  AND has_role(auth.uid(), 'teacher')
-  AND EXISTS (
-    SELECT 1 FROM allocations al
-    JOIN activities a ON a.id = al.activity_id
-    WHERE al.student_id = user_badges.user_id
-      AND a.teacher_id = auth.uid()
-  )
-);
-```
+**Fix**:
+- **Remove `loadConversations` call from realtime handler**. Instead, update conversation list in-place: move the affected channel to the top and update its `lastMessage`/`lastAt` fields directly in state
+- **Single profile fetch per incoming message**: cache sender name from the first fetch, reuse it for both notification and message display
+- **Parallelize reaction loading** in `selectConversation`: move the reactions query into the same `Promise.all` as profiles/roles/badges instead of running it sequentially after
 
-**New RLS policy for DELETE** (so teachers can also remove badges they granted):
-```sql
-CREATE POLICY "Teachers can remove badges they awarded"
-ON public.user_badges FOR DELETE TO public
-USING (
-  awarded_by = auth.uid()
-  AND has_role(auth.uid(), 'teacher')
-);
-```
+## 2. Allocations View Enhancements (`src/pages/AllocationsView.tsx`)
 
-## UI Changes
+- **Summary stats bar**: Add Badge components above the table showing Total / Fully Assigned / Partially Assigned / Unassigned counts
+- **Unassigned row highlighting**: Apply `bg-amber-50 dark:bg-amber-950/20` to rows where student has zero allocations across all days
+- **Day-of-week filter**: Add a Select dropdown to filter by day — shows only students missing or having an allocation on that day
+- **Color-coded activity cells**: Define a category-to-color map and apply subtle background tints to activity cells (fetch category from activities table)
+- **Grade/class filter**: Add filter by `student_class` from profiles
 
-### 1. `UserProfileCard.tsx`
-- Rename `isAdminViewing` prop to also accept a new `isTeacherViewing` prop (or generalize to `canGrantBadges`)
-- Show the badge-grant panel when either admin or teacher is viewing a student profile
-- Teachers only see the panel for students in their activities
+## 3. Capacity Warnings (`src/pages/AdminDashboard.tsx` + `src/pages/ModeratorDashboard.tsx`)
 
-### 2. `TeacherDashboard.tsx` — Student Roster
-- Add a clickable student name/row that opens `UserProfileCard` for that student
-- Pass `canGrantBadges={true}` so the badge panel appears
-- Fetch badges for students and pass them to the card
-
-### 3. `DirectMessages.tsx`
-- Update the `isAdminViewing` logic: also pass `true` when the current user is a teacher viewing one of their students
+- Add a "Capacity Alerts" card that queries activities where `current_enrollment >= capacity * 0.9`
+- Show activity name, enrollment/capacity, and a colored progress bar (yellow ≥90%, red ≥100%)
+- Clicking an activity navigates to the activity roster
+- Same card added to both admin and moderator dashboards
 
 ## Files to Modify
-- **Migration**: New RLS policies on `user_badges`
-- `src/components/chat/UserProfileCard.tsx` — accept `canGrantBadges` prop alongside `isAdminViewing`
-- `src/pages/TeacherDashboard.tsx` — add student profile card with badge granting
-- `src/pages/DirectMessages.tsx` — enable badge panel for teachers viewing their students
+- `src/pages/DirectMessages.tsx` — realtime handler optimization, parallel queries
+- `src/pages/AllocationsView.tsx` — filters, stats bar, highlighting, color-coding
+- `src/pages/AdminDashboard.tsx` — capacity alerts card
+- `src/pages/ModeratorDashboard.tsx` — capacity alerts card
+
+No database changes needed.
 
