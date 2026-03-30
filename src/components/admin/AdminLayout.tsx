@@ -67,7 +67,7 @@ export function AdminLayout({ children, title, description }: AdminLayoutProps) 
               <GlobalSearch />
             </div>
           </header>
-          <main className="flex-1 p-6">
+          <main className="flex-1 p-3 sm:p-6">
             {children}
           </main>
         </SidebarInset>

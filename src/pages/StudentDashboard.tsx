@@ -56,6 +56,34 @@ const StudentDashboard = () => {
     fetchData();
   }, []);
 
+  // Realtime: notify when a new badge is awarded
+  useEffect(() => {
+    let userId: string | null = null;
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return;
+      userId = user.id;
+      const channel = supabase
+        .channel('badge-notifications')
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'user_badges', filter: `user_id=eq.${user.id}` },
+          (payload) => {
+            const badgeName = (payload.new as any)?.badge_name;
+            if (badgeName) {
+              setUserBadges(prev => prev.includes(badgeName) ? prev : [...prev, badgeName]);
+              toast({
+                title: `🎉 New Badge Earned!`,
+                description: `You've been awarded the "${badgeName}" badge!`,
+              });
+            }
+          }
+        )
+        .subscribe();
+
+      return () => { supabase.removeChannel(channel); };
+    });
+  }, []);
+
   const fetchData = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();

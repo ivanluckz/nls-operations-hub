@@ -162,7 +162,7 @@ const AdminDashboard = () => {
         </div>
 
         {/* Live Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           {statCards.map((s) => (
             <Card key={s.label} className="relative overflow-hidden cursor-pointer hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5 group" onClick={() => navigate(s.url)}>
               <CardContent className="p-5">
