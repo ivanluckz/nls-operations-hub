@@ -187,15 +187,15 @@ const StudentDashboard = () => {
           badges={userBadges}
         />
 
-        <main className="container mx-auto px-4 py-8 pb-24">
-          <div className="max-w-2xl mx-auto flex flex-col items-center justify-center min-h-[60vh] space-y-8">
-            <div className="text-center space-y-2">
-              <h2 className="text-2xl font-bold tracking-tight">What's on your mind?</h2>
+        <main className="container mx-auto px-3 sm:px-4 py-6 sm:py-8 pb-24">
+          <div className="max-w-2xl mx-auto flex flex-col items-center justify-center min-h-[50vh] space-y-6 sm:space-y-8">
+            <div className="text-center space-y-1.5">
+              <h2 className="text-xl sm:text-2xl font-bold tracking-tight">What's on your mind?</h2>
               <p className="text-muted-foreground text-sm">Choose a section to explore</p>
             </div>
 
             {/* House & Workout Selection */}
-            <div className="grid grid-cols-1 gap-5 w-full max-w-lg mx-auto">
+            <div className="grid grid-cols-1 gap-3 sm:gap-4 w-full max-w-lg mx-auto">
               <StreakCard />
               <ClassSelectionCard />
               <MentorSelectionCard />
@@ -204,17 +204,17 @@ const StudentDashboard = () => {
               <WorkoutNotificationsCard />
             </div>
 
-            <div className="grid grid-cols-1 gap-5 w-full max-w-sm mx-auto">
+            <div className="grid grid-cols-1 gap-4 w-full max-w-sm mx-auto">
               {/* Co-curricular */}
               <Card
-                className="h-full border-2 border-transparent hover:border-secondary/40 cursor-pointer hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group bg-gradient-to-br from-secondary/5 via-background to-secondary/5"
+                className="h-full border-2 border-transparent hover:border-secondary/40 cursor-pointer hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group bg-gradient-to-br from-secondary/5 via-background to-secondary/5 active:scale-[0.98]"
                 onClick={() => setSection("cocurricular")}
               >
-                <CardHeader className="pb-4 text-center">
-                  <div className="mx-auto w-14 h-14 rounded-2xl bg-secondary/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                    <Activity className="h-7 w-7 text-secondary" />
+                <CardHeader className="pb-3 text-center">
+                  <div className="mx-auto w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-secondary/10 flex items-center justify-center mb-2 sm:mb-3 group-hover:scale-110 transition-transform">
+                    <Activity className="h-6 w-6 sm:h-7 sm:w-7 text-secondary" />
                   </div>
-                  <CardTitle className="text-lg group-hover:text-secondary transition-colors">
+                  <CardTitle className="text-base sm:text-lg group-hover:text-secondary transition-colors">
                     Co-curricular
                   </CardTitle>
                   <CardDescription className="text-xs">
@@ -231,28 +231,28 @@ const StudentDashboard = () => {
 
             {/* Request Change */}
             <button onClick={() => navigate("/student/request")}
-              className="w-full max-w-md flex items-center justify-between rounded-2xl border bg-card px-5 py-4 shadow-sm hover:border-secondary/40 hover:bg-secondary/5 transition-colors text-left group">
+              className="w-full max-w-md flex items-center justify-between rounded-2xl border bg-card px-4 sm:px-5 py-3.5 sm:py-4 shadow-sm hover:border-secondary/40 hover:bg-secondary/5 transition-colors text-left group active:scale-[0.98]">
               <div className="flex items-center gap-3">
-                <FileText className="w-6 h-6 text-secondary" />
+                <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-secondary flex-shrink-0" />
                 <div>
                   <p className="font-semibold text-sm">Request a Change</p>
                   <p className="text-xs text-muted-foreground">Swap activities, get excused, or more</p>
                 </div>
               </div>
-              <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-secondary group-hover:translate-x-0.5 transition-all" />
+              <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-secondary group-hover:translate-x-0.5 transition-all flex-shrink-0" />
             </button>
 
             {/* Set Password */}
             <button onClick={() => navigate("/set-password")}
-              className="w-full max-w-md flex items-center justify-between rounded-2xl border border-dashed border-muted-foreground/30 bg-muted/30 px-5 py-3 shadow-sm hover:border-muted-foreground/50 hover:bg-muted/50 transition-all text-left group">
+              className="w-full max-w-md flex items-center justify-between rounded-2xl border border-dashed border-muted-foreground/30 bg-muted/30 px-4 sm:px-5 py-2.5 sm:py-3 shadow-sm hover:border-muted-foreground/50 hover:bg-muted/50 transition-all text-left group active:scale-[0.98]">
               <div className="flex items-center gap-3">
-                <KeyRound className="w-5 h-5 text-muted-foreground" />
+                <KeyRound className="w-5 h-5 text-muted-foreground flex-shrink-0" />
                 <div>
                   <p className="font-medium text-sm">Set Password</p>
                   <p className="text-xs text-muted-foreground">Enable email &amp; password sign-in</p>
                 </div>
               </div>
-              <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:translate-x-0.5 transition-transform" />
+              <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:translate-x-0.5 transition-transform flex-shrink-0" />
             </button>
           </div>
         </main>
@@ -269,26 +269,26 @@ const StudentDashboard = () => {
         badges={userBadges}
       />
 
-      <main className="container mx-auto px-4 py-8 pb-24">
-        <div className="max-w-5xl mx-auto space-y-8">
+      <main className="container mx-auto px-3 sm:px-4 py-6 sm:py-8 pb-24">
+        <div className="max-w-5xl mx-auto space-y-6 sm:space-y-8">
           {/* Switcher bar */}
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-secondary/10 flex items-center justify-center">
-                <Activity className="h-5 w-5 text-secondary" />
+            <div className="flex items-center gap-2.5 sm:gap-3">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-secondary/10 flex items-center justify-center">
+                <Activity className="h-4 w-4 sm:h-5 sm:w-5 text-secondary" />
               </div>
-              <h2 className="text-lg font-bold">Co-curricular</h2>
+              <h2 className="text-base sm:text-lg font-bold">Co-curricular</h2>
             </div>
             <button
               onClick={() => setSection("choose")}
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5 bg-muted/50 hover:bg-muted px-3 py-1.5 rounded-lg"
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5 bg-muted/50 hover:bg-muted px-3 py-1.5 rounded-lg active:scale-95"
             >
               ← Back
             </button>
           </div>
 
           {/* Status and QR Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
             <StatusCard
               status={status}
               onAction={() => navigate("/student/preferences")}
@@ -303,15 +303,15 @@ const StudentDashboard = () => {
           {/* Leaderboard quick-link */}
           {allocations.length > 0 && (
             <button onClick={() => navigate("/student/leaderboard")}
-              className="w-full flex items-center justify-between rounded-2xl border bg-card px-5 py-4 shadow-sm hover:border-primary/40 hover:bg-primary/5 transition-colors text-left group">
+              className="w-full flex items-center justify-between rounded-2xl border bg-card px-4 sm:px-5 py-3.5 sm:py-4 shadow-sm hover:border-primary/40 hover:bg-primary/5 transition-colors text-left group active:scale-[0.98]">
               <div className="flex items-center gap-3">
-                <span className="text-2xl">🏆</span>
+                <span className="text-xl sm:text-2xl">🏆</span>
                 <div>
                   <p className="font-semibold text-sm">Leaderboard</p>
                   <p className="text-xs text-muted-foreground">See where you rank among your peers</p>
                 </div>
               </div>
-              <span className="text-muted-foreground group-hover:text-primary transition-colors text-sm">View →</span>
+              <span className="text-muted-foreground group-hover:text-primary transition-colors text-sm flex-shrink-0">View →</span>
             </button>
           )}
 
@@ -322,11 +322,11 @@ const StudentDashboard = () => {
 
           {/* Action Cards for different states */}
           {status === "submitted" && (
-            <div className="bg-gradient-to-r from-secondary/5 via-background to-secondary/5 rounded-2xl p-6 border border-secondary/20">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="bg-gradient-to-r from-secondary/5 via-background to-secondary/5 rounded-2xl p-4 sm:p-6 border border-secondary/20">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
                 <div>
-                  <h3 className="font-semibold">Want to make changes?</h3>
-                  <p className="text-sm text-muted-foreground mt-1">
+                  <h3 className="font-semibold text-sm sm:text-base">Want to make changes?</h3>
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-1">
                     You can update your preferences before allocations are processed.
                   </p>
                 </div>
@@ -341,11 +341,11 @@ const StudentDashboard = () => {
           )}
 
           {status === "allocated" && (
-            <div className="bg-gradient-to-r from-muted/50 via-background to-muted/50 rounded-2xl p-6 border">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="bg-gradient-to-r from-muted/50 via-background to-muted/50 rounded-2xl p-4 sm:p-6 border">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
                 <div>
-                  <h3 className="font-semibold">Update for next allocation?</h3>
-                  <p className="text-sm text-muted-foreground mt-1">
+                  <h3 className="font-semibold text-sm sm:text-base">Update for next allocation?</h3>
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-1">
                     Submit new preferences for the upcoming allocation period.
                   </p>
                 </div>
