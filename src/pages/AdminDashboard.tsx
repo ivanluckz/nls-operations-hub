@@ -15,6 +15,7 @@ import HouseSelectionCard from "@/components/student/HouseSelectionCard";
 import TodayScheduleWidget from "@/components/dashboard/TodayScheduleWidget";
 import RecentActivityFeed from "@/components/dashboard/RecentActivityFeed";
 import AttendanceChart from "@/components/dashboard/AttendanceChart";
+import CapacityAlerts from "@/components/dashboard/CapacityAlerts";
 import { useCountUp } from "@/hooks/use-count-up";
 
 const AnimatedNumber = ({ value }: { value: number }) => {
@@ -243,7 +244,10 @@ const AdminDashboard = () => {
           <div className="lg:col-span-2">
             <AttendanceChart />
           </div>
-          <TodayScheduleWidget />
+          <div className="space-y-4">
+            <TodayScheduleWidget />
+            <CapacityAlerts />
+          </div>
         </div>
 
         <RecentActivityFeed />

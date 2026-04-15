@@ -25,6 +25,7 @@ import HouseBadge from "@/components/ui/HouseBadge";
 import AttendanceChart from "@/components/dashboard/AttendanceChart";
 import TodayScheduleWidget from "@/components/dashboard/TodayScheduleWidget";
 import RecentActivityFeed from "@/components/dashboard/RecentActivityFeed";
+import CapacityAlerts from "@/components/dashboard/CapacityAlerts";
 
 interface Stats {
   totalActivities: number;
@@ -400,7 +401,10 @@ const ModeratorDashboard = () => {
           <div className="lg:col-span-2">
             <AttendanceChart />
           </div>
-          <TodayScheduleWidget />
+          <div className="space-y-4">
+            <TodayScheduleWidget />
+            <CapacityAlerts />
+          </div>
         </div>
 
         <RecentActivityFeed />
