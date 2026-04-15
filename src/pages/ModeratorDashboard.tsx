@@ -183,19 +183,19 @@ const ModeratorDashboard = () => {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b bg-gradient-to-r from-secondary/5 via-background to-secondary/5">
-        <div className="container mx-auto px-4 py-5 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-secondary/20 to-primary/20 flex items-center justify-center">
-              <Settings className="w-6 h-6 text-secondary" />
+        <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-5 flex items-center justify-between">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-secondary/20 to-primary/20 flex items-center justify-center">
+              <Settings className="w-5 h-5 sm:w-6 sm:h-6 text-secondary" />
             </div>
             <div>
-              <h1 className="text-xl font-bold">Mentor Dashboard</h1>
-              <p className="text-sm text-muted-foreground">
+              <h1 className="text-lg sm:text-xl font-bold">Mentor Dashboard</h1>
+              <p className="text-xs sm:text-sm text-muted-foreground">
                 Co-curricular & lunch management
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             <HouseBadge />
             <Button variant="ghost" size="icon" onClick={handleLogout}>
               <LogOut className="w-4 h-4" />
@@ -205,7 +205,7 @@ const ModeratorDashboard = () => {
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8 space-y-6">
+      <main className="container mx-auto px-3 sm:px-4 py-6 sm:py-8 space-y-4 sm:space-y-6">
         {/* Lunch Attendance Card */}
         <Card className="border-amber-500/30 bg-amber-500/5 shadow-card">
           <CardHeader className="pb-3">
@@ -236,7 +236,7 @@ const ModeratorDashboard = () => {
         </Card>
 
         {/* Stats Grid */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
           <Card className="shadow-card">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Activities</CardTitle>
@@ -288,7 +288,7 @@ const ModeratorDashboard = () => {
             <CardTitle>Quick Actions</CardTitle>
             <CardDescription>Manage activities, manually allocate, and run auto-allocation</CardDescription>
           </CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <CardContent className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
             <Button onClick={() => navigate("/moderator/activities")} className="h-auto py-4 flex flex-col items-start gap-2">
               <div className="flex items-center gap-2">
                 <BookOpen className="w-5 h-5" />

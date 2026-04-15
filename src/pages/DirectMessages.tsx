@@ -72,25 +72,25 @@ interface ConvListProps {
 
 const ConvList = ({ conversations, selectedChannelId, onSelect, onBack, onNewDm, roles, badges }: ConvListProps) => (
   <div className="flex flex-col h-full">
-    <div className="px-3 py-4 border-b flex items-center gap-2">
+    <div className="px-3 py-3.5 sm:py-4 border-b flex items-center gap-2">
       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onBack}>
         <ArrowLeft className="h-3.5 w-3.5" />
       </Button>
-      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex-1">Direct Messages</p>
+      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex-1">Messages</p>
       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onNewDm} title="New DM">
         <Plus className="h-3.5 w-3.5" />
       </Button>
     </div>
-    <div className="flex-1 overflow-y-auto py-2 space-y-0.5 px-2">
+    <div className="flex-1 overflow-y-auto py-1.5 space-y-0.5 px-1.5">
       {conversations.length === 0 && (
-        <p className="text-xs text-muted-foreground text-center py-8">
+        <p className="text-xs text-muted-foreground text-center py-8 px-4">
           No conversations yet.<br />
-          Click <strong>+</strong> to start a new DM.
+          Tap <strong>+</strong> to start a new DM.
         </p>
       )}
       {conversations.map(conv => (
         <button key={conv.channelId} onClick={() => onSelect(conv)}
-          className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition-colors text-left
+          className={`w-full flex items-center gap-2.5 px-2.5 sm:px-3 py-2.5 rounded-lg text-sm transition-colors text-left active:scale-[0.98]
             ${selectedChannelId === conv.channelId
               ? "bg-primary/15 text-foreground font-medium"
               : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
@@ -100,7 +100,7 @@ const ConvList = ({ conversations, selectedChannelId, onSelect, onBack, onNewDm,
             isAdmin={roles[conv.otherId] === "admin"}
             isMod={roles[conv.otherId] === "teacher" || roles[conv.otherId] === "moderator"}
             isDev={isDevUser(badges[conv.otherId] || [])}
-            avatarSize="h-7 w-7"
+            avatarSize="h-8 w-8"
             textSize="text-[10px]"
           />
           <div className="flex-1 min-w-0">
@@ -109,7 +109,7 @@ const ConvList = ({ conversations, selectedChannelId, onSelect, onBack, onNewDm,
               {isDevUser(badges[conv.otherId] || []) && <img src={devBadgeImg} alt="Dev" className="h-5 w-5 object-contain inline-block" />}
             </p>
             {conv.lastMessage && (
-              <p className="text-xs text-muted-foreground truncate">{conv.lastMessage}</p>
+              <p className="text-[11px] text-muted-foreground truncate mt-0.5">{conv.lastMessage}</p>
             )}
           </div>
         </button>
