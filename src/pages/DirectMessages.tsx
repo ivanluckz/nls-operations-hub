@@ -428,6 +428,33 @@ const DirectMessages = () => {
         : Promise.resolve({ data: [] }),
     ]);
     const reactData = reactResult.data;
+    const profileMap = new Map((profiles || []).map(p => [p.id, p.full_name]));
+
+    const roleMap: Record<string, string> = {};
+    (roleRows || []).forEach((r: any) => {
+      if (!roleMap[r.user_id] || r.role === "admin") roleMap[r.user_id] = r.role;
+    });
+    setUserRoles(prev => ({ ...prev, ...roleMap }));
+
+    const badgeMap: Record<string, string[]> = {};
+    (badgeRows || []).forEach((b: any) => {
+      if (!badgeMap[b.user_id]) badgeMap[b.user_id] = [];
+      badgeMap[b.user_id].push(b.badge_name);
+    });
+    setUserBadges(prev => ({ ...prev, ...badgeMap }));
+
+    const msgs: DM[] = (data as any[]).map((m: any) => ({ ...m, senderName: profileMap.get(m.sender_id) || "Unknown" }));
+    setMessages(msgs);
+
+    // Build reactions from parallel-fetched data
+    const reactionMap: Record<string, Reaction[]> = {};
+    (reactData || []).forEach((r: any) => {
+      if (!reactionMap[r.message_id]) reactionMap[r.message_id] = [];
+      const g = reactionMap[r.message_id].find(x => x.emoji === r.emoji);
+      if (g) { g.count++; if (r.user_id === userId) g.mine = true; }
+      else reactionMap[r.message_id].push({ emoji: r.emoji, count: 1, mine: r.user_id === userId });
+    });
+    setDmReactions(reactionMap);
 
     // Mark received messages as read
     await (supabase as any)
