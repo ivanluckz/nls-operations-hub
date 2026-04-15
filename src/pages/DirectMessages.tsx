@@ -240,26 +240,38 @@ const DirectMessages = () => {
         const msg = payload.new as DM;
         const conv = selectedConvRef.current;
 
-        // Notify for messages from others
+        // Single profile fetch for sender name
+        let senderName = "Someone";
         if (msg.sender_id !== userId) {
           const { data: p } = await supabase.from("profiles").select("full_name").eq("id", msg.sender_id).single();
-          const senderName = p?.full_name || "Someone";
+          senderName = p?.full_name || "Someone";
           const isActiveConv = conv && msg.channel_id === conv.channelId;
           if (!isActiveConv || document.hidden) {
             notify(`💬 ${senderName}`, msg.content.slice(0, 100), `dm-${msg.channel_id}`);
           }
+        } else {
+          senderName = myNameRef.current || "You";
         }
 
         if (conv && msg.channel_id === conv.channelId) {
           setMessages(prev => {
             if (prev.some(m => m.id === msg.id)) return prev;
             const filtered = prev.filter(m => !(m.id.startsWith("optimistic-") && m.sender_id === msg.sender_id && m.content === msg.content));
-            return [...filtered, { ...msg, senderName: "..." }];
+            return [...filtered, { ...msg, senderName }];
           });
-          const { data: p } = await supabase.from("profiles").select("full_name").eq("id", msg.sender_id).single();
-          setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, senderName: p?.full_name || "Unknown" } : m));
         }
-        await loadConversations(userId);
+
+        // Update conversation list in-place instead of refetching
+        setConversations(prev => {
+          const updated = prev.map(c =>
+            c.channelId === msg.channel_id
+              ? { ...c, lastMessage: msg.content, lastAt: msg.created_at }
+              : c
+          );
+          // Sort so the updated channel goes to top
+          updated.sort((a, b) => (b.lastAt || "").localeCompare(a.lastAt || ""));
+          return updated;
+        });
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
@@ -406,49 +418,16 @@ const DirectMessages = () => {
     if (!data) return;
 
     const senderIds = [...new Set((data as any[]).map((m: any) => m.sender_id))] as string[];
-    const [{ data: profiles }, { data: roleRows }, { data: badgeRows }] = await Promise.all([
+    const msgIds = (data as any[]).map((m: any) => m.id);
+    const [{ data: profiles }, { data: roleRows }, { data: badgeRows }, reactResult] = await Promise.all([
       supabase.from("profiles").select("id, full_name").in("id", senderIds),
       supabase.from("user_roles").select("user_id, role").in("user_id", senderIds),
       (supabase as any).from("user_badges").select("user_id, badge_name").in("user_id", senderIds),
+      msgIds.length > 0
+        ? (supabase as any).from("dm_message_reactions").select("message_id, user_id, emoji").in("message_id", msgIds)
+        : Promise.resolve({ data: [] }),
     ]);
-    const profileMap = new Map((profiles || []).map(p => [p.id, p.full_name]));
-
-    const roleMap: Record<string, string> = {};
-    (roleRows || []).forEach((r: any) => {
-      if (!roleMap[r.user_id] || r.role === "admin") roleMap[r.user_id] = r.role;
-    });
-    setUserRoles(prev => ({ ...prev, ...roleMap }));
-
-    const badgeMap: Record<string, string[]> = {};
-    (badgeRows || []).forEach((b: any) => {
-      if (!badgeMap[b.user_id]) badgeMap[b.user_id] = [];
-      badgeMap[b.user_id].push(b.badge_name);
-    });
-    setUserBadges(prev => ({ ...prev, ...badgeMap }));
-
-    const msgs: DM[] = (data as any[]).map((m: any) => ({ ...m, senderName: profileMap.get(m.sender_id) || "Unknown" }));
-    setMessages(msgs);
-
-    // Load reactions for these messages
-    const msgIds = msgs.map(m => m.id);
-    if (msgIds.length > 0) {
-      const { data: reactData } = await (supabase as any)
-        .from("dm_message_reactions")
-        .select("message_id, user_id, emoji")
-        .in("message_id", msgIds);
-
-      const uid = (await supabase.auth.getUser()).data.user?.id;
-      const reactionMap: Record<string, Reaction[]> = {};
-      (reactData || []).forEach((r: any) => {
-        if (!reactionMap[r.message_id]) reactionMap[r.message_id] = [];
-        const g = reactionMap[r.message_id].find(x => x.emoji === r.emoji);
-        if (g) { g.count++; if (r.user_id === uid) g.mine = true; }
-        else reactionMap[r.message_id].push({ emoji: r.emoji, count: 1, mine: r.user_id === uid });
-      });
-      setDmReactions(reactionMap);
-    } else {
-      setDmReactions({});
-    }
+    const reactData = reactResult.data;
 
     // Mark received messages as read
     await (supabase as any)
