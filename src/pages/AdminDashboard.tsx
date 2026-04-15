@@ -20,7 +20,7 @@ import { useCountUp } from "@/hooks/use-count-up";
 
 const AnimatedNumber = ({ value }: { value: number }) => {
   const display = useCountUp(value, 800);
-  return <p className="text-3xl font-bold mt-1">{display.toLocaleString()}</p>;
+  return <p className="text-xl sm:text-2xl font-bold mt-0.5">{display.toLocaleString()}</p>;
 };
 
 
@@ -147,7 +147,7 @@ const AdminDashboard = () => {
 
   return (
     <AdminLayout>
-      <div className="space-y-8">
+      <div className="space-y-6 sm:space-y-8">
         {/* Header */}
         <div>
           <div className="flex items-center justify-between mb-1">
@@ -155,7 +155,7 @@ const AdminDashboard = () => {
               <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
                 <Activity className="h-5 w-5 text-primary" />
               </div>
-              <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Dashboard</h1>
             </div>
             <HouseBadge />
           </div>
@@ -163,21 +163,21 @@ const AdminDashboard = () => {
         </div>
 
         {/* Live Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-3">
           {statCards.map((s) => (
             <Card key={s.label} className="relative overflow-hidden cursor-pointer hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5 group" onClick={() => navigate(s.url)}>
-              <CardContent className="p-5">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground group-hover:text-primary transition-colors">{s.label}</p>
+              <CardContent className="p-3 sm:p-4">
+                <div className="flex items-start justify-between gap-1">
+                  <div className="min-w-0">
+                    <p className="text-[11px] sm:text-xs font-medium text-muted-foreground group-hover:text-primary transition-colors truncate">{s.label}</p>
                     <AnimatedNumber value={s.value} />
                   </div>
-                  <div className={`w-12 h-12 rounded-2xl ${s.bg} flex items-center justify-center group-hover:scale-110 transition-transform`}>
-                    <s.icon className={`h-6 w-6 ${s.color}`} />
+                  <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-xl ${s.bg} flex items-center justify-center group-hover:scale-110 transition-transform flex-shrink-0`}>
+                    <s.icon className={`h-4 w-4 sm:h-5 sm:w-5 ${s.color}`} />
                   </div>
                 </div>
               </CardContent>
-              <div className={`absolute bottom-0 left-0 right-0 h-1 ${s.bg}`} />
+              <div className={`absolute bottom-0 left-0 right-0 h-0.5 ${s.bg}`} />
             </Card>
           ))}
         </div>
@@ -187,22 +187,22 @@ const AdminDashboard = () => {
 
         {/* Quick Actions */}
         <div>
-          <h2 className="text-lg font-semibold mb-4">Quick Actions</h2>
-          <div className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+          <h2 className="text-base sm:text-lg font-semibold mb-3">Quick Actions</h2>
+          <div className="grid gap-2 sm:gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             {quickActions.map((action) => (
               <Card
                 key={action.title}
                 className="cursor-pointer hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5 group border-transparent hover:border-primary/20"
                 onClick={() => navigate(action.url)}
               >
-                <CardContent className="p-4">
-                  <div className={`w-10 h-10 rounded-xl ${action.bg} flex items-center justify-center mb-3 group-hover:scale-110 transition-transform`}>
-                    <action.icon className={`h-5 w-5 ${action.color}`} />
+                <CardContent className="p-3 sm:p-4">
+                  <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-xl ${action.bg} flex items-center justify-center mb-2 sm:mb-3 group-hover:scale-110 transition-transform`}>
+                    <action.icon className={`h-4 w-4 sm:h-5 sm:w-5 ${action.color}`} />
                   </div>
-                  <p className="font-semibold text-sm group-hover:text-primary transition-colors">
+                  <p className="font-semibold text-xs sm:text-sm group-hover:text-primary transition-colors leading-tight">
                     {action.title}
                   </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{action.description}</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 hidden sm:block">{action.description}</p>
                 </CardContent>
               </Card>
             ))}
@@ -211,18 +211,18 @@ const AdminDashboard = () => {
 
         {/* Highlighted / AI Actions */}
         <div>
-          <h2 className="text-lg font-semibold mb-4">Tools & Reports</h2>
-          <div className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+          <h2 className="text-base sm:text-lg font-semibold mb-3">Tools & Reports</h2>
+          <div className="grid gap-2 sm:gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             {highlightActions.map((action) => (
               <Card
                 key={action.title}
                 className="cursor-pointer hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5 group border-primary/10 bg-gradient-to-br from-primary/[0.03] to-transparent"
                 onClick={() => navigate(action.url)}
               >
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform">
-                      <action.icon className="h-5 w-5 text-primary" />
+                <CardContent className="p-3 sm:p-4">
+                  <div className="flex items-center justify-between mb-2 sm:mb-3">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <action.icon className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                     </div>
                     {action.badge && (
                       <Badge variant="destructive" className="text-[10px] h-5 px-1.5">
@@ -230,15 +230,16 @@ const AdminDashboard = () => {
                       </Badge>
                     )}
                   </div>
-                  <p className="font-semibold text-sm group-hover:text-primary transition-colors">
+                  <p className="font-semibold text-xs sm:text-sm group-hover:text-primary transition-colors leading-tight">
                     {action.title}
                   </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{action.description}</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 hidden sm:block">{action.description}</p>
                 </CardContent>
               </Card>
             ))}
           </div>
         </div>
+
         {/* Charts & Widgets */}
         <div className="grid gap-4 lg:grid-cols-3">
           <div className="lg:col-span-2">
@@ -251,7 +252,7 @@ const AdminDashboard = () => {
         </div>
 
         <RecentActivityFeed />
-        </div>
+      </div>
       <FloatingChatButton />
     </AdminLayout>
   );

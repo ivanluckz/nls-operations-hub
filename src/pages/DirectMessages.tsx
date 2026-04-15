@@ -72,25 +72,25 @@ interface ConvListProps {
 
 const ConvList = ({ conversations, selectedChannelId, onSelect, onBack, onNewDm, roles, badges }: ConvListProps) => (
   <div className="flex flex-col h-full">
-    <div className="px-3 py-4 border-b flex items-center gap-2">
+    <div className="px-3 py-3.5 sm:py-4 border-b flex items-center gap-2">
       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onBack}>
         <ArrowLeft className="h-3.5 w-3.5" />
       </Button>
-      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex-1">Direct Messages</p>
+      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex-1">Messages</p>
       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onNewDm} title="New DM">
         <Plus className="h-3.5 w-3.5" />
       </Button>
     </div>
-    <div className="flex-1 overflow-y-auto py-2 space-y-0.5 px-2">
+    <div className="flex-1 overflow-y-auto py-1.5 space-y-0.5 px-1.5">
       {conversations.length === 0 && (
-        <p className="text-xs text-muted-foreground text-center py-8">
+        <p className="text-xs text-muted-foreground text-center py-8 px-4">
           No conversations yet.<br />
-          Click <strong>+</strong> to start a new DM.
+          Tap <strong>+</strong> to start a new DM.
         </p>
       )}
       {conversations.map(conv => (
         <button key={conv.channelId} onClick={() => onSelect(conv)}
-          className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition-colors text-left
+          className={`w-full flex items-center gap-2.5 px-2.5 sm:px-3 py-2.5 rounded-lg text-sm transition-colors text-left active:scale-[0.98]
             ${selectedChannelId === conv.channelId
               ? "bg-primary/15 text-foreground font-medium"
               : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
@@ -100,7 +100,7 @@ const ConvList = ({ conversations, selectedChannelId, onSelect, onBack, onNewDm,
             isAdmin={roles[conv.otherId] === "admin"}
             isMod={roles[conv.otherId] === "teacher" || roles[conv.otherId] === "moderator"}
             isDev={isDevUser(badges[conv.otherId] || [])}
-            avatarSize="h-7 w-7"
+            avatarSize="h-8 w-8"
             textSize="text-[10px]"
           />
           <div className="flex-1 min-w-0">
@@ -109,7 +109,7 @@ const ConvList = ({ conversations, selectedChannelId, onSelect, onBack, onNewDm,
               {isDevUser(badges[conv.otherId] || []) && <img src={devBadgeImg} alt="Dev" className="h-5 w-5 object-contain inline-block" />}
             </p>
             {conv.lastMessage && (
-              <p className="text-xs text-muted-foreground truncate">{conv.lastMessage}</p>
+              <p className="text-[11px] text-muted-foreground truncate mt-0.5">{conv.lastMessage}</p>
             )}
           </div>
         </button>
@@ -597,11 +597,11 @@ const DirectMessages = () => {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-background overflow-hidden">
+    <div className="flex flex-col h-[100dvh] bg-background overflow-hidden">
       {showBanner && <NotificationBanner onEnable={requestPermission} onDismiss={dismissBanner} />}
       <div className="flex flex-1 overflow-hidden">
       {/* Desktop sidebar */}
-      <aside className="hidden md:flex w-60 flex-col border-r bg-card/50">
+      <aside className="hidden md:flex w-64 flex-col border-r bg-card/50">
         <ConvList
           conversations={conversations}
           selectedChannelId={selectedConv?.channelId ?? null}
@@ -616,14 +616,14 @@ const DirectMessages = () => {
       {/* Main area */}
       <div className="flex flex-col flex-1 min-w-0">
         {/* Header */}
-        <div className="flex-shrink-0 flex items-center gap-3 px-4 py-3 border-b bg-card/80 backdrop-blur">
+        <div className="flex-shrink-0 flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2.5 sm:py-3 border-b bg-card/80 backdrop-blur">
           <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" className="md:hidden h-8 w-8">
                 <Menu className="h-4 w-4" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="w-60 p-0">
+            <SheetContent side="left" className="w-72 p-0">
               <ConvList
                 conversations={conversations}
                 selectedChannelId={selectedConv?.channelId ?? null}
@@ -638,7 +638,7 @@ const DirectMessages = () => {
 
           {selectedConv ? (
             <>
-              <button className="cursor-pointer hover:opacity-80 transition-opacity"
+              <button className="cursor-pointer hover:opacity-80 transition-opacity flex-shrink-0"
                 onClick={() => setProfileCard({ senderId: selectedConv.otherId, senderName: selectedConv.otherName, isAdmin: userRoles[selectedConv.otherId] === "admin", isTeacher: userRoles[selectedConv.otherId] === "teacher" || userRoles[selectedConv.otherId] === "moderator" })}>
                 <RoleAvatar
                   userId={selectedConv.otherId}
@@ -649,7 +649,7 @@ const DirectMessages = () => {
                   avatarSize="h-8 w-8"
                 />
               </button>
-              <button className={`font-semibold text-sm hover:underline cursor-pointer flex items-center gap-1 ${devNameClass(userBadges[selectedConv.otherId] || [])}`}
+              <button className={`font-semibold text-sm hover:underline cursor-pointer flex items-center gap-1 truncate ${devNameClass(userBadges[selectedConv.otherId] || [])}`}
                 onClick={() => setProfileCard({ senderId: selectedConv.otherId, senderName: selectedConv.otherName, isAdmin: userRoles[selectedConv.otherId] === "admin", isTeacher: userRoles[selectedConv.otherId] === "teacher" || userRoles[selectedConv.otherId] === "moderator" })}>
                 {isDevUser(userBadges[selectedConv.otherId] || [])
                   ? <span className="dev-nameplate">{selectedConv.otherName}</span>
@@ -659,12 +659,12 @@ const DirectMessages = () => {
             </>
           ) : (
             <>
-              <MessageSquare className="h-5 w-5 text-primary" />
+              <MessageSquare className="h-5 w-5 text-primary flex-shrink-0" />
               <span className="font-semibold text-sm">Direct Messages</span>
             </>
           )}
 
-          <Button variant="ghost" size="icon" className="ml-auto h-8 w-8" onClick={handleBack}>
+          <Button variant="ghost" size="icon" className="ml-auto h-8 w-8 flex-shrink-0" onClick={handleBack}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
         </div>
@@ -837,7 +837,7 @@ const DirectMessages = () => {
 
         {/* Input */}
         {selectedConv && (
-          <div className="flex-shrink-0 px-4 py-3 border-t bg-background">
+          <div className="flex-shrink-0 px-3 sm:px-4 py-2 sm:py-3 border-t bg-background safe-area-bottom">
             <div className="flex items-end gap-2 bg-muted/50 rounded-xl px-3 py-2 border border-border focus-within:border-primary/40 transition-colors">
               <Textarea
                 value={content}
@@ -855,7 +855,7 @@ const DirectMessages = () => {
                 <Send className="h-4 w-4" />
               </Button>
             </div>
-            <p className="text-[10px] text-muted-foreground mt-1 text-right">
+            <p className="text-[10px] text-muted-foreground mt-1 text-right hidden sm:block">
               Enter to send · Shift+Enter for new line
             </p>
           </div>
