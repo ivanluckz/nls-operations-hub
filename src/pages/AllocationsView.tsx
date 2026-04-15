@@ -6,8 +6,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Search, FileDown, FileSpreadsheet, ChevronDown } from "lucide-react";
+import { ArrowLeft, Search, FileDown, FileSpreadsheet, ChevronDown, AlertTriangle } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -15,15 +16,36 @@ interface StudentAllocation {
   student_id: string;
   student_name: string;
   student_email: string;
+  student_class: string | null;
   monday_activity: string | null;
   tuesday_activity: string | null;
   wednesday_slot1_activity: string | null;
   wednesday_slot2_activity: string | null;
   thursday_activity: string | null;
   friday_activity: string | null;
+  monday_category: string | null;
+  tuesday_category: string | null;
+  wednesday_slot1_category: string | null;
+  wednesday_slot2_category: string | null;
+  thursday_category: string | null;
+  friday_category: string | null;
 }
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+
+const CATEGORY_COLORS: Record<string, string> = {
+  Sports: "bg-blue-50 dark:bg-blue-950/20",
+  Arts: "bg-purple-50 dark:bg-purple-950/20",
+  Service: "bg-green-50 dark:bg-green-950/20",
+  Academic: "bg-amber-50 dark:bg-amber-950/20",
+  Music: "bg-pink-50 dark:bg-pink-950/20",
+  Club: "bg-cyan-50 dark:bg-cyan-950/20",
+};
+
+const getCategoryBg = (category: string | null) => {
+  if (!category) return "";
+  return CATEGORY_COLORS[category] || "bg-muted/30";
+};
 
 const AllocationsView = () => {
   const navigate = useNavigate();
@@ -32,10 +54,16 @@ const AllocationsView = () => {
   const [filteredAllocations, setFilteredAllocations] = useState<StudentAllocation[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [activityFilter, setActivityFilter] = useState<string>("all");
+  const [dayFilter, setDayFilter] = useState<string>("all");
+  const [classFilter, setClassFilter] = useState<string>("all");
   const [activityOptions, setActivityOptions] = useState<string[]>([]);
+  const [classOptions, setClassOptions] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState<string>("");
   const [activeTab, setActiveTab] = useState("all");
+
+  // Capacity data for warning icons
+  const [capacityMap, setCapacityMap] = useState<Record<string, { enrollment: number; capacity: number }>>({});
 
   useEffect(() => {
     fetchData();
@@ -56,8 +84,31 @@ const AllocationsView = () => {
         alloc.friday_activity === activityFilter
       );
     }
+    if (classFilter !== "all") {
+      filtered = filtered.filter(alloc => alloc.student_class === classFilter);
+    }
+    if (dayFilter !== "all") {
+      filtered = filtered.filter(alloc => {
+        if (dayFilter === "Monday") return !!alloc.monday_activity;
+        if (dayFilter === "Tuesday") return !!alloc.tuesday_activity;
+        if (dayFilter === "Wednesday") return !!(alloc.wednesday_slot1_activity || alloc.wednesday_slot2_activity);
+        if (dayFilter === "Thursday") return !!alloc.thursday_activity;
+        if (dayFilter === "Friday") return !!alloc.friday_activity;
+        return true;
+      });
+    }
     setFilteredAllocations(filtered);
-  }, [searchTerm, activityFilter, allocations]);
+  }, [searchTerm, activityFilter, dayFilter, classFilter, allocations]);
+
+  const isAssigned = (alloc: StudentAllocation) =>
+    !!(alloc.monday_activity || alloc.tuesday_activity ||
+       alloc.wednesday_slot1_activity || alloc.wednesday_slot2_activity ||
+       alloc.thursday_activity || alloc.friday_activity);
+
+  const isFullyAssigned = (alloc: StudentAllocation) =>
+    !!(alloc.monday_activity && alloc.tuesday_activity &&
+       alloc.wednesday_slot1_activity && alloc.wednesday_slot2_activity &&
+       alloc.thursday_activity && alloc.friday_activity);
 
   const fetchData = async () => {
     try {
@@ -72,7 +123,6 @@ const AllocationsView = () => {
 
       setUserRole(roleData?.role || "");
 
-      // First fetch student user_ids
       const { data: studentRoles } = await supabase
         .from("user_roles")
         .select("user_id")
@@ -80,38 +130,65 @@ const AllocationsView = () => {
 
       const studentUserIds = (studentRoles || []).map(r => r.user_id);
 
-      const { data: students } = studentUserIds.length > 0
-        ? await supabase
-            .from("profiles")
-            .select("id, full_name, email")
-            .in("id", studentUserIds)
-            .order("full_name")
-        : { data: [] };
+      const [studentsResult, allocsResult, activitiesResult] = await Promise.all([
+        studentUserIds.length > 0
+          ? supabase.from("profiles").select("id, full_name, email, student_class").in("id", studentUserIds).order("full_name")
+          : Promise.resolve({ data: [] }),
+        supabase.from("allocations").select("student_id, activity_id, day_of_week, slot_number, activities(title, category)").limit(5000),
+        supabase.from("activities").select("title, capacity, current_enrollment").eq("is_active", true),
+      ]);
 
-      // Issue #28: Add query limit to prevent loading all records
-      const { data: allAllocations } = await supabase
-        .from("allocations")
-        .select("student_id, activity_id, day_of_week, slot_number, activities(title)")
-        .limit(5000); // Reasonable limit for school-sized datasets
+      const students = studentsResult.data || [];
+      const allAllocations = allocsResult.data || [];
+      const activities = activitiesResult.data || [];
 
-      const studentAllocations: StudentAllocation[] = (students || []).map(student => {
-        const studentAllocs = (allAllocations || []).filter(a => a.student_id === student.id);
-        
+      // Build capacity map
+      const capMap: Record<string, { enrollment: number; capacity: number }> = {};
+      activities.forEach((a: any) => {
+        capMap[a.title] = { enrollment: a.current_enrollment, capacity: a.capacity };
+      });
+      setCapacityMap(capMap);
+
+      // Collect unique classes
+      const classes = [...new Set(students.map(s => (s as any).student_class).filter(Boolean) as string[])].sort();
+      setClassOptions(classes);
+
+      const studentAllocations: StudentAllocation[] = students.map((student: any) => {
+        const studentAllocs = allAllocations.filter(a => a.student_id === student.id);
+        const getActivity = (day: string, slot?: number) => {
+          const a = studentAllocs.find(a => a.day_of_week === day && (slot === undefined || a.slot_number === slot));
+          return a ? { title: (a.activities as any)?.title || null, category: (a.activities as any)?.category || null } : { title: null, category: null };
+        };
+
+        const mon = getActivity('Monday');
+        const tue = getActivity('Tuesday');
+        const w1 = getActivity('Wednesday', 1);
+        const w2 = getActivity('Wednesday', 2);
+        const thu = getActivity('Thursday');
+        const fri = getActivity('Friday');
+
         return {
           student_id: student.id,
           student_name: student.full_name,
           student_email: student.email,
-          monday_activity: studentAllocs.find(a => a.day_of_week === 'Monday')?.activities?.title || null,
-          tuesday_activity: studentAllocs.find(a => a.day_of_week === 'Tuesday')?.activities?.title || null,
-          wednesday_slot1_activity: studentAllocs.find(a => a.day_of_week === 'Wednesday' && a.slot_number === 1)?.activities?.title || null,
-          wednesday_slot2_activity: studentAllocs.find(a => a.day_of_week === 'Wednesday' && a.slot_number === 2)?.activities?.title || null,
-          thursday_activity: studentAllocs.find(a => a.day_of_week === 'Thursday')?.activities?.title || null,
-          friday_activity: studentAllocs.find(a => a.day_of_week === 'Friday')?.activities?.title || null,
+          student_class: student.student_class,
+          monday_activity: mon.title,
+          tuesday_activity: tue.title,
+          wednesday_slot1_activity: w1.title,
+          wednesday_slot2_activity: w2.title,
+          thursday_activity: thu.title,
+          friday_activity: fri.title,
+          monday_category: mon.category,
+          tuesday_category: tue.category,
+          wednesday_slot1_category: w1.category,
+          wednesday_slot2_category: w2.category,
+          thursday_category: thu.category,
+          friday_category: fri.category,
         };
       });
 
       const uniqueActivities = [...new Set(
-        (allAllocations || []).map(a => (a.activities as any)?.title).filter(Boolean) as string[]
+        allAllocations.map(a => (a.activities as any)?.title).filter(Boolean) as string[]
       )].sort();
       setActivityOptions(uniqueActivities);
 
@@ -119,11 +196,7 @@ const AllocationsView = () => {
       setFilteredAllocations(studentAllocations);
     } catch (error) {
       console.error("Error fetching allocations:", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to load allocations",
-      });
+      toast({ variant: "destructive", title: "Error", description: "Failed to load allocations" });
     } finally {
       setLoading(false);
     }
@@ -174,19 +247,15 @@ const AllocationsView = () => {
     win.document.close();
   };
 
-  const isAssigned = (alloc: StudentAllocation) =>
-    !!(alloc.monday_activity || alloc.tuesday_activity ||
-       alloc.wednesday_slot1_activity || alloc.wednesday_slot2_activity ||
-       alloc.thursday_activity || alloc.friday_activity);
-
   const handleExportCSV = (filter: "all" | "assigned" | "unassigned") => {
     const rows = filteredAllocations.filter(a =>
       filter === "all" ? true : filter === "assigned" ? isAssigned(a) : !isAssigned(a)
     );
-    const header = ["Name", "Email", "Monday", "Tuesday", "Wed Slot 1", "Wed Slot 2", "Thursday", "Friday"].join(",");
+    const header = ["Name", "Email", "Class", "Monday", "Tuesday", "Wed Slot 1", "Wed Slot 2", "Thursday", "Friday"].join(",");
     const lines = rows.map(a => [
       `"${a.student_name}"`,
       `"${a.student_email}"`,
+      `"${a.student_class || ""}"`,
       `"${a.monday_activity || ""}"`,
       `"${a.tuesday_activity || ""}"`,
       `"${a.wednesday_slot1_activity || ""}"`,
@@ -203,6 +272,24 @@ const AllocationsView = () => {
     a.click();
     URL.revokeObjectURL(url);
   };
+
+  const renderActivityCell = (title: string | null, category: string | null) => {
+    if (!title) return <span className="text-muted-foreground">-</span>;
+    const cap = capacityMap[title];
+    const isNearCap = cap && cap.capacity > 0 && cap.enrollment >= cap.capacity * 0.9;
+    return (
+      <div className={`rounded px-1.5 py-0.5 text-sm ${getCategoryBg(category)}`}>
+        <span>{title}</span>
+        {isNearCap && <AlertTriangle className="inline-block ml-1 h-3 w-3 text-amber-500" />}
+      </div>
+    );
+  };
+
+  // Stats
+  const totalStudents = allocations.length;
+  const fullyAssigned = allocations.filter(isFullyAssigned).length;
+  const partiallyAssigned = allocations.filter(a => isAssigned(a) && !isFullyAssigned(a)).length;
+  const unassigned = allocations.filter(a => !isAssigned(a)).length;
 
   if (loading) {
     return (
@@ -230,10 +317,17 @@ const AllocationsView = () => {
             <CardDescription>
               View all student co-curricular activity assignments by day
             </CardDescription>
+            {/* Summary stats */}
+            <div className="flex flex-wrap gap-2 pt-2">
+              <Badge variant="secondary">{totalStudents} Total</Badge>
+              <Badge className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20">{fullyAssigned} Fully Assigned</Badge>
+              <Badge className="bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20">{partiallyAssigned} Partial</Badge>
+              <Badge className="bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20">{unassigned} Unassigned</Badge>
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex gap-3 flex-col sm:flex-row">
-              <div className="relative flex-1">
+            <div className="flex gap-3 flex-col sm:flex-row flex-wrap">
+              <div className="relative flex-1 min-w-[180px]">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                 <Input
                   placeholder="Search students..."
@@ -243,7 +337,7 @@ const AllocationsView = () => {
                 />
               </div>
               <Select value={activityFilter} onValueChange={setActivityFilter}>
-                <SelectTrigger className="w-full sm:w-[220px]">
+                <SelectTrigger className="w-full sm:w-[200px]">
                   <SelectValue placeholder="All Activities" />
                 </SelectTrigger>
                 <SelectContent>
@@ -253,6 +347,30 @@ const AllocationsView = () => {
                   ))}
                 </SelectContent>
               </Select>
+              <Select value={dayFilter} onValueChange={setDayFilter}>
+                <SelectTrigger className="w-full sm:w-[160px]">
+                  <SelectValue placeholder="All Days" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Days</SelectItem>
+                  {DAYS.map(d => (
+                    <SelectItem key={d} value={d}>{d}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {classOptions.length > 0 && (
+                <Select value={classFilter} onValueChange={setClassFilter}>
+                  <SelectTrigger className="w-full sm:w-[160px]">
+                    <SelectValue placeholder="All Classes" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Classes</SelectItem>
+                    {classOptions.map(c => (
+                      <SelectItem key={c} value={c}>{c}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
 
             <div className="flex justify-end gap-2">
@@ -265,15 +383,9 @@ const AllocationsView = () => {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => handleExportCSV("all")}>
-                    All students
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleExportCSV("assigned")}>
-                    Assigned only
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleExportCSV("unassigned")}>
-                    Unassigned only
-                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleExportCSV("all")}>All students</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleExportCSV("assigned")}>Assigned only</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleExportCSV("unassigned")}>Unassigned only</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
               <DropdownMenu>
@@ -285,15 +397,9 @@ const AllocationsView = () => {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => handleExportPDF("all")}>
-                    All students
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleExportPDF("assigned")}>
-                    Assigned only
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleExportPDF("unassigned")}>
-                    Unassigned only
-                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleExportPDF("all")}>All students</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleExportPDF("assigned")}>Assigned only</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleExportPDF("unassigned")}>Unassigned only</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -323,15 +429,23 @@ const AllocationsView = () => {
                     </TableHeader>
                     <TableBody>
                       {filteredAllocations.map(alloc => (
-                        <TableRow key={alloc.student_id}>
-                          <TableCell className="font-medium">{alloc.student_name}</TableCell>
+                        <TableRow
+                          key={alloc.student_id}
+                          className={!isAssigned(alloc) ? "bg-amber-50/60 dark:bg-amber-950/20" : ""}
+                        >
+                          <TableCell className="font-medium">
+                            {alloc.student_name}
+                            {alloc.student_class && (
+                              <span className="text-xs text-muted-foreground ml-1">({alloc.student_class})</span>
+                            )}
+                          </TableCell>
                           <TableCell className="text-sm">{alloc.student_email}</TableCell>
-                          <TableCell className="text-sm">{alloc.monday_activity || '-'}</TableCell>
-                          <TableCell className="text-sm">{alloc.tuesday_activity || '-'}</TableCell>
-                          <TableCell className="text-sm">{alloc.wednesday_slot1_activity || '-'}</TableCell>
-                          <TableCell className="text-sm">{alloc.wednesday_slot2_activity || '-'}</TableCell>
-                          <TableCell className="text-sm">{alloc.thursday_activity || '-'}</TableCell>
-                          <TableCell className="text-sm">{alloc.friday_activity || '-'}</TableCell>
+                          <TableCell>{renderActivityCell(alloc.monday_activity, alloc.monday_category)}</TableCell>
+                          <TableCell>{renderActivityCell(alloc.tuesday_activity, alloc.tuesday_category)}</TableCell>
+                          <TableCell>{renderActivityCell(alloc.wednesday_slot1_activity, alloc.wednesday_slot1_category)}</TableCell>
+                          <TableCell>{renderActivityCell(alloc.wednesday_slot2_activity, alloc.wednesday_slot2_category)}</TableCell>
+                          <TableCell>{renderActivityCell(alloc.thursday_activity, alloc.thursday_category)}</TableCell>
+                          <TableCell>{renderActivityCell(alloc.friday_activity, alloc.friday_category)}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -342,6 +456,7 @@ const AllocationsView = () => {
               {DAYS.map(day => {
                 const isWed = day === 'Wednesday';
                 const dayKey = `${day.toLowerCase()}_activity` as keyof StudentAllocation;
+                const catKey = `${day.toLowerCase()}_category` as keyof StudentAllocation;
                 return (
                   <TabsContent key={day} value={day}>
                     <Table>
@@ -366,11 +481,13 @@ const AllocationsView = () => {
                             <TableCell>{alloc.student_email}</TableCell>
                             {isWed ? (
                               <>
-                                <TableCell>{alloc.wednesday_slot1_activity || '-'}</TableCell>
-                                <TableCell>{alloc.wednesday_slot2_activity || '-'}</TableCell>
+                                <TableCell>{renderActivityCell(alloc.wednesday_slot1_activity, alloc.wednesday_slot1_category)}</TableCell>
+                                <TableCell>{renderActivityCell(alloc.wednesday_slot2_activity, alloc.wednesday_slot2_category)}</TableCell>
                               </>
                             ) : (
-                              <TableCell>{alloc[dayKey] || 'Not allocated'}</TableCell>
+                              <TableCell>
+                                {renderActivityCell(alloc[dayKey] as string | null, alloc[catKey] as string | null)}
+                              </TableCell>
                             )}
                           </TableRow>
                         ))}
