@@ -135,72 +135,78 @@
   }
 
   .dark {
-    --background: 215 25% 10%;
-    --foreground: 0 0% 98%;
+    /* iOS Dark Mode — systemGroupedBackground (true black) */
+    --background: 0 0% 0%;
+    --foreground: 0 0% 100%;
 
-    --card: 215 25% 14%;
-    --card-foreground: 0 0% 98%;
+    --card: 240 6% 11%;                 /* secondarySystemGroupedBackground dark #1C1C1E */
+    --card-foreground: 0 0% 100%;
 
-    --popover: 215 25% 14%;
-    --popover-foreground: 0 0% 98%;
+    --popover: 240 6% 11%;
+    --popover-foreground: 0 0% 100%;
 
-    --primary: 355 75% 55%;
+    /* iOS dark systemBlue #0A84FF */
+    --primary: 211 100% 52%;
     --primary-foreground: 0 0% 100%;
-    --primary-hover: 355 75% 62%;
+    --primary-hover: 211 100% 58%;
 
-    --secondary: 215 75% 55%;
+    /* iOS dark systemIndigo #5E5CE6 */
+    --secondary: 241 73% 63%;
     --secondary-foreground: 0 0% 100%;
-    --secondary-hover: 215 75% 62%;
+    --secondary-hover: 241 73% 70%;
 
-    --accent: 45 90% 55%;
-    --accent-foreground: 215 25% 10%;
-    --accent-hover: 45 90% 60%;
+    /* iOS dark systemOrange #FF9F0A */
+    --accent: 36 100% 52%;
+    --accent-foreground: 0 0% 0%;
+    --accent-hover: 36 100% 58%;
 
-    --success: 145 65% 50%;
-    --success-foreground: 0 0% 100%;
+    /* iOS dark systemGreen #30D158 */
+    --success: 135 64% 51%;
+    --success-foreground: 0 0% 0%;
 
-    --muted: 215 15% 25%;
-    --muted-foreground: 215 15% 70%;
+    --muted: 240 6% 16%;                /* systemGray5 dark #2C2C2E */
+    --muted-foreground: 240 5% 65%;
 
-    --destructive: 0 84% 60%;
+    /* iOS dark systemRed #FF453A */
+    --destructive: 4 100% 61%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 215 20% 25%;
-    --input: 215 20% 25%;
-    --ring: 355 75% 55%;
+    --border: 240 4% 22%;               /* opaqueSeparator dark */
+    --input: 240 4% 22%;
+    --ring: 211 100% 52%;
 
-    --gradient-primary: linear-gradient(135deg, hsl(355 75% 55%), hsl(355 75% 65%));
-    --gradient-secondary: linear-gradient(135deg, hsl(215 75% 55%), hsl(215 75% 65%));
-    --gradient-hero: linear-gradient(135deg, hsl(355 75% 55%) 0%, hsl(215 75% 55%) 100%);
-    --shadow-card: 0 2px 8px hsla(0, 0%, 0%, 0.3);
-    --shadow-elevated: 0 8px 24px hsla(0, 0%, 0%, 0.4);
+    --gradient-primary: linear-gradient(135deg, hsl(211 100% 52%), hsl(211 100% 58%));
+    --gradient-secondary: linear-gradient(135deg, hsl(241 73% 63%), hsl(241 73% 70%));
+    --gradient-hero: linear-gradient(135deg, hsl(211 100% 52%) 0%, hsl(241 73% 63%) 100%);
+    --shadow-card: 0 1px 2px hsla(0, 0%, 0%, 0.4);
+    --shadow-elevated: 0 8px 24px hsla(0, 0%, 0%, 0.5);
 
-    --sidebar-background: 215 25% 12%;
-    --sidebar-foreground: 0 0% 98%;
-    --sidebar-primary: 355 75% 55%;
+    --sidebar-background: 240 6% 6%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 211 100% 52%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 215 75% 55%;
+    --sidebar-accent: 240 6% 11%;
     --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 215 20% 25%;
-    --sidebar-ring: 355 75% 55%;
-    --chart-1: 355 75% 55%;
-    --chart-2: 215 75% 55%;
-    --chart-3: 45 90% 55%;
-    --chart-4: 145 65% 50%;
-    --chart-5: 215 15% 60%;
-    --sidebar: 215 25% 14%;
-    --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
-    --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
-    --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
-    --shadow: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
-    --shadow-md: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 2px 4px -1px hsl(0 0% 0% / 0.1);
-    --shadow-lg: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 4px 6px -1px hsl(0 0% 0% / 0.1);
-    --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 8px 10px -1px hsl(0 0% 0% / 0.1);
-    --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
-    --font-sans: 'Montserrat', 'Lato', ui-sans-serif, system-ui, sans-serif;
-    --radius: 0.75rem;
-    --font-serif: 'EB Garamond', ui-serif, Georgia, Cambria, Times New Roman, Times, serif;
-    --font-mono: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace;
+    --sidebar-border: 240 4% 22%;
+    --sidebar-ring: 211 100% 52%;
+    --chart-1: 211 100% 52%;
+    --chart-2: 241 73% 63%;
+    --chart-3: 36 100% 52%;
+    --chart-4: 135 64% 51%;
+    --chart-5: 240 5% 65%;
+    --sidebar: 240 6% 6%;
+    --shadow-2xs: 0 1px 1px 0px hsl(0 0% 0% / 0.2);
+    --shadow-xs: 0 1px 2px 0px hsl(0 0% 0% / 0.25);
+    --shadow-sm: 0 1px 2px 0px hsl(0 0% 0% / 0.3);
+    --shadow: 0 1px 3px 0px hsl(0 0% 0% / 0.35);
+    --shadow-md: 0 2px 6px 0px hsl(0 0% 0% / 0.4);
+    --shadow-lg: 0 8px 24px 0px hsl(0 0% 0% / 0.5);
+    --shadow-xl: 0 16px 40px 0px hsl(0 0% 0% / 0.6);
+    --shadow-2xl: 0 24px 56px 0px hsl(0 0% 0% / 0.7);
+    --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    --radius: 0.875rem;
+    --font-serif: 'New York', ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
+    --font-mono: 'SF Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
   }
 }
 
