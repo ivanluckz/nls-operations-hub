@@ -14,6 +14,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ArrowLeft, Send, MessageSquare, Menu, Trash2, Plus, Search, Pencil, Check, X } from "lucide-react";
 import { UserProfileCard } from "@/components/chat/UserProfileCard";
+import IOSSchoolSkeleton from "@/components/IOSSchoolSkeleton";
 
 const REACT_EMOJIS = ['👍', '❤️', '😂', '🔥', '👀', '✅'];
 
@@ -589,11 +590,7 @@ const DirectMessages = () => {
   const handleNewDm = useCallback(() => { setNewDmOpen(true); setUserSearch(""); setUserResults([]); }, []);
 
   if (loadingConvs) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-background">
-        <div className="w-8 h-8 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
-      </div>
-    );
+    return <IOSSchoolSkeleton />;
   }
 
   return (

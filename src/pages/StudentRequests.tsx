@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ArrowLeft, Send, Loader2, Clock, CheckCircle2, XCircle, ArrowRightLeft, Calendar, Trash2, HelpCircle } from "lucide-react";
 import WelcomeHeader from "@/components/student/WelcomeHeader";
 import FloatingChatButton from "@/components/student/FloatingChatButton";
+import IOSSchoolSkeleton from "@/components/IOSSchoolSkeleton";
 
 interface Allocation {
   activity_id: string;
@@ -206,11 +207,7 @@ const StudentRequests = () => {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
+    return <IOSSchoolSkeleton />;
   }
 
   // Deduplicate by activity+day (a student may have the same activity on multiple days)

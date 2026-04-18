@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { GraduationCap, Users, BookOpen, Sparkles, ArrowRight, MessageCircle } from "lucide-react";
+import IOSSchoolSkeleton from "@/components/IOSSchoolSkeleton";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -55,11 +56,7 @@ const Index = () => {
   };
 
   if (checking) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-    );
+    return <IOSSchoolSkeleton />;
   }
 
   return (
