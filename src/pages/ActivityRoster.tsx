@@ -10,6 +10,7 @@ import { ArrowLeft, Search, Users, ChevronDown, ChevronUp, Download, FileText, F
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import IOSSchoolSkeleton from "@/components/IOSSchoolSkeleton";
 
 interface Activity {
   id: string;
@@ -264,11 +265,7 @@ const ActivityRoster = () => {
   );
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-    );
+    return <IOSSchoolSkeleton />;
   }
 
   return (

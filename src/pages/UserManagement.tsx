@@ -8,6 +8,7 @@ import { Users, Shield, UserCog, GraduationCap, UserX, Trash2, Edit, Search, Che
 import StudentBulkImport from "@/components/StudentBulkImport";
 import TeacherBulkImport from "@/components/TeacherBulkImport";
 import { AdminLayout } from "@/components/admin/AdminLayout";
+import IOSSchoolSkeleton from "@/components/IOSSchoolSkeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -413,9 +414,9 @@ const UserManagement = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
+      <AdminLayout>
+        <IOSSchoolSkeleton fullScreen={false} />
+      </AdminLayout>
     );
   }
 
