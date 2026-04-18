@@ -220,30 +220,137 @@
   }
 
   body {
-    @apply bg-background text-foreground;
-    background-color: hsl(var(--background));
-    background-image:
-      radial-gradient(at 12% 8%, hsla(355, 80%, 65%, 0.18) 0px, transparent 50%),
-      radial-gradient(at 88% 12%, hsla(215, 85%, 65%, 0.18) 0px, transparent 50%),
-      radial-gradient(at 50% 95%, hsla(280, 75%, 70%, 0.14) 0px, transparent 55%),
-      radial-gradient(at 92% 88%, hsla(45, 90%, 65%, 0.10) 0px, transparent 50%);
-    background-attachment: fixed;
-    background-size: 100% 100%;
+    @apply bg-background text-foreground antialiased;
+    font-family: var(--font-sans);
+    font-feature-settings: 'cv11', 'ss01', 'ss03';
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    letter-spacing: -0.01em;
   }
 
-  .dark body {
-    background-image:
-      radial-gradient(at 12% 8%, hsla(355, 80%, 45%, 0.28) 0px, transparent 50%),
-      radial-gradient(at 88% 12%, hsla(215, 85%, 45%, 0.28) 0px, transparent 50%),
-      radial-gradient(at 50% 95%, hsla(280, 75%, 50%, 0.22) 0px, transparent 55%),
-      radial-gradient(at 92% 88%, hsla(45, 90%, 50%, 0.14) 0px, transparent 50%);
+  /* iOS-native tap highlight removal */
+  button, a, [role="button"] {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* iOS-style headings — tight tracking, SF Pro Display weights */
+  h1, h2, h3, h4, h5, h6 {
+    letter-spacing: -0.02em;
+    font-weight: 700;
   }
 }
 
 /* ───────────────────────────────────────────────────────────────────── */
-/*  GLASSMORPHISM SYSTEM — surpassing iOS / visionOS aesthetics          */
+/*  iOS MATERIALS — UIVisualEffectView equivalents                       */
+/*  .ultraThin / .thin / .regular / .thick / .chrome                     */
 /* ───────────────────────────────────────────────────────────────────── */
 @layer utilities {
+  /* iOS .regularMaterial — for cards (now flat with hairline) */
+  .glass {
+    background: hsl(var(--card));
+    border: 0.5px solid hsl(var(--border));
+    box-shadow: var(--shadow-card);
+  }
+  .dark .glass {
+    background: hsl(var(--card));
+    border: 0.5px solid hsl(var(--border));
+  }
+
+  /* iOS .thickMaterial — modals, sheets */
+  .glass-strong {
+    background: hsl(var(--card));
+    border: 0.5px solid hsl(var(--border));
+    box-shadow: var(--shadow-elevated);
+  }
+  .dark .glass-strong {
+    background: hsl(var(--card));
+    border: 0.5px solid hsl(var(--border));
+  }
+
+  /* iOS .thinMaterial — inline grouping */
+  .glass-subtle {
+    background: hsl(var(--muted) / 0.5);
+    border: 0.5px solid hsl(var(--border));
+  }
+  .dark .glass-subtle {
+    background: hsl(var(--muted) / 0.5);
+    border: 0.5px solid hsl(var(--border));
+  }
+
+  /* Interactive iOS card — flat, with subtle press state */
+  .glass-card {
+    background: hsl(var(--card));
+    border: 0.5px solid hsl(var(--border));
+    box-shadow: var(--shadow-card);
+    transition: transform 0.2s cubic-bezier(0.25, 0.1, 0.25, 1),
+                background 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
+  }
+  .glass-card:active {
+    transform: scale(0.98);
+    background: hsl(var(--muted) / 0.6);
+  }
+  .dark .glass-card {
+    background: hsl(var(--card));
+    border: 0.5px solid hsl(var(--border));
+  }
+
+  /* iOS Navigation Bar — chrome material with backdrop blur */
+  .glass-nav {
+    background: hsl(var(--background) / 0.8);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    border-bottom: 0.5px solid hsl(var(--border));
+  }
+  .dark .glass-nav {
+    background: hsl(var(--background) / 0.8);
+    border-bottom: 0.5px solid hsl(var(--border));
+  }
+
+  /* iOS-style text field */
+  .glass-input {
+    background: hsl(var(--card)) !important;
+    border: 0.5px solid hsl(var(--border)) !important;
+    border-radius: 10px;
+  }
+  .dark .glass-input {
+    background: hsl(var(--muted) / 0.5) !important;
+    border: 0.5px solid hsl(var(--border)) !important;
+  }
+
+  /* No decorative gradient blobs in iOS — keep helper as no-op for compat */
+  .glass-mesh-bg { position: relative; }
+  .glass-iridescent { position: relative; }
+
+  /* iOS grouped list separator — hairline */
+  .ios-separator {
+    height: 0.5px;
+    background: hsl(var(--border));
+    margin-left: 1rem;
+  }
+
+  /* iOS Section Header style */
+  .ios-section-header {
+    font-size: 13px;
+    font-weight: 400;
+    letter-spacing: 0;
+    text-transform: uppercase;
+    color: hsl(var(--muted-foreground));
+    padding: 0 1rem 0.5rem;
+  }
+
+  /* iOS large title */
+  .ios-large-title {
+    font-size: 34px;
+    font-weight: 700;
+    letter-spacing: -0.022em;
+    line-height: 1.1;
+  }
+
+  /* Safe-area helpers for notched mobile */
+  .safe-area-bottom { padding-bottom: max(env(safe-area-inset-bottom), 0.5rem); }
+  .safe-area-top    { padding-top:    max(env(safe-area-inset-top), 0.5rem); }
+}
   /* Base glass surface — frosted, translucent, with inner highlight */
   .glass {
     background: hsla(0, 0%, 100%, 0.55);
