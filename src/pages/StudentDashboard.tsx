@@ -16,6 +16,7 @@ import WorkoutNotificationsCard from "@/components/student/WorkoutNotificationsC
 import ClassSelectionCard from "@/components/student/ClassSelectionCard";
 import MentorSelectionCard from "@/components/student/MentorSelectionCard";
 import StreakCard from "@/components/student/StreakCard";
+import PushNotificationsCard from "@/components/student/PushNotificationsCard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Activity, ArrowRight, KeyRound, FileText } from "lucide-react";
 
@@ -202,6 +203,7 @@ const StudentDashboard = () => {
               <HouseSelectionCard />
               <WorkoutSelectionCard />
               <WorkoutNotificationsCard />
+              <PushNotificationsCard />
             </div>
 
             <div className="grid grid-cols-1 gap-4 w-full max-w-sm mx-auto">
