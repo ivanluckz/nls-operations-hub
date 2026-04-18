@@ -1,56 +1,59 @@
-@import url("https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap");
-@import url("https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600;700&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;700&display=swap");
-@import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap");
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Ntare Louisenlund School Theme - Red, Blue, White */
+/* ─────────────────────────────────────────────────────────────────────
+   iOS Design System — Apple Human Interface Guidelines
+   System fonts (SF Pro via -apple-system), iOS system colors,
+   grouped backgrounds, hairline borders, and authentic spacing.
+   ───────────────────────────────────────────────────────────────────── */
 
 @layer base {
   :root {
-    /* Base colors - Clean white background */
-    --background: 0 0% 98%;
-    --foreground: 215 25% 15%;
+    /* iOS Light Mode — systemGroupedBackground / secondarySystemGroupedBackground */
+    --background: 240 11% 96%;          /* #F2F2F7 — systemGroupedBackground */
+    --foreground: 0 0% 0%;              /* labelColor */
 
-    --card: 0 0% 100%;
-    --card-foreground: 215 25% 15%;
+    --card: 0 0% 100%;                  /* secondarySystemGroupedBackground */
+    --card-foreground: 0 0% 0%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 215 25% 15%;
+    --popover-foreground: 0 0% 0%;
 
-    /* Primary - NLS Red (from school logo) */
-    --primary: 355 75% 45%;
+    /* Primary — iOS systemBlue #007AFF */
+    --primary: 211 100% 50%;
     --primary-foreground: 0 0% 100%;
-    --primary-hover: 355 75% 38%;
+    --primary-hover: 211 100% 44%;
 
-    /* Secondary - NLS Blue (from school logo) */
-    --secondary: 215 75% 45%;
+    /* Secondary — iOS systemIndigo #5856D6 */
+    --secondary: 240 67% 60%;
     --secondary-foreground: 0 0% 100%;
-    --secondary-hover: 215 75% 38%;
+    --secondary-hover: 240 67% 52%;
 
-    /* Accent - Gold/Yellow for highlights */
-    --accent: 45 90% 50%;
-    --accent-foreground: 215 25% 15%;
-    --accent-hover: 45 90% 45%;
+    /* Accent — iOS systemOrange #FF9500 */
+    --accent: 32 100% 50%;
+    --accent-foreground: 0 0% 100%;
+    --accent-hover: 32 100% 44%;
 
-    /* Success - Green for allocation */
-    --success: 145 65% 42%;
+    /* Success — iOS systemGreen #34C759 */
+    --success: 135 59% 49%;
     --success-foreground: 0 0% 100%;
 
-    --muted: 215 15% 90%;
-    --muted-foreground: 215 15% 40%;
+    /* iOS systemGray series */
+    --muted: 240 6% 90%;                /* systemGray5 */
+    --muted-foreground: 240 4% 46%;     /* secondaryLabel */
 
-    --destructive: 0 72% 50%;
+    /* Destructive — iOS systemRed #FF3B30 */
+    --destructive: 4 100% 59%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 215 20% 88%;
-    --input: 215 20% 88%;
-    --ring: 355 75% 45%;
+    /* Hairline separator — iOS opaqueSeparator */
+    --border: 240 6% 90%;
+    --input: 240 6% 90%;
+    --ring: 211 100% 50%;
 
-    --radius: 0.75rem;
+    --radius: 0.875rem;                 /* iOS standard 14px */
 
     /* Custom design tokens */
     --gradient-primary: linear-gradient(135deg, hsl(355 75% 45%), hsl(355 75% 55%));
