@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import ProtectedRoute from "./components/ProtectedRoute";
 import ErrorBoundary from "./components/ErrorBoundary";
+import PageTransition from "./components/PageTransition";
 import { useTheme } from "@/hooks/use-custom-theme";
 
 const SandboxedAnimation = lazy(() => import("./components/SandboxedAnimation"));
@@ -60,6 +61,7 @@ const AppContent = () => {
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        <PageTransition>
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/auth" element={<Auth />} />
@@ -126,6 +128,7 @@ const AppContent = () => {
           <Route path="/themes" element={<ThemeManagement />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
+        </PageTransition>
       </BrowserRouter>
     </>
   );
