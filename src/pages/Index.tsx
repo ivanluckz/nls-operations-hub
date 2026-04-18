@@ -69,25 +69,28 @@ const Index = () => {
         variant="ghost"
         size="sm"
         onClick={() => navigate("/auth")}
-        className="fixed top-4 right-4 z-50 text-xs text-muted-foreground hover:text-foreground"
+        className="fixed top-4 right-4 z-50 text-xs glass-subtle rounded-full px-4"
       >
         Admin
       </Button>
 
       {/* Hero Section */}
-      <section className="relative bg-gradient-hero text-primary-foreground overflow-hidden">
-        <div className="absolute inset-0 bg-grid-pattern opacity-10"></div>
+      <section className="relative overflow-hidden">
+        <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] rounded-full bg-primary/30 blur-3xl animate-pulse" style={{ animationDuration: '8s' }} />
+        <div className="absolute top-[10%] right-[-15%] w-[500px] h-[500px] rounded-full bg-secondary/30 blur-3xl animate-pulse" style={{ animationDuration: '10s', animationDelay: '2s' }} />
+        <div className="absolute bottom-[-10%] left-1/3 w-[400px] h-[400px] rounded-full bg-accent/20 blur-3xl animate-pulse" style={{ animationDuration: '12s' }} />
+
         <div className="container mx-auto px-4 py-20 relative z-10">
           <div className="max-w-3xl mx-auto text-center space-y-6">
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-white/10 backdrop-blur-sm mb-4">
-              <GraduationCap className="w-10 h-10" />
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl glass-strong mb-4 animate-fade-in">
+              <GraduationCap className="w-10 h-10 text-primary" />
             </div>
-            <h1 className="text-4xl md:text-6xl font-bold leading-tight">
+            <h1 className="text-4xl md:text-6xl font-bold leading-tight tracking-tight bg-gradient-to-br from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent">
               Co-Curricular Activity
               <br />
               Allocation System
             </h1>
-            <p className="text-lg md:text-xl text-primary-foreground/90 max-w-2xl mx-auto">
+            <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
               A fair and transparent system for managing student preferences
               and allocating co-curricular activities efficiently.
             </p>
@@ -95,7 +98,7 @@ const Index = () => {
               <Button
                 size="lg"
                 onClick={() => navigate("/auth")}
-                className="bg-white text-primary hover:bg-white/90 shadow-elevated"
+                className="shadow-lg shadow-primary/30 rounded-full px-8"
               >
                 Get Started
                 <ArrowRight className="w-4 h-4 ml-2" />
@@ -104,7 +107,7 @@ const Index = () => {
                 size="lg"
                 variant="outline"
                 onClick={() => navigate("/auth")}
-                className="border-white text-white hover:bg-white/10"
+                className="glass rounded-full px-8 border-white/60 dark:border-white/15"
               >
                 Sign In
               </Button>
