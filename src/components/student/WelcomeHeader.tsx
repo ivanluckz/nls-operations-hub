@@ -31,7 +31,7 @@ const WelcomeHeader = ({ name, onLogout, badges = [] }: WelcomeHeaderProps) => {
   const isDev = badges.includes("Dev");
 
   return (
-    <header className="relative overflow-hidden border-b bg-gradient-to-r from-primary/5 via-background to-secondary/5">
+    <header className="relative overflow-hidden glass-nav sticky top-0 z-30">
       {/* Decorative elements */}
       <div className="absolute inset-0 bg-grid-pattern opacity-5" />
       <div className="absolute top-0 right-0 w-96 h-96 bg-primary/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />

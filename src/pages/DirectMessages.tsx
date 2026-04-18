@@ -597,11 +597,11 @@ const DirectMessages = () => {
   }
 
   return (
-    <div className="flex flex-col h-[100dvh] bg-background overflow-hidden">
+    <div className="flex flex-col h-[100dvh] overflow-hidden">
       {showBanner && <NotificationBanner onEnable={requestPermission} onDismiss={dismissBanner} />}
       <div className="flex flex-1 overflow-hidden">
       {/* Desktop sidebar */}
-      <aside className="hidden md:flex w-64 flex-col border-r bg-card/50">
+      <aside className="hidden md:flex w-64 flex-col border-r border-white/40 dark:border-white/10 glass">
         <ConvList
           conversations={conversations}
           selectedChannelId={selectedConv?.channelId ?? null}
@@ -616,7 +616,7 @@ const DirectMessages = () => {
       {/* Main area */}
       <div className="flex flex-col flex-1 min-w-0">
         {/* Header */}
-        <div className="flex-shrink-0 flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2.5 sm:py-3 border-b bg-card/80 backdrop-blur">
+        <div className="flex-shrink-0 flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2.5 sm:py-3 glass-nav">
           <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" className="md:hidden h-8 w-8">
