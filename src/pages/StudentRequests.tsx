@@ -221,7 +221,7 @@ const StudentRequests = () => {
   }, [] as Allocation[]);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-transparent">
       <WelcomeHeader name={profile?.full_name || "Student"} onLogout={handleLogout} badges={userBadges} />
 
       <main className="container mx-auto px-4 py-8 pb-24">

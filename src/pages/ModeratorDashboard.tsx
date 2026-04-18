@@ -147,7 +147,7 @@ const ModeratorDashboard = () => {
   // Lunch scanning view
   if (lunchScanning) {
     return (
-      <div className="min-h-screen bg-background p-4">
+      <div className="min-h-screen bg-transparent p-4">
         <div className="max-w-lg mx-auto space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-bold flex items-center gap-2">

@@ -100,7 +100,7 @@ const RLCoachReports = () => {
   }, {} as Record<MealType, number>);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-transparent">
       <div className="border-b bg-card">
         <div className="container mx-auto px-4 py-4 flex items-center gap-4">
           <Button variant="ghost" size="sm" onClick={() => navigate("/rl-coach")}>
