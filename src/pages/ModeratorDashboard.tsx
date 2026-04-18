@@ -147,7 +147,7 @@ const ModeratorDashboard = () => {
   // Lunch scanning view
   if (lunchScanning) {
     return (
-      <div className="min-h-screen bg-background p-4">
+      <div className="min-h-screen bg-transparent p-4">
         <div className="max-w-lg mx-auto space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-bold flex items-center gap-2">
@@ -180,16 +180,16 @@ const ModeratorDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen">
       {/* Header */}
-      <header className="border-b bg-gradient-to-r from-secondary/5 via-background to-secondary/5">
+      <header className="glass-nav sticky top-0 z-30">
         <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-5 flex items-center justify-between">
           <div className="flex items-center gap-3 sm:gap-4">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-secondary/20 to-primary/20 flex items-center justify-center">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-secondary/30 to-primary/30 backdrop-blur flex items-center justify-center shadow-lg shadow-secondary/10">
               <Settings className="w-5 h-5 sm:w-6 sm:h-6 text-secondary" />
             </div>
             <div>
-              <h1 className="text-lg sm:text-xl font-bold">Mentor Dashboard</h1>
+              <h1 className="text-lg sm:text-xl font-bold tracking-tight">Mentor Dashboard</h1>
               <p className="text-xs sm:text-sm text-muted-foreground">
                 Co-curricular & lunch management
               </p>

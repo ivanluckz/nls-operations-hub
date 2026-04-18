@@ -300,8 +300,8 @@ const AllocationsView = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b bg-card shadow-card">
+    <div className="min-h-screen">
+      <header className="glass-nav sticky top-0 z-30">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Button variant="ghost" onClick={handleBack}>
             <ArrowLeft className="w-4 h-4 mr-2" />

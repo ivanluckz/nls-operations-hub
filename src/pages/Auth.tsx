@@ -98,8 +98,13 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-hero p-4">
-      <Card className="w-full max-w-md shadow-elevated">
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Animated mesh blobs */}
+      <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-primary/30 blur-3xl animate-pulse" style={{ animationDuration: '6s' }} />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] rounded-full bg-secondary/30 blur-3xl animate-pulse" style={{ animationDuration: '8s', animationDelay: '1s' }} />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] rounded-full bg-accent/20 blur-3xl animate-pulse" style={{ animationDuration: '10s' }} />
+
+      <Card className="w-full max-w-md glass-strong relative z-10 animate-fade-in">
         <CardHeader className="space-y-1 flex flex-col items-center">
           <div className="w-16 h-16 rounded-full bg-gradient-primary flex items-center justify-center mb-2">
             <GraduationCap className="w-8 h-8 text-primary-foreground" />

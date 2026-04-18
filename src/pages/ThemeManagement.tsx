@@ -244,7 +244,7 @@ const ThemeManagement = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-6">
+    <div className="min-h-screen bg-transparent p-4 md:p-6">
       <div className="max-w-4xl mx-auto">
         <Button variant="ghost" onClick={() => navigate(-1)} className="mb-4">
           <ArrowLeft className="h-4 w-4 mr-2" /> Back

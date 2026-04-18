@@ -413,7 +413,7 @@ const MedicalDashboard = () => {
 
   if (scanning) {
     return (
-      <div className="min-h-screen bg-background p-4">
+      <div className="min-h-screen bg-transparent p-4">
         <div className="max-w-lg mx-auto space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-bold flex items-center gap-2">
@@ -451,7 +451,7 @@ const MedicalDashboard = () => {
     .map(a => a.day_of_week);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-transparent">
       {/* Header */}
       <header className="border-b bg-gradient-to-r from-rose-500/5 via-background to-rose-500/5">
         <div className="container mx-auto px-4 py-5 flex items-center justify-between">

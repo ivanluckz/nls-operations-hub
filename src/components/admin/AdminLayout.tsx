@@ -45,7 +45,7 @@ export function AdminLayout({ children, title, description }: AdminLayoutProps) 
       <div className="min-h-screen flex w-full">
         <AdminSidebar />
         <SidebarInset className="flex-1">
-          <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <header className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-2 border-b border-white/40 dark:border-white/10 px-3 sm:px-4 glass-nav">
             <SidebarTrigger className="-ml-1" />
             <Separator orientation="vertical" className="mr-2 h-4" />
             <Breadcrumb>

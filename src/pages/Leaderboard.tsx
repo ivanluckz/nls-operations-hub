@@ -144,7 +144,7 @@ const Leaderboard = () => {
   const currentRank = entries.findIndex(e => e.id === currentUserId) + 1;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-transparent">
       <header className="border-b bg-card shadow-sm">
         <div className="container mx-auto px-4 py-4 flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => navigate("/student")}>

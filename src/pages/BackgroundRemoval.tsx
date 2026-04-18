@@ -97,7 +97,7 @@ const BackgroundRemoval = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background p-8">
+    <div className="min-h-screen bg-transparent p-8">
       <div className="max-w-4xl mx-auto space-y-8">
         <div>
           <h1 className="text-4xl font-bold mb-2">Background Removal Tool</h1>

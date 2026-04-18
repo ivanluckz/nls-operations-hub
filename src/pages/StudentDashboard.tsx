@@ -180,7 +180,7 @@ const StudentDashboard = () => {
 
   if (section === "choose") {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-transparent">
         <WelcomeHeader
           name={profile?.full_name || "Student"}
           onLogout={handleLogout}
@@ -262,7 +262,7 @@ const StudentDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-transparent">
       <WelcomeHeader
         name={profile?.full_name || "Student"}
         onLogout={handleLogout}
