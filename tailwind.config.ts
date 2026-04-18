@@ -124,21 +124,17 @@ export default {
   		},
 		fontFamily: {
 			sans: [
-				'Montserrat',
-				'Lato',
-				'ui-sans-serif',
-				'system-ui',
 				'-apple-system',
 				'BlinkMacSystemFont',
-				'Segoe UI',
-				'Roboto',
+				'SF Pro Text',
+				'SF Pro Display',
 				'Helvetica Neue',
+				'Helvetica',
 				'Arial',
-				'Noto Sans',
 				'sans-serif'
 			],
 			serif: [
-				'EB Garamond',
+				'New York',
 				'ui-serif',
 				'Georgia',
 				'Cambria',
@@ -147,7 +143,7 @@ export default {
 				'serif'
 			],
 			mono: [
-				'Fira Code',
+				'SF Mono',
 				'ui-monospace',
 				'SFMono-Regular',
 				'Menlo',
