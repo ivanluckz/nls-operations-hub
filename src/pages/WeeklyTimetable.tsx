@@ -24,6 +24,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import IOSSchoolSkeleton from "@/components/IOSSchoolSkeleton";
 
 interface Activity {
   id: string;
@@ -145,9 +146,7 @@ const WeeklyTimetable = () => {
   if (loading) {
     return (
       <AdminLayout>
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
-        </div>
+        <IOSSchoolSkeleton fullScreen={false} />
       </AdminLayout>
     );
   }

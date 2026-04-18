@@ -11,6 +11,7 @@ import { ArrowLeft, Search, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ManualAllocationInputSchema } from "@/lib/validation";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import IOSSchoolSkeleton from "@/components/IOSSchoolSkeleton";
 
 interface Student {
   id: string;
@@ -312,11 +313,7 @@ const ManualAllocations = () => {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-    );
+    return <IOSSchoolSkeleton />;
   }
 
   return (

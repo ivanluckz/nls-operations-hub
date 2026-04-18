@@ -9,6 +9,7 @@ import { ArrowLeft, Trophy } from "lucide-react";
 import devBadge from "@/assets/dev.png";
 import { devNameClass } from "@/lib/dev-badge";
 import { UserProfileCard } from "@/components/chat/UserProfileCard";
+import IOSSchoolSkeleton from "@/components/IOSSchoolSkeleton";
 
 const BADGE_OPTIONS: { name: string; emoji: string; animClass: string; img?: string }[] = [
   { name: "Growing",      emoji: "🌱", animClass: "badge-anim-grow"  },
@@ -194,9 +195,7 @@ const Leaderboard = () => {
         </div>
 
         {loading ? (
-          <div className="flex justify-center py-20">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary" />
-          </div>
+          <IOSSchoolSkeleton fullScreen={false} />
         ) : entries.length === 0 ? (
           <p className="text-center text-muted-foreground py-20">
             {activityFilter !== "all" || timeFilter !== "all"

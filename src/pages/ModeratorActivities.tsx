@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Plus, Edit, Trash2, Users, Search, X } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import IOSSchoolSkeleton from "@/components/IOSSchoolSkeleton";
 
 interface Activity {
   id: string;
@@ -314,11 +315,7 @@ const ModeratorActivities = () => {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-    );
+    return <IOSSchoolSkeleton />;
   }
 
   return (

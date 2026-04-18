@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Search, FileDown, FileSpreadsheet, ChevronDown, AlertTriangle } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import IOSSchoolSkeleton from "@/components/IOSSchoolSkeleton";
 
 interface StudentAllocation {
   student_id: string;
@@ -292,11 +293,7 @@ const AllocationsView = () => {
   const unassigned = allocations.filter(a => !isAssigned(a)).length;
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-    );
+    return <IOSSchoolSkeleton />;
   }
 
   return (

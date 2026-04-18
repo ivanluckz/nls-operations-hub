@@ -18,6 +18,7 @@ import AttendanceChart from "@/components/dashboard/AttendanceChart";
 import TodayScheduleWidget from "@/components/dashboard/TodayScheduleWidget";
 import MealQRScanner from "@/components/kitchen/MealQRScanner";
 import { UserProfileCard } from "@/components/chat/UserProfileCard";
+import IOSSchoolSkeleton from "@/components/IOSSchoolSkeleton";
 
 interface ActivityData {
   id: string;
@@ -154,14 +155,7 @@ const TeacherDashboard = () => {
     name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-16 h-16 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
-          <p className="text-sm text-muted-foreground animate-pulse">Loading your portal...</p>
-        </div>
-      </div>
-    );
+    return <IOSSchoolSkeleton />;
   }
 
   // Lunch scanning view for mentors

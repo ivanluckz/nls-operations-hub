@@ -17,6 +17,7 @@ import ClassSelectionCard from "@/components/student/ClassSelectionCard";
 import MentorSelectionCard from "@/components/student/MentorSelectionCard";
 import StreakCard from "@/components/student/StreakCard";
 import PushNotificationsCard from "@/components/student/PushNotificationsCard";
+import IOSSchoolSkeleton from "@/components/IOSSchoolSkeleton";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Activity, ArrowRight, KeyRound, FileText } from "lucide-react";
 
@@ -162,19 +163,7 @@ const StudentDashboard = () => {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4">
-          <div className="relative">
-            <div className="w-16 h-16 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-8 h-8 rounded-full bg-primary/10" />
-            </div>
-          </div>
-          <p className="text-sm text-muted-foreground animate-pulse">Loading your dashboard...</p>
-        </div>
-      </div>
-    );
+    return <IOSSchoolSkeleton />;
   }
 
   const status = getStatus();

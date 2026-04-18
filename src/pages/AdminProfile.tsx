@@ -10,7 +10,8 @@
  import { Loader2, Save, User, Mail, Shield, Award } from "lucide-react";
  import { Badge } from "@/components/ui/badge";
  import { useNavigate } from "react-router-dom";
- import devBadgeImg from "@/assets/dev.png";
+import devBadgeImg from "@/assets/dev.png";
+import IOSSchoolSkeleton from "@/components/IOSSchoolSkeleton";
 
  const BADGE_DISPLAY: Record<string, { emoji: string }> = {
    "Growing": { emoji: "🌱" },
@@ -112,9 +113,7 @@
    if (loading) {
      return (
        <AdminLayout>
-         <div className="flex items-center justify-center h-64">
-           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-         </div>
+         <IOSSchoolSkeleton fullScreen={false} />
        </AdminLayout>
      );
    }

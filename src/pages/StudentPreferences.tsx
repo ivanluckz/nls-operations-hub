@@ -12,6 +12,7 @@ import ActivityDetailsModal from "@/components/ActivityDetailsModal";
 import SelectionSummary from "@/components/SelectionSummary";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import IOSSchoolSkeleton from "@/components/IOSSchoolSkeleton";
 
 interface Activity {
   id: string;
@@ -522,19 +523,7 @@ const StudentPreferences = () => {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4">
-          <div className="relative">
-            <div className="w-16 h-16 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-8 h-8 rounded-full bg-primary/10" />
-            </div>
-          </div>
-          <p className="text-sm text-muted-foreground animate-pulse">Loading activities...</p>
-        </div>
-      </div>
-    );
+    return <IOSSchoolSkeleton />;
   }
 
   const totalSelections = Object.values(preferences).filter(v => v && v !== "").length;
