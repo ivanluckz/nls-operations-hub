@@ -12,8 +12,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ArrowLeft, Send, MessageSquare, Menu, Trash2, Plus, Search, Pencil, Check, X } from "lucide-react";
+import { ArrowLeft, Send, MessageSquare, Menu, Trash2, Plus, Search, Pencil, Check, X, CheckCheck } from "lucide-react";
 import { UserProfileCard } from "@/components/chat/UserProfileCard";
+import { ConvSearch } from "@/components/chat/ConvSearch";
+import { DayPill } from "@/components/chat/DayPill";
+import { TypingIndicator } from "@/components/chat/TypingIndicator";
 import IOSSchoolSkeleton from "@/components/IOSSchoolSkeleton";
 
 const REACT_EMOJIS = ['👍', '❤️', '😂', '🔥', '👀', '✅'];
@@ -50,6 +53,7 @@ interface DM {
   content: string;
   created_at: string;
   edited_at?: string | null;
+  read_at?: string | null;
   senderName?: string;
 }
 
@@ -71,53 +75,96 @@ interface ConvListProps {
   badges: Record<string, string[]>;
 }
 
-const ConvList = ({ conversations, selectedChannelId, onSelect, onBack, onNewDm, roles, badges }: ConvListProps) => (
-  <div className="flex flex-col h-full">
-    <div className="px-3 py-3.5 sm:py-4 border-b flex items-center gap-2">
-      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onBack}>
-        <ArrowLeft className="h-3.5 w-3.5" />
-      </Button>
-      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex-1">Messages</p>
-      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onNewDm} title="New DM">
-        <Plus className="h-3.5 w-3.5" />
-      </Button>
+function formatConvTime(iso?: string) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const today = new Date();
+  if (d.toDateString() === today.toDateString()) {
+    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  }
+  const diffDays = Math.floor((today.getTime() - d.getTime()) / 86400000);
+  if (diffDays < 7) return d.toLocaleDateString(undefined, { weekday: "short" });
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
+const ConvList = ({ conversations, selectedChannelId, onSelect, onBack, onNewDm, roles, badges }: ConvListProps) => {
+  const [search, setSearch] = useState("");
+  const filtered = search.trim()
+    ? conversations.filter(c =>
+        c.otherName.toLowerCase().includes(search.toLowerCase()) ||
+        (c.lastMessage || "").toLowerCase().includes(search.toLowerCase()),
+      )
+    : conversations;
+  return (
+    <div className="flex flex-col h-full">
+      <div className="px-3 pt-3 pb-2 flex items-center gap-2">
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onBack} aria-label="Back">
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <p className="text-[15px] font-bold tracking-tight flex-1">Messages</p>
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onNewDm} title="New DM" aria-label="New DM">
+          <Plus className="h-4 w-4" />
+        </Button>
+      </div>
+      <div className="px-3 pb-2">
+        <ConvSearch value={search} onChange={setSearch} placeholder="Search conversations" />
+      </div>
+      <div className="flex-1 overflow-y-auto py-1 px-2 space-y-0.5">
+        {conversations.length === 0 && (
+          <p className="text-xs text-muted-foreground text-center py-8 px-4">
+            No conversations yet.<br />
+            Tap <strong>+</strong> to start a new DM.
+          </p>
+        )}
+        {conversations.length > 0 && filtered.length === 0 && (
+          <p className="text-xs text-muted-foreground text-center py-8 px-4">
+            No matches for “{search}”.
+          </p>
+        )}
+        {filtered.map(conv => {
+          const isActive = selectedChannelId === conv.channelId;
+          const hasUnread = (conv.unread || 0) > 0;
+          return (
+            <button
+              key={conv.channelId}
+              onClick={() => onSelect(conv)}
+              className={`chat-conv-item ${isActive ? "chat-conv-item-active" : ""}`}
+            >
+              <RoleAvatar
+                userId={conv.otherId}
+                name={conv.otherName}
+                isAdmin={roles[conv.otherId] === "admin"}
+                isMod={roles[conv.otherId] === "teacher" || roles[conv.otherId] === "moderator"}
+                isDev={isDevUser(badges[conv.otherId] || [])}
+                avatarSize="h-9 w-9"
+                textSize="text-[10px]"
+              />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <p className={`truncate text-[13px] flex items-center gap-1 flex-1 ${hasUnread ? "font-semibold text-foreground" : "font-medium text-foreground/90"}`}>
+                    {conv.otherName}
+                    {isDevUser(badges[conv.otherId] || []) && <img src={devBadgeImg} alt="Dev" className="h-4 w-4 object-contain inline-block" />}
+                  </p>
+                  {conv.lastAt && (
+                    <span className={`text-[10px] flex-shrink-0 ${hasUnread ? "text-primary font-semibold" : "text-muted-foreground"}`}>
+                      {formatConvTime(conv.lastAt)}
+                    </span>
+                  )}
+                </div>
+                {conv.lastMessage && (
+                  <p className={`text-[11px] truncate mt-0.5 ${hasUnread ? "text-foreground/80" : "text-muted-foreground"}`}>
+                    {conv.lastMessage}
+                  </p>
+                )}
+              </div>
+              {hasUnread && <span className="chat-conv-unread-dot" aria-label={`${conv.unread} unread`} />}
+            </button>
+          );
+        })}
+      </div>
     </div>
-    <div className="flex-1 overflow-y-auto py-1.5 space-y-0.5 px-1.5">
-      {conversations.length === 0 && (
-        <p className="text-xs text-muted-foreground text-center py-8 px-4">
-          No conversations yet.<br />
-          Tap <strong>+</strong> to start a new DM.
-        </p>
-      )}
-      {conversations.map(conv => (
-        <button key={conv.channelId} onClick={() => onSelect(conv)}
-          className={`w-full flex items-center gap-2.5 px-2.5 sm:px-3 py-2.5 rounded-lg text-sm transition-colors text-left active:scale-[0.98]
-            ${selectedChannelId === conv.channelId
-              ? "bg-primary/15 text-foreground font-medium"
-              : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
-          <RoleAvatar
-            userId={conv.otherId}
-            name={conv.otherName}
-            isAdmin={roles[conv.otherId] === "admin"}
-            isMod={roles[conv.otherId] === "teacher" || roles[conv.otherId] === "moderator"}
-            isDev={isDevUser(badges[conv.otherId] || [])}
-            avatarSize="h-8 w-8"
-            textSize="text-[10px]"
-          />
-          <div className="flex-1 min-w-0">
-            <p className="font-medium truncate text-xs flex items-center gap-1">
-              {conv.otherName}
-              {isDevUser(badges[conv.otherId] || []) && <img src={devBadgeImg} alt="Dev" className="h-5 w-5 object-contain inline-block" />}
-            </p>
-            {conv.lastMessage && (
-              <p className="text-[11px] text-muted-foreground truncate mt-0.5">{conv.lastMessage}</p>
-            )}
-          </div>
-        </button>
-      ))}
-    </div>
-  </div>
-);
+  );
+};
 
 const DirectMessages = () => {
   const navigate = useNavigate();
@@ -594,11 +641,11 @@ const DirectMessages = () => {
   }
 
   return (
-    <div className="flex flex-col h-[100dvh] overflow-hidden">
+    <div className="flex flex-col h-[100dvh] overflow-hidden chat-shell">
       {showBanner && <NotificationBanner onEnable={requestPermission} onDismiss={dismissBanner} />}
       <div className="flex flex-1 overflow-hidden">
       {/* Desktop sidebar */}
-      <aside className="hidden md:flex w-64 flex-col border-r border-white/40 dark:border-white/10 glass">
+      <aside className="hidden md:flex w-72 flex-col border-r chat-glass-panel">
         <ConvList
           conversations={conversations}
           selectedChannelId={selectedConv?.channelId ?? null}
@@ -613,7 +660,7 @@ const DirectMessages = () => {
       {/* Main area */}
       <div className="flex flex-col flex-1 min-w-0">
         {/* Header */}
-        <div className="flex-shrink-0 flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2.5 sm:py-3 glass-nav">
+        <div className="flex-shrink-0 flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2.5 sm:py-3 chat-glass-header">
           <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" className="md:hidden h-8 w-8">
@@ -678,65 +725,67 @@ const DirectMessages = () => {
               <p className="text-sm">No messages yet — say hi! 👋</p>
             </div>
           ) : (
-            <div className="pb-2 space-y-0.5">
+            <div className="pb-2 space-y-0.5 max-w-3xl mx-auto">
               {messages.map((msg, idx) => {
                 const prev = idx > 0 ? messages[idx - 1] : undefined;
+                const next = idx < messages.length - 1 ? messages[idx + 1] : undefined;
                 const showDate = !prev || !isSameDay(msg.created_at, prev.created_at);
                 const isOwn = msg.sender_id === userId;
                 const startGroup = !prev || prev.sender_id !== msg.sender_id || showDate ||
                   new Date(msg.created_at).getTime() - new Date(prev.created_at).getTime() > 5 * 60 * 1000;
+                const endGroup = !next || next.sender_id !== msg.sender_id ||
+                  !isSameDay(msg.created_at, next.created_at) ||
+                  new Date(next.created_at).getTime() - new Date(msg.created_at).getTime() > 5 * 60 * 1000;
                 const isEditing = editingId === msg.id;
                 const msgReactions = dmReactions[msg.id] || [];
+                const showReceipt = isOwn && !isEditing && !msg.id.startsWith("optimistic-");
+                const senderName = isOwn ? "You" : (msg.senderName || "?");
 
                 return (
                   <div key={msg.id}>
-                    {showDate && (
-                      <div className="flex items-center gap-3 my-4">
-                        <div className="flex-1 h-px bg-border" />
-                        <span className="text-xs text-muted-foreground">{formatDateSep(msg.created_at)}</span>
-                        <div className="flex-1 h-px bg-border" />
+                    {showDate && <DayPill label={formatDateSep(msg.created_at)} />}
+
+                    {/* Sender header — only for first message of a non-own group */}
+                    {startGroup && !isOwn && (
+                      <div className="flex items-center gap-2 mt-3 mb-1 ml-12">
+                        <button
+                          className={`text-xs font-semibold hover:underline cursor-pointer ${devNameClass(userBadges[msg.sender_id] || [])}`}
+                          onClick={() => setProfileCard({ senderId: msg.sender_id, senderName: senderName, isAdmin: userRoles[msg.sender_id] === "admin", isTeacher: userRoles[msg.sender_id] === "teacher" || userRoles[msg.sender_id] === "moderator" })}
+                        >
+                          {isDevUser(userBadges[msg.sender_id] || [])
+                            ? <span className="dev-nameplate">{senderName}</span>
+                            : senderName}
+                        </button>
+                        {isDevUser(userBadges[msg.sender_id] || []) && <img src={devBadgeImg} alt="Dev" className="h-4 w-4 object-contain" />}
                       </div>
                     )}
-                    <div className={`group flex gap-3 px-2 py-0.5 rounded-md hover:bg-muted/40 ${startGroup ? "mt-4" : "mt-0.5"} ${devMsgClass(userBadges[msg.sender_id] || [])}`}>
-                      {/* Avatar / timestamp column */}
-                      <div className="w-9 flex-shrink-0 flex justify-center">
-                        {startGroup ? (
-                          <button className="cursor-pointer hover:opacity-80 transition-opacity"
-                            onClick={() => setProfileCard({ senderId: msg.sender_id, senderName: msg.senderName || "?", isAdmin: userRoles[msg.sender_id] === "admin", isTeacher: userRoles[msg.sender_id] === "teacher" || userRoles[msg.sender_id] === "moderator" })}>
-                            <RoleAvatar
-                              userId={msg.sender_id}
-                              name={msg.senderName || "?"}
-                              isAdmin={userRoles[msg.sender_id] === "admin"}
-                              isMod={userRoles[msg.sender_id] === "teacher" || userRoles[msg.sender_id] === "moderator"}
-                              isDev={isDevUser(userBadges[msg.sender_id] || [])}
-                              avatarSize="h-8 w-8"
-                              className="mt-0.5"
-                            />
-                          </button>
-                        ) : (
-                          <span className="text-[10px] text-transparent group-hover:text-muted-foreground/60 pt-1 select-none leading-none mt-1">
-                            {formatTime(msg.created_at)}
-                          </span>
-                        )}
-                      </div>
 
-                      {/* Content */}
-                      <div className="flex-1 min-w-0">
-                        {startGroup && (
-                          <div className="flex items-center gap-2 mb-0.5">
-                            <button className={`text-sm font-semibold hover:underline cursor-pointer ${devNameClass(userBadges[msg.sender_id] || [])} ${!devNameClass(userBadges[msg.sender_id] || []) ? (isOwn ? "text-primary" : "") : ""}`}
-                              onClick={() => setProfileCard({ senderId: msg.sender_id, senderName: msg.senderName || "?", isAdmin: userRoles[msg.sender_id] === "admin", isTeacher: userRoles[msg.sender_id] === "teacher" || userRoles[msg.sender_id] === "moderator" })}>
-                              {isDevUser(userBadges[msg.sender_id] || [])
-                                ? <><span className="dev-nameplate">{isOwn ? "You" : msg.senderName}</span><img src={devBadgeImg} alt="Dev" className="h-5 w-5 object-contain ml-0.5" /></>
-                                : (isOwn ? "You" : msg.senderName)}
+                    <div className={`chat-row ${isOwn ? "chat-row-own" : ""} group ${devMsgClass(userBadges[msg.sender_id] || [])}`}>
+                      {/* Avatar — only at end of group, only for other person */}
+                      {!isOwn && (
+                        <div className="w-9 flex-shrink-0">
+                          {endGroup ? (
+                            <button
+                              className="cursor-pointer hover:opacity-80 transition-opacity"
+                              onClick={() => setProfileCard({ senderId: msg.sender_id, senderName: msg.senderName || "?", isAdmin: userRoles[msg.sender_id] === "admin", isTeacher: userRoles[msg.sender_id] === "teacher" || userRoles[msg.sender_id] === "moderator" })}
+                            >
+                              <RoleAvatar
+                                userId={msg.sender_id}
+                                name={msg.senderName || "?"}
+                                isAdmin={userRoles[msg.sender_id] === "admin"}
+                                isMod={userRoles[msg.sender_id] === "teacher" || userRoles[msg.sender_id] === "moderator"}
+                                isDev={isDevUser(userBadges[msg.sender_id] || [])}
+                                avatarSize="h-9 w-9"
+                              />
                             </button>
-                            <span className="text-xs text-muted-foreground">{formatTime(msg.created_at)}</span>
-                          </div>
-                        )}
+                          ) : null}
+                        </div>
+                      )}
 
-                        {/* Edit mode */}
+                      <div className="min-w-0 flex flex-col" style={{ alignItems: isOwn ? "flex-end" : "flex-start" }}>
+                        {/* Bubble or edit input */}
                         {isEditing ? (
-                          <div className="mt-1">
+                          <div className="w-full max-w-md">
                             <Textarea
                               value={editContent}
                               onChange={e => setEditContent(e.target.value)}
@@ -744,7 +793,7 @@ const DirectMessages = () => {
                                 if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); saveEdit(); }
                                 if (e.key === "Escape") { setEditingId(null); setEditContent(""); }
                               }}
-                              className="text-sm min-h-[56px] max-h-40 resize-none"
+                              className="text-sm min-h-[56px] max-h-40 resize-none rounded-2xl"
                               autoFocus
                             />
                             <div className="flex items-center gap-2 mt-1.5">
@@ -759,17 +808,39 @@ const DirectMessages = () => {
                             </div>
                           </div>
                         ) : (
-                          <p className="text-sm whitespace-pre-wrap break-words leading-relaxed">
+                          <div
+                            className={`chat-bubble ${isOwn ? "chat-bubble-own" : "chat-bubble-other"} ${endGroup ? "chat-bubble-tail" : "chat-bubble-stack"}`}
+                          >
                             {msg.content}
                             {msg.edited_at && (
-                              <span className="text-[10px] text-muted-foreground ml-1.5">(edited)</span>
+                              <span className={`text-[10px] ml-1.5 ${isOwn ? "opacity-70" : "text-muted-foreground"}`}>(edited)</span>
                             )}
-                          </p>
+
+                            {/* Hover toolbar */}
+                            <div className="chat-toolbar">
+                              {/* Reaction quick-picker */}
+                              {REACT_EMOJIS.slice(0, 4).map(e => (
+                                <button key={e} onClick={() => toggleDmReaction(msg.id, e)} title={`React ${e}`}>
+                                  <span className="text-[15px] leading-none">{e}</span>
+                                </button>
+                              ))}
+                              {isOwn && (
+                                <>
+                                  <button onClick={() => { setEditingId(msg.id); setEditContent(msg.content); }} title="Edit">
+                                    <Pencil className="h-3.5 w-3.5" />
+                                  </button>
+                                  <button className="is-destructive" onClick={() => deleteMessage(msg.id)} title="Delete">
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          </div>
                         )}
 
                         {/* Reaction pills */}
-                        {!isEditing && (
-                          <div className="flex flex-wrap gap-1 mt-1 items-center min-h-0">
+                        {!isEditing && msgReactions.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-1 items-center px-1">
                             {msgReactions.map(r => (
                               <button key={r.emoji} onClick={() => toggleDmReaction(msg.id, r.emoji)}
                                 className={`inline-flex items-center gap-1 rounded-full text-xs px-2 py-0.5 border transition-colors
@@ -780,37 +851,23 @@ const DirectMessages = () => {
                                 <span className="font-medium">{r.count}</span>
                               </button>
                             ))}
-                            {/* Emoji picker */}
-                            <div className="relative group/picker">
-                              <button className="inline-flex items-center justify-center h-6 w-6 rounded-full border border-dashed border-muted-foreground/30 text-muted-foreground hover:border-primary/40 hover:text-primary transition-colors opacity-0 group-hover:opacity-100 text-sm">
-                                +
-                              </button>
-                              <div className="absolute bottom-7 left-0 hidden group-hover/picker:flex bg-popover border rounded-lg shadow-lg p-1 gap-0.5 z-20">
-                                {REACT_EMOJIS.map(e => (
-                                  <button key={e} onClick={() => toggleDmReaction(msg.id, e)}
-                                    className="h-7 w-7 rounded hover:bg-muted flex items-center justify-center text-base transition-colors">
-                                    {e}
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
+                          </div>
+                        )}
+
+                        {/* Time + receipts (only at end of group) */}
+                        {endGroup && !isEditing && (
+                          <div className="chat-meta">
+                            <span>{formatTime(msg.created_at)}</span>
+                            {showReceipt && (
+                              <span className={`chat-receipt ${msg.read_at ? "chat-receipt-read" : "chat-receipt-sent"}`}>
+                                {msg.read_at
+                                  ? <CheckCheck className="h-3 w-3" />
+                                  : <Check className="h-3 w-3" />}
+                              </span>
+                            )}
                           </div>
                         )}
                       </div>
-
-                      {/* Actions (own messages only) */}
-                      {isOwn && !isEditing && (
-                        <div className="opacity-0 group-hover:opacity-100 flex-shrink-0 self-start pt-0.5 flex gap-0.5">
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                            onClick={() => { setEditingId(msg.id); setEditContent(msg.content); }}>
-                            <Pencil className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                            onClick={() => deleteMessage(msg.id)}>
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-                      )}
                     </div>
                   </div>
                 );
@@ -822,19 +879,14 @@ const DirectMessages = () => {
 
         {/* Typing indicator */}
         {typingUser && (
-          <div className="px-6 py-1 flex items-center gap-2 text-xs text-muted-foreground">
-            <div className="flex gap-0.5 items-end">
-              <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/60 animate-bounce" style={{ animationDelay: "0ms" }} />
-              <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/60 animate-bounce" style={{ animationDelay: "150ms" }} />
-              <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/60 animate-bounce" style={{ animationDelay: "300ms" }} />
-            </div>
-            <span>{typingUser} is typing…</span>
+          <div className="px-4 max-w-3xl mx-auto w-full">
+            <TypingIndicator name={typingUser} />
           </div>
         )}
 
         {/* Input */}
         {selectedConv && (
-          <div className="flex-shrink-0 px-3 sm:px-4 py-2 sm:py-3 border-t bg-background safe-area-bottom">
+          <div className="flex-shrink-0 px-3 sm:px-4 py-2 sm:py-3 chat-glass-composer safe-area-bottom">
             <div className="flex items-end gap-2 bg-muted/50 rounded-xl px-3 py-2 border border-border focus-within:border-primary/40 transition-colors">
               <Textarea
                 value={content}
