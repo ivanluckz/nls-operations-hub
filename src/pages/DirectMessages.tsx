@@ -74,53 +74,96 @@ interface ConvListProps {
   badges: Record<string, string[]>;
 }
 
-const ConvList = ({ conversations, selectedChannelId, onSelect, onBack, onNewDm, roles, badges }: ConvListProps) => (
-  <div className="flex flex-col h-full">
-    <div className="px-3 py-3.5 sm:py-4 border-b flex items-center gap-2">
-      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onBack}>
-        <ArrowLeft className="h-3.5 w-3.5" />
-      </Button>
-      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex-1">Messages</p>
-      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onNewDm} title="New DM">
-        <Plus className="h-3.5 w-3.5" />
-      </Button>
+function formatConvTime(iso?: string) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const today = new Date();
+  if (d.toDateString() === today.toDateString()) {
+    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  }
+  const diffDays = Math.floor((today.getTime() - d.getTime()) / 86400000);
+  if (diffDays < 7) return d.toLocaleDateString(undefined, { weekday: "short" });
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
+const ConvList = ({ conversations, selectedChannelId, onSelect, onBack, onNewDm, roles, badges }: ConvListProps) => {
+  const [search, setSearch] = useState("");
+  const filtered = search.trim()
+    ? conversations.filter(c =>
+        c.otherName.toLowerCase().includes(search.toLowerCase()) ||
+        (c.lastMessage || "").toLowerCase().includes(search.toLowerCase()),
+      )
+    : conversations;
+  return (
+    <div className="flex flex-col h-full">
+      <div className="px-3 pt-3 pb-2 flex items-center gap-2">
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onBack} aria-label="Back">
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <p className="text-[15px] font-bold tracking-tight flex-1">Messages</p>
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onNewDm} title="New DM" aria-label="New DM">
+          <Plus className="h-4 w-4" />
+        </Button>
+      </div>
+      <div className="px-3 pb-2">
+        <ConvSearch value={search} onChange={setSearch} placeholder="Search conversations" />
+      </div>
+      <div className="flex-1 overflow-y-auto py-1 px-2 space-y-0.5">
+        {conversations.length === 0 && (
+          <p className="text-xs text-muted-foreground text-center py-8 px-4">
+            No conversations yet.<br />
+            Tap <strong>+</strong> to start a new DM.
+          </p>
+        )}
+        {conversations.length > 0 && filtered.length === 0 && (
+          <p className="text-xs text-muted-foreground text-center py-8 px-4">
+            No matches for “{search}”.
+          </p>
+        )}
+        {filtered.map(conv => {
+          const isActive = selectedChannelId === conv.channelId;
+          const hasUnread = (conv.unread || 0) > 0;
+          return (
+            <button
+              key={conv.channelId}
+              onClick={() => onSelect(conv)}
+              className={`chat-conv-item ${isActive ? "chat-conv-item-active" : ""}`}
+            >
+              <RoleAvatar
+                userId={conv.otherId}
+                name={conv.otherName}
+                isAdmin={roles[conv.otherId] === "admin"}
+                isMod={roles[conv.otherId] === "teacher" || roles[conv.otherId] === "moderator"}
+                isDev={isDevUser(badges[conv.otherId] || [])}
+                avatarSize="h-9 w-9"
+                textSize="text-[10px]"
+              />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <p className={`truncate text-[13px] flex items-center gap-1 flex-1 ${hasUnread ? "font-semibold text-foreground" : "font-medium text-foreground/90"}`}>
+                    {conv.otherName}
+                    {isDevUser(badges[conv.otherId] || []) && <img src={devBadgeImg} alt="Dev" className="h-4 w-4 object-contain inline-block" />}
+                  </p>
+                  {conv.lastAt && (
+                    <span className={`text-[10px] flex-shrink-0 ${hasUnread ? "text-primary font-semibold" : "text-muted-foreground"}`}>
+                      {formatConvTime(conv.lastAt)}
+                    </span>
+                  )}
+                </div>
+                {conv.lastMessage && (
+                  <p className={`text-[11px] truncate mt-0.5 ${hasUnread ? "text-foreground/80" : "text-muted-foreground"}`}>
+                    {conv.lastMessage}
+                  </p>
+                )}
+              </div>
+              {hasUnread && <span className="chat-conv-unread-dot" aria-label={`${conv.unread} unread`} />}
+            </button>
+          );
+        })}
+      </div>
     </div>
-    <div className="flex-1 overflow-y-auto py-1.5 space-y-0.5 px-1.5">
-      {conversations.length === 0 && (
-        <p className="text-xs text-muted-foreground text-center py-8 px-4">
-          No conversations yet.<br />
-          Tap <strong>+</strong> to start a new DM.
-        </p>
-      )}
-      {conversations.map(conv => (
-        <button key={conv.channelId} onClick={() => onSelect(conv)}
-          className={`w-full flex items-center gap-2.5 px-2.5 sm:px-3 py-2.5 rounded-lg text-sm transition-colors text-left active:scale-[0.98]
-            ${selectedChannelId === conv.channelId
-              ? "bg-primary/15 text-foreground font-medium"
-              : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
-          <RoleAvatar
-            userId={conv.otherId}
-            name={conv.otherName}
-            isAdmin={roles[conv.otherId] === "admin"}
-            isMod={roles[conv.otherId] === "teacher" || roles[conv.otherId] === "moderator"}
-            isDev={isDevUser(badges[conv.otherId] || [])}
-            avatarSize="h-8 w-8"
-            textSize="text-[10px]"
-          />
-          <div className="flex-1 min-w-0">
-            <p className="font-medium truncate text-xs flex items-center gap-1">
-              {conv.otherName}
-              {isDevUser(badges[conv.otherId] || []) && <img src={devBadgeImg} alt="Dev" className="h-5 w-5 object-contain inline-block" />}
-            </p>
-            {conv.lastMessage && (
-              <p className="text-[11px] text-muted-foreground truncate mt-0.5">{conv.lastMessage}</p>
-            )}
-          </div>
-        </button>
-      ))}
-    </div>
-  </div>
-);
+  );
+};
 
 const DirectMessages = () => {
   const navigate = useNavigate();
