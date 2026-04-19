@@ -531,9 +531,9 @@ const StudentMessages = () => {
   );
 
   return (
-    <div className="h-screen flex flex-col bg-background overflow-hidden">
+    <div className="chat-shell h-screen flex flex-col overflow-hidden">
       {showBanner && <NotificationBanner onEnable={requestPermission} onDismiss={dismissBanner} />}
-      <header className="border-b bg-card shadow-sm flex-shrink-0 z-10">
+      <header className="chat-glass-header flex-shrink-0 z-10">
         <div className="px-4 py-3 flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => navigate("/student")} className="flex-shrink-0">
             <ArrowLeft className="h-5 w-5" />
@@ -636,15 +636,7 @@ const StudentMessages = () => {
 
                       return (
                         <div key={msg.id}>
-                          {showDateSep && (
-                            <div className="flex items-center gap-3 my-5">
-                              <div className="flex-1 h-px bg-border" />
-                              <span className="text-xs text-muted-foreground font-medium whitespace-nowrap px-2">
-                                {formatDateSeparator(msg.created_at)}
-                              </span>
-                              <div className="flex-1 h-px bg-border" />
-                            </div>
-                          )}
+                          {showDateSep && <DayPill label={formatDateSeparator(msg.created_at)} />}
 
                           {msg.message_type === "announcement" ? (
                             <div className={`my-3 rounded-lg border-l-4 ${msg.is_admin ? "border-amber-500 bg-amber-500/5" : "border-primary bg-primary/5"} p-3 flex gap-3 group`}>
@@ -782,7 +774,7 @@ return opt.img ? <img key={b} src={opt.img} title={b} className="h-4 w-4 object-
                 )}
               </div>
 
-              <div className="flex-shrink-0 px-4 py-3 border-t bg-background">
+              <div className="chat-glass-composer flex-shrink-0 px-4 py-3">
                 {/* @ Mention autocomplete */}
                 {filteredMentions.length > 0 && (
                   <div className="mb-2 bg-popover border rounded-lg shadow-lg overflow-hidden">
