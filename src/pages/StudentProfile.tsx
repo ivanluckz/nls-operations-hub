@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RoleAvatar } from "@/components/ui/RoleAvatar";
-import { HouseBadge } from "@/components/ui/HouseBadge";
+import HouseBadge from "@/components/ui/HouseBadge";
 import { isDevUser, devNameClass } from "@/lib/dev-badge";
 import {
   ArrowLeft, MessageSquare, Crown, ShieldCheck, GraduationCap,
