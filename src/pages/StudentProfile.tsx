@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RoleAvatar } from "@/components/ui/RoleAvatar";
-import HouseBadge from "@/components/ui/HouseBadge";
+// HouseBadge component fetches its own data — we render inline below
 import { isDevUser, devNameClass } from "@/lib/dev-badge";
 import {
   ArrowLeft, MessageSquare, Crown, ShieldCheck, GraduationCap,
@@ -196,7 +196,12 @@ export default function StudentProfile() {
           </div>
 
           <div className="flex flex-wrap gap-2 mt-3">
-            {house && <HouseBadge name={house.name} color={house.color} />}
+            {house && (
+              <Badge variant="outline" className="text-xs gap-1.5" style={{ borderColor: house.color, color: house.color }}>
+                <span className="h-2 w-2 rounded-full" style={{ backgroundColor: house.color }} />
+                {house.name}
+              </Badge>
+            )}
             {profile.student_class && (
               <Badge variant="secondary" className="text-xs">Class {profile.student_class}</Badge>
             )}
