@@ -879,19 +879,14 @@ const DirectMessages = () => {
 
         {/* Typing indicator */}
         {typingUser && (
-          <div className="px-6 py-1 flex items-center gap-2 text-xs text-muted-foreground">
-            <div className="flex gap-0.5 items-end">
-              <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/60 animate-bounce" style={{ animationDelay: "0ms" }} />
-              <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/60 animate-bounce" style={{ animationDelay: "150ms" }} />
-              <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/60 animate-bounce" style={{ animationDelay: "300ms" }} />
-            </div>
-            <span>{typingUser} is typing…</span>
+          <div className="px-4 max-w-3xl mx-auto w-full">
+            <TypingIndicator name={typingUser} />
           </div>
         )}
 
         {/* Input */}
         {selectedConv && (
-          <div className="flex-shrink-0 px-3 sm:px-4 py-2 sm:py-3 border-t bg-background safe-area-bottom">
+          <div className="flex-shrink-0 px-3 sm:px-4 py-2 sm:py-3 chat-glass-composer safe-area-bottom">
             <div className="flex items-end gap-2 bg-muted/50 rounded-xl px-3 py-2 border border-border focus-within:border-primary/40 transition-colors">
               <Textarea
                 value={content}
