@@ -21,6 +21,9 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, Hash, Menu, Send, Trash2, ShieldCheck, Megaphone, Award, Crown, MessageSquare, Trophy } from "lucide-react";
 import { UserProfileCard } from "@/components/chat/UserProfileCard";
+import { DayPill } from "@/components/chat/DayPill";
+import { ConvSearch } from "@/components/chat/ConvSearch";
+import "@/components/chat/chat-glass.css";
 import devBadge from "@/assets/dev.png";
 import { devNameClass, devMsgClass, isDevUser } from "@/lib/dev-badge";
 
@@ -133,6 +136,7 @@ const StudentMessages = () => {
   const [allAnnouncements, setAllAnnouncements] = useState<Message[]>([]);
   const [activityMembers, setActivityMembers] = useState<{ id: string; name: string }[]>([]);
   const [myName, setMyName] = useState("");
+  const [convSearch, setConvSearch] = useState("");
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const teacherIdsRef = useRef<Record<string, string | null>>({});
@@ -474,28 +478,30 @@ const StudentMessages = () => {
   const selectedActivityInfo = activities.find(a => a.id === selectedActivity);
   const totalUnread = Object.values(unreadCounts).reduce((a, b) => a + b, 0);
 
+  const filteredChannelActivities = convSearch.trim()
+    ? activities.filter(a => a.title.toLowerCase().includes(convSearch.toLowerCase()))
+    : activities;
+
   const ChannelList = () => (
-    <div className="flex flex-col h-full">
-      <div className="px-3 py-4 border-b">
+    <div className="chat-glass-panel flex flex-col h-full">
+      <div className="px-3 py-3 border-b border-border/40 space-y-2">
         <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Channels</p>
+        <ConvSearch value={convSearch} onChange={setConvSearch} placeholder="Search channels…" />
       </div>
       <div className="flex-1 overflow-y-auto py-2 space-y-0.5 px-2">
         {/* All Announcements feed */}
         <button onClick={() => { setActiveView("announcements"); fetchAnnouncements(); setSheetOpen(false); }}
-          className={`w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors text-left
-            ${activeView === "announcements" ? "bg-primary/15 text-foreground font-medium" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
+          className={`chat-conv-item ${activeView === "announcements" ? "chat-conv-item-active" : ""}`}>
           <Megaphone className="h-4 w-4 flex-shrink-0 opacity-70" />
-          <span className="flex-1 truncate">All Announcements</span>
+          <span className="flex-1 truncate text-sm">All Announcements</span>
         </button>
         <div className="h-px bg-border mx-1 my-1" />
-        {activities.map((a) => (
+        {filteredChannelActivities.map((a) => (
           <button key={a.id} onClick={() => { selectActivity(a.id); setActiveView("channels"); }}
-            className={`w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors text-left ${
-              activeView === "channels" && selectedActivity === a.id ? "bg-primary/15 text-foreground font-medium" : "text-muted-foreground hover:bg-muted hover:text-foreground"
-            }`}
+            className={`chat-conv-item ${activeView === "channels" && selectedActivity === a.id ? "chat-conv-item-active" : ""}`}
           >
             <Hash className="h-4 w-4 flex-shrink-0 opacity-70" />
-            <span className="flex-1 truncate">{a.title}</span>
+            <span className="flex-1 truncate text-sm">{a.title}</span>
             {unreadCounts[a.id] > 0 && (
               <Badge className="h-5 min-w-[20px] text-xs px-1.5 bg-primary text-primary-foreground rounded-full">
                 {unreadCounts[a.id] > 99 ? "99+" : unreadCounts[a.id]}
@@ -503,6 +509,9 @@ const StudentMessages = () => {
             )}
           </button>
         ))}
+        {filteredChannelActivities.length === 0 && convSearch.trim() && (
+          <p className="text-xs text-muted-foreground text-center py-4">No matches</p>
+        )}
       </div>
       <div className="px-3 py-3 border-t space-y-2">
         <Button variant="outline" size="sm" className="w-full text-xs gap-1.5"
@@ -522,9 +531,9 @@ const StudentMessages = () => {
   );
 
   return (
-    <div className="h-screen flex flex-col bg-background overflow-hidden">
+    <div className="chat-shell h-screen flex flex-col overflow-hidden">
       {showBanner && <NotificationBanner onEnable={requestPermission} onDismiss={dismissBanner} />}
-      <header className="border-b bg-card shadow-sm flex-shrink-0 z-10">
+      <header className="chat-glass-header flex-shrink-0 z-10">
         <div className="px-4 py-3 flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => navigate("/student")} className="flex-shrink-0">
             <ArrowLeft className="h-5 w-5" />
@@ -557,7 +566,7 @@ const StudentMessages = () => {
       </header>
 
       <div className="flex flex-1 min-h-0">
-        <aside className="hidden md:flex w-60 border-r bg-muted/20 flex-col flex-shrink-0">
+        <aside className="hidden md:flex w-60 flex-col flex-shrink-0">
           <ChannelList />
         </aside>
 
@@ -627,15 +636,7 @@ const StudentMessages = () => {
 
                       return (
                         <div key={msg.id}>
-                          {showDateSep && (
-                            <div className="flex items-center gap-3 my-5">
-                              <div className="flex-1 h-px bg-border" />
-                              <span className="text-xs text-muted-foreground font-medium whitespace-nowrap px-2">
-                                {formatDateSeparator(msg.created_at)}
-                              </span>
-                              <div className="flex-1 h-px bg-border" />
-                            </div>
-                          )}
+                          {showDateSep && <DayPill label={formatDateSeparator(msg.created_at)} />}
 
                           {msg.message_type === "announcement" ? (
                             <div className={`my-3 rounded-lg border-l-4 ${msg.is_admin ? "border-amber-500 bg-amber-500/5" : "border-primary bg-primary/5"} p-3 flex gap-3 group`}>
@@ -773,7 +774,7 @@ return opt.img ? <img key={b} src={opt.img} title={b} className="h-4 w-4 object-
                 )}
               </div>
 
-              <div className="flex-shrink-0 px-4 py-3 border-t bg-background">
+              <div className="chat-glass-composer flex-shrink-0 px-4 py-3">
                 {/* @ Mention autocomplete */}
                 {filteredMentions.length > 0 && (
                   <div className="mb-2 bg-popover border rounded-lg shadow-lg overflow-hidden">

@@ -18,6 +18,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Hash, ShieldCheck, Megaphone, Send, Trash2, Crown } from "lucide-react";
 import { UserProfileCard } from "@/components/chat/UserProfileCard";
+import { DayPill } from "@/components/chat/DayPill";
+import { ConvSearch } from "@/components/chat/ConvSearch";
+import "@/components/chat/chat-glass.css";
 
 interface Message {
   id: string;
@@ -78,6 +81,7 @@ const AdminMessages = () => {
   const [userId, setUserId] = useState("");
   const [userBadges, setUserBadges] = useState<Record<string, string[]>>({});
   const [profileCard, setProfileCard] = useState<ProfileCard | null>(null);
+  const [convSearch, setConvSearch] = useState("");
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const teacherIdsRef = useRef<Record<string, string | null>>({});
@@ -218,33 +222,40 @@ const AdminMessages = () => {
   };
 
   const selectedTitle = activities.find(a => a.id === selectedActivity)?.title;
+  const filteredActivities = convSearch.trim()
+    ? activities.filter(a => a.title.toLowerCase().includes(convSearch.toLowerCase()))
+    : activities;
 
   return (
     <AdminLayout>
       {showBanner && <NotificationBanner onEnable={requestPermission} onDismiss={dismissBanner} />}
-      <div className="flex h-[calc(100vh-8rem)] rounded-xl border overflow-hidden">
+      <div className="chat-shell flex h-[calc(100vh-8rem)] rounded-xl border overflow-hidden">
         {/* Sidebar */}
-        <aside className="w-56 border-r bg-muted/20 flex flex-col flex-shrink-0">
-          <div className="px-3 py-4 border-b">
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">All Channels</p>
-            <p className="text-xs text-muted-foreground mt-0.5">{activities.length} activities</p>
+        <aside className="chat-glass-panel w-60 border-r flex flex-col flex-shrink-0">
+          <div className="px-3 py-3 border-b border-border/40 space-y-2">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">All Channels</p>
+              <span className="text-[10px] text-muted-foreground">{activities.length}</span>
+            </div>
+            <ConvSearch value={convSearch} onChange={setConvSearch} placeholder="Search channels…" />
           </div>
           <div className="flex-1 overflow-y-auto py-2 space-y-0.5 px-2">
-            {activities.map((a) => (
+            {filteredActivities.map((a) => (
               <button key={a.id} onClick={() => setSelectedActivity(a.id)}
-                className={`w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors text-left ${
-                  selectedActivity === a.id ? "bg-primary/15 text-foreground font-medium" : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                }`}>
+                className={`chat-conv-item ${selectedActivity === a.id ? "chat-conv-item-active" : ""}`}>
                 <Hash className="h-4 w-4 flex-shrink-0 opacity-70" />
-                <span className="flex-1 truncate">{a.title}</span>
+                <span className="flex-1 truncate text-sm">{a.title}</span>
               </button>
             ))}
+            {filteredActivities.length === 0 && (
+              <p className="text-xs text-muted-foreground text-center py-4">No matches</p>
+            )}
           </div>
         </aside>
 
         {/* Chat area */}
-        <div className="flex flex-col flex-1 min-w-0 bg-background">
-          <div className="px-4 py-3 border-b flex items-center gap-2 flex-shrink-0">
+        <div className="flex flex-col flex-1 min-w-0">
+          <div className="chat-glass-header px-4 py-3 flex items-center gap-2 flex-shrink-0">
             <Hash className="h-5 w-5 text-muted-foreground" />
             <h2 className="font-semibold text-sm">{selectedTitle || "Select a channel"}</h2>
             <Badge variant="outline" className="ml-auto text-xs">Admin</Badge>
@@ -269,15 +280,7 @@ const AdminMessages = () => {
 
                   return (
                     <div key={msg.id}>
-                      {showDateSep && (
-                        <div className="flex items-center gap-3 my-5">
-                          <div className="flex-1 h-px bg-border" />
-                          <span className="text-xs text-muted-foreground font-medium whitespace-nowrap px-2">
-                            {formatDateSeparator(msg.created_at)}
-                          </span>
-                          <div className="flex-1 h-px bg-border" />
-                        </div>
-                      )}
+                      {showDateSep && <DayPill label={formatDateSeparator(msg.created_at)} />}
 
                       {msg.message_type === "announcement" ? (
                         <div className={`my-3 rounded-lg border-l-4 ${msg.is_admin ? "border-amber-500 bg-amber-500/5" : "border-primary bg-primary/5"} p-3 flex gap-3 group`}>
@@ -380,7 +383,7 @@ const AdminMessages = () => {
 
           {/* Compose bar */}
           {selectedActivity && (
-            <div className="flex-shrink-0 px-4 py-3 border-t bg-background space-y-2">
+            <div className="chat-glass-composer flex-shrink-0 px-4 py-3 space-y-2">
               <div className="flex items-center gap-2">
                 <Select value={messageType} onValueChange={(v) => setMessageType(v as "announcement" | "discussion")}>
                   <SelectTrigger className="w-[160px] h-8 text-xs">
