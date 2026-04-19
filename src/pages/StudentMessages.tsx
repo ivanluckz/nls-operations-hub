@@ -21,6 +21,9 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, Hash, Menu, Send, Trash2, ShieldCheck, Megaphone, Award, Crown, MessageSquare, Trophy } from "lucide-react";
 import { UserProfileCard } from "@/components/chat/UserProfileCard";
+import { DayPill } from "@/components/chat/DayPill";
+import { ConvSearch } from "@/components/chat/ConvSearch";
+import "@/components/chat/chat-glass.css";
 import devBadge from "@/assets/dev.png";
 import { devNameClass, devMsgClass, isDevUser } from "@/lib/dev-badge";
 
@@ -133,6 +136,7 @@ const StudentMessages = () => {
   const [allAnnouncements, setAllAnnouncements] = useState<Message[]>([]);
   const [activityMembers, setActivityMembers] = useState<{ id: string; name: string }[]>([]);
   const [myName, setMyName] = useState("");
+  const [convSearch, setConvSearch] = useState("");
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const teacherIdsRef = useRef<Record<string, string | null>>({});
