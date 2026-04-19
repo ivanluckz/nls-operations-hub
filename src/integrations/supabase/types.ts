@@ -1056,6 +1056,35 @@ export type Database = {
         }
         Relationships: []
       }
+      theme_likes: {
+        Row: {
+          created_at: string
+          id: string
+          theme_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          theme_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          theme_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "theme_likes_theme_id_fkey"
+            columns: ["theme_id"]
+            isOneToOne: false
+            referencedRelation: "user_themes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_badges: {
         Row: {
           awarded_at: string | null
@@ -1114,6 +1143,7 @@ export type Database = {
           is_active: boolean | null
           is_public: boolean
           js_url: string | null
+          like_count: number
           name: string
           updated_at: string
           user_id: string
@@ -1127,6 +1157,7 @@ export type Database = {
           is_active?: boolean | null
           is_public?: boolean
           js_url?: string | null
+          like_count?: number
           name: string
           updated_at?: string
           user_id: string
@@ -1140,6 +1171,7 @@ export type Database = {
           is_active?: boolean | null
           is_public?: boolean
           js_url?: string | null
+          like_count?: number
           name?: string
           updated_at?: string
           user_id?: string
@@ -1277,6 +1309,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      bump_theme_install_count: {
+        Args: { _theme_id: string }
+        Returns: undefined
+      }
       count_allocated_students: { Args: never; Returns: number }
       get_teacher_students: {
         Args: { teacher_user_id: string }
