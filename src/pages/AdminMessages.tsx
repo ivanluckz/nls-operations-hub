@@ -280,15 +280,7 @@ const AdminMessages = () => {
 
                   return (
                     <div key={msg.id}>
-                      {showDateSep && (
-                        <div className="flex items-center gap-3 my-5">
-                          <div className="flex-1 h-px bg-border" />
-                          <span className="text-xs text-muted-foreground font-medium whitespace-nowrap px-2">
-                            {formatDateSeparator(msg.created_at)}
-                          </span>
-                          <div className="flex-1 h-px bg-border" />
-                        </div>
-                      )}
+                      {showDateSep && <DayPill label={formatDateSeparator(msg.created_at)} />}
 
                       {msg.message_type === "announcement" ? (
                         <div className={`my-3 rounded-lg border-l-4 ${msg.is_admin ? "border-amber-500 bg-amber-500/5" : "border-primary bg-primary/5"} p-3 flex gap-3 group`}>
