@@ -18,6 +18,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Hash, ShieldCheck, Megaphone, Send, Trash2, Crown } from "lucide-react";
 import { UserProfileCard } from "@/components/chat/UserProfileCard";
+import { DayPill } from "@/components/chat/DayPill";
+import { ConvSearch } from "@/components/chat/ConvSearch";
+import "@/components/chat/chat-glass.css";
 
 interface Message {
   id: string;
