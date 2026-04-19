@@ -14,7 +14,6 @@ export default function LiquidGlassCursor() {
   const auraRef = useRef<HTMLDivElement>(null);
   const trailRef = useRef<HTMLDivElement>(null);
   const splashLayerRef = useRef<HTMLDivElement>(null);
-  const dropLayerRef = useRef<SVGSVGElement>(null);
   const dropGroupRef = useRef<SVGGElement>(null);
 
   useEffect(() => {
@@ -32,22 +31,7 @@ export default function LiquidGlassCursor() {
     const MAGNET_RADIUS = 60; // px around a button where magnetic pull engages
     const MAGNET_PULL = 0.35; // how strongly the orb is pulled toward the nearest edge
     const WOBBLE_MAX = 6; // max px the button itself shifts toward the cursor
-
-    // Metaball droplets — spawned while dragging, return to the orb on release
-    type Drop = {
-      el: SVGCircleElement;
-      x: number;
-      y: number;
-      vx: number;
-      vy: number;
-      r: number;
-      born: number;
-      returning: boolean;
-    };
-    const drops: Drop[] = [];
-    const MAX_DROPS = 22;
-    let dragging = false;
-    let lastSpawn = 0;
+    const DROP_INTERVAL = 35; // ms between droplet spawns while dragging
 
     let mx = window.innerWidth / 2;
     let my = window.innerHeight / 2;
@@ -60,7 +44,66 @@ export default function LiquidGlassCursor() {
     let raf = 0;
     let hovered: HTMLElement | null = null;
     let magnetTarget: HTMLElement | null = null;
+    let dragging = false;
+    let lastDropAt = 0;
+    let dragTint = "var(--primary)"; // current HSL token under the cursor while dragging
     const wobbled = new Set<HTMLElement>();
+    type Drop = {
+      el: SVGCircleElement;
+      x: number;
+      y: number;
+      vx: number;
+      vy: number;
+      r: number;
+      life: number;
+      returning: boolean;
+    };
+    const drops: Drop[] = [];
+
+    // Detect the appropriate liquid tint for the surface under (x, y).
+    // Returns an HSL token reference (without `hsl(...)` wrapper).
+    const resolveTintAt = (x: number, y: number): string => {
+      const stack = document.elementsFromPoint(x, y);
+      for (const node of stack) {
+        const el = node as HTMLElement;
+        if (!el.classList) continue;
+        // Explicit semantic surfaces win first
+        if (el.classList.contains("bg-destructive") || el.closest?.(".bg-destructive,[data-variant='destructive']")) {
+          return "var(--destructive)";
+        }
+        if (el.classList.contains("bg-success") || el.closest?.(".bg-success,[data-variant='success']")) {
+          return "var(--success, var(--primary))";
+        }
+        // Stop scanning once we hit a real painted surface
+        const cs = getComputedStyle(el);
+        if (cs.backgroundColor && cs.backgroundColor !== "rgba(0, 0, 0, 0)" && cs.backgroundColor !== "transparent") {
+          break;
+        }
+      }
+      return "var(--primary)";
+    };
+
+    const spawnDrop = (x: number, y: number, vx: number, vy: number) => {
+      const el = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+      const r = 5 + Math.random() * 4;
+      el.setAttribute("r", String(r));
+      el.setAttribute("cx", String(x));
+      el.setAttribute("cy", String(y));
+      // Tint follows the surface beneath the cursor at spawn time
+      el.setAttribute("fill", `hsl(${dragTint})`);
+      dropGroup.appendChild(el);
+      drops.push({
+        el,
+        x,
+        y,
+        vx: vx * 0.4 + (Math.random() - 0.5) * 1.5,
+        vy: vy * 0.4 + (Math.random() - 0.5) * 1.5,
+        r,
+        life: 1,
+        returning: false,
+      });
+    };
+
 
     const isInteractive = (el: Element | null): HTMLElement | null => {
       if (!el) return null;
@@ -177,47 +220,6 @@ export default function LiquidGlassCursor() {
       }
     };
 
-    const spawnDrop = (now: number, vx: number, vy: number) => {
-      if (drops.length >= MAX_DROPS) return;
-      const speed = Math.hypot(vx, vy);
-      if (speed < 0.5) return;
-      const c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-      const r = 4 + Math.random() * 4;
-      c.setAttribute("r", String(r));
-      c.setAttribute("fill", "hsl(var(--primary))");
-      // jitter perpendicular to motion so droplets fan slightly
-      const perp = Math.random() * 6 - 3;
-      const nx = -vy / (speed || 1);
-      const ny = vx / (speed || 1);
-      const sx = ox + nx * perp;
-      const sy = oy + ny * perp;
-      c.setAttribute("cx", String(sx));
-      c.setAttribute("cy", String(sy));
-      dropGroup.appendChild(c);
-      drops.push({
-        el: c,
-        x: sx,
-        y: sy,
-        // small inherited momentum opposite of cursor motion
-        vx: -vx * 0.25 + (Math.random() - 0.5) * 0.6,
-        vy: -vy * 0.25 + (Math.random() - 0.5) * 0.6,
-        r,
-        born: now,
-        returning: false,
-      });
-    };
-
-    const onPointerDown = (e: MouseEvent) => {
-      if (e.button !== 0) return;
-      dragging = true;
-    };
-    const onPointerUp = () => {
-      if (!dragging) return;
-      dragging = false;
-      // tell every droplet to come home
-      for (const d of drops) d.returning = true;
-    };
-
     const onClick = (e: MouseEvent) => {
       const splash = document.createElement("span");
       splash.className = "liquid-splash";
@@ -227,8 +229,18 @@ export default function LiquidGlassCursor() {
       window.setTimeout(() => splash.remove(), 700);
     };
 
+    const onDown = (e: MouseEvent) => {
+      if (e.button !== 0) return;
+      dragging = true;
+      dragTint = resolveTintAt(e.clientX, e.clientY);
+    };
+    const onUp = () => {
+      dragging = false;
+      // Mark all live droplets as returning so they slurp back into the orb
+      for (const d of drops) d.returning = true;
+    };
+
     const tick = () => {
-      const now = performance.now();
       // smoothing — softer when hovering for the "magnetic glide" feel
       const k = hovered ? 0.28 : 0.2;
       ox += (tx - ox) * k;
@@ -256,42 +268,42 @@ export default function LiquidGlassCursor() {
       document.documentElement.style.setProperty("--cursor-x", `${ox}px`);
       document.documentElement.style.setProperty("--cursor-y", `${oy}px`);
 
-      // Drag droplets — spawn while dragging, simulate, then merge into orb on release
-      if (dragging && now - lastSpawn > 35) {
-        spawnDrop(now, vx, vy);
-        lastSpawn = now;
+      // ----- Metaball droplets -----
+      const now = performance.now();
+      if (dragging) {
+        // Refresh tint as the cursor moves over different surfaces
+        dragTint = resolveTintAt(mx, my);
+        if (now - lastDropAt > DROP_INTERVAL) {
+          lastDropAt = now;
+          spawnDrop(ox, oy, vx, vy);
+        }
       }
       for (let i = drops.length - 1; i >= 0; i--) {
         const d = drops[i];
         if (d.returning) {
-          // pull strongly toward orb center, with friction
+          // Strong spring pull toward the orb center
           const dx = ox - d.x;
           const dy = oy - d.y;
-          d.vx = d.vx * 0.78 + dx * 0.18;
-          d.vy = d.vy * 0.78 + dy * 0.18;
+          d.vx = d.vx * 0.78 + dx * 0.22;
+          d.vy = d.vy * 0.78 + dy * 0.22;
           d.x += d.vx;
           d.y += d.vy;
           d.r *= 0.94;
-          // close enough → merge
           if (Math.hypot(dx, dy) < 6 || d.r < 1.2) {
             d.el.remove();
             drops.splice(i, 1);
             continue;
           }
         } else {
-          // freefall while dragging — gentle gravity + drag
-          d.vy += 0.18;
+          // Free-fall with light gravity & drag while user is still holding
+          d.vy += 0.08;
           d.vx *= 0.96;
           d.vy *= 0.98;
           d.x += d.vx;
           d.y += d.vy;
-          // age-based shrink so the trail naturally tapers
-          const age = now - d.born;
-          if (age > 600) d.r *= 0.97;
-          if (d.r < 1.5) {
-            d.el.remove();
-            drops.splice(i, 1);
-            continue;
+          d.life -= 0.008;
+          if (d.life <= 0) {
+            d.returning = true;
           }
         }
         d.el.setAttribute("cx", String(d.x));
@@ -304,18 +316,18 @@ export default function LiquidGlassCursor() {
 
     window.addEventListener("mousemove", onMove, { passive: true });
     window.addEventListener("mouseleave", onLeave);
-    window.addEventListener("mousedown", onPointerDown, { passive: true });
-    window.addEventListener("mouseup", onPointerUp, { passive: true });
     window.addEventListener("click", onClick, { passive: true });
+    window.addEventListener("mousedown", onDown, { passive: true });
+    window.addEventListener("mouseup", onUp, { passive: true });
     raf = requestAnimationFrame(tick);
 
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseleave", onLeave);
-      window.removeEventListener("mousedown", onPointerDown);
-      window.removeEventListener("mouseup", onPointerUp);
       window.removeEventListener("click", onClick);
+      window.removeEventListener("mousedown", onDown);
+      window.removeEventListener("mouseup", onUp);
       if (hovered) hovered.classList.remove("liquid-fill-active");
       wobbled.forEach((el) => clearWobble(el));
       drops.forEach((d) => d.el.remove());
@@ -325,8 +337,8 @@ export default function LiquidGlassCursor() {
 
   return (
     <>
-      {/* Hidden SVG defs: glass-lens displacement filter (used by orb backdrop)
-          + gooey metaball filter (used by the droplet layer below). */}
+      {/* Real glass-lens distortion: turbulence noise drives a displacement map.
+          Applied as a backdrop-filter on the orb so the page behind actually warps. */}
       <svg
         aria-hidden
         width="0"
@@ -358,8 +370,7 @@ export default function LiquidGlassCursor() {
               yChannelSelector="G"
             />
           </filter>
-          {/* Gooey metaball filter — droplets close to each other (and the orb) merge. */}
-          <filter id="liquid-goo">
+          <filter id="liquid-goo" x="-20%" y="-20%" width="140%" height="140%">
             <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur" />
             <feColorMatrix
               in="blur"
@@ -371,19 +382,18 @@ export default function LiquidGlassCursor() {
           </filter>
         </defs>
       </svg>
-      {/* Droplet layer — sits behind the orb. The gooey filter glues nearby
-          circles together so they read as a single liquid blob. */}
-      <svg
-        ref={dropLayerRef}
-        className="liquid-drop-layer"
-        aria-hidden
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <g ref={dropGroupRef} filter="url(#liquid-goo)" />
-      </svg>
       <div ref={splashLayerRef} className="liquid-splash-layer" aria-hidden />
       <div ref={trailRef} className="liquid-cursor-trail" aria-hidden />
       <div ref={auraRef} className="liquid-cursor-aura" aria-hidden />
+      {/* Metaball droplet layer — gooey filter fuses circles together */}
+      <svg
+        aria-hidden
+        className="liquid-drop-layer"
+        width="100%"
+        height="100%"
+      >
+        <g ref={dropGroupRef} filter="url(#liquid-goo)" />
+      </svg>
       <div ref={orbRef} className="liquid-cursor-orb" aria-hidden>
         <span className="liquid-cursor-spec" />
       </div>
