@@ -267,12 +267,58 @@ export default function LiquidGlassCursor() {
       // expose global pointer coords for any element that wants them
       document.documentElement.style.setProperty("--cursor-x", `${ox}px`);
       document.documentElement.style.setProperty("--cursor-y", `${oy}px`);
+
+      // ----- Metaball droplets -----
+      const now = performance.now();
+      if (dragging) {
+        // Refresh tint as the cursor moves over different surfaces
+        dragTint = resolveTintAt(mx, my);
+        if (now - lastDropAt > DROP_INTERVAL) {
+          lastDropAt = now;
+          spawnDrop(ox, oy, vx, vy);
+        }
+      }
+      for (let i = drops.length - 1; i >= 0; i--) {
+        const d = drops[i];
+        if (d.returning) {
+          // Strong spring pull toward the orb center
+          const dx = ox - d.x;
+          const dy = oy - d.y;
+          d.vx = d.vx * 0.78 + dx * 0.22;
+          d.vy = d.vy * 0.78 + dy * 0.22;
+          d.x += d.vx;
+          d.y += d.vy;
+          d.r *= 0.94;
+          if (Math.hypot(dx, dy) < 6 || d.r < 1.2) {
+            d.el.remove();
+            drops.splice(i, 1);
+            continue;
+          }
+        } else {
+          // Free-fall with light gravity & drag while user is still holding
+          d.vy += 0.08;
+          d.vx *= 0.96;
+          d.vy *= 0.98;
+          d.x += d.vx;
+          d.y += d.vy;
+          d.life -= 0.008;
+          if (d.life <= 0) {
+            d.returning = true;
+          }
+        }
+        d.el.setAttribute("cx", String(d.x));
+        d.el.setAttribute("cy", String(d.y));
+        d.el.setAttribute("r", String(d.r));
+      }
+
       raf = requestAnimationFrame(tick);
     };
 
     window.addEventListener("mousemove", onMove, { passive: true });
     window.addEventListener("mouseleave", onLeave);
     window.addEventListener("click", onClick, { passive: true });
+    window.addEventListener("mousedown", onDown, { passive: true });
+    window.addEventListener("mouseup", onUp, { passive: true });
     raf = requestAnimationFrame(tick);
 
     return () => {
@@ -280,8 +326,12 @@ export default function LiquidGlassCursor() {
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseleave", onLeave);
       window.removeEventListener("click", onClick);
+      window.removeEventListener("mousedown", onDown);
+      window.removeEventListener("mouseup", onUp);
       if (hovered) hovered.classList.remove("liquid-fill-active");
       wobbled.forEach((el) => clearWobble(el));
+      drops.forEach((d) => d.el.remove());
+      drops.length = 0;
     };
   }, []);
 
