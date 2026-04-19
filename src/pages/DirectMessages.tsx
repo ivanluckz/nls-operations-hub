@@ -12,8 +12,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ArrowLeft, Send, MessageSquare, Menu, Trash2, Plus, Search, Pencil, Check, X } from "lucide-react";
+import { ArrowLeft, Send, MessageSquare, Menu, Trash2, Plus, Search, Pencil, Check, X, CheckCheck } from "lucide-react";
 import { UserProfileCard } from "@/components/chat/UserProfileCard";
+import { ConvSearch } from "@/components/chat/ConvSearch";
+import { DayPill } from "@/components/chat/DayPill";
+import { TypingIndicator } from "@/components/chat/TypingIndicator";
 import IOSSchoolSkeleton from "@/components/IOSSchoolSkeleton";
 
 const REACT_EMOJIS = ['👍', '❤️', '😂', '🔥', '👀', '✅'];
