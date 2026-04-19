@@ -150,7 +150,13 @@ export default function LiquidGlassCursor() {
       }
     };
 
-    const onLeave = () => setHover(null);
+    const onLeave = () => {
+      setHover(null);
+      if (magnetTarget) {
+        clearWobble(magnetTarget);
+        magnetTarget = null;
+      }
+    };
 
     const onClick = (e: MouseEvent) => {
       const splash = document.createElement("span");
