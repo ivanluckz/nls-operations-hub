@@ -478,28 +478,30 @@ const StudentMessages = () => {
   const selectedActivityInfo = activities.find(a => a.id === selectedActivity);
   const totalUnread = Object.values(unreadCounts).reduce((a, b) => a + b, 0);
 
+  const filteredChannelActivities = convSearch.trim()
+    ? activities.filter(a => a.title.toLowerCase().includes(convSearch.toLowerCase()))
+    : activities;
+
   const ChannelList = () => (
-    <div className="flex flex-col h-full">
-      <div className="px-3 py-4 border-b">
+    <div className="chat-glass-panel flex flex-col h-full">
+      <div className="px-3 py-3 border-b border-border/40 space-y-2">
         <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Channels</p>
+        <ConvSearch value={convSearch} onChange={setConvSearch} placeholder="Search channels…" />
       </div>
       <div className="flex-1 overflow-y-auto py-2 space-y-0.5 px-2">
         {/* All Announcements feed */}
         <button onClick={() => { setActiveView("announcements"); fetchAnnouncements(); setSheetOpen(false); }}
-          className={`w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors text-left
-            ${activeView === "announcements" ? "bg-primary/15 text-foreground font-medium" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
+          className={`chat-conv-item ${activeView === "announcements" ? "chat-conv-item-active" : ""}`}>
           <Megaphone className="h-4 w-4 flex-shrink-0 opacity-70" />
-          <span className="flex-1 truncate">All Announcements</span>
+          <span className="flex-1 truncate text-sm">All Announcements</span>
         </button>
         <div className="h-px bg-border mx-1 my-1" />
-        {activities.map((a) => (
+        {filteredChannelActivities.map((a) => (
           <button key={a.id} onClick={() => { selectActivity(a.id); setActiveView("channels"); }}
-            className={`w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors text-left ${
-              activeView === "channels" && selectedActivity === a.id ? "bg-primary/15 text-foreground font-medium" : "text-muted-foreground hover:bg-muted hover:text-foreground"
-            }`}
+            className={`chat-conv-item ${activeView === "channels" && selectedActivity === a.id ? "chat-conv-item-active" : ""}`}
           >
             <Hash className="h-4 w-4 flex-shrink-0 opacity-70" />
-            <span className="flex-1 truncate">{a.title}</span>
+            <span className="flex-1 truncate text-sm">{a.title}</span>
             {unreadCounts[a.id] > 0 && (
               <Badge className="h-5 min-w-[20px] text-xs px-1.5 bg-primary text-primary-foreground rounded-full">
                 {unreadCounts[a.id] > 99 ? "99+" : unreadCounts[a.id]}
@@ -507,6 +509,9 @@ const StudentMessages = () => {
             )}
           </button>
         ))}
+        {filteredChannelActivities.length === 0 && convSearch.trim() && (
+          <p className="text-xs text-muted-foreground text-center py-4">No matches</p>
+        )}
       </div>
       <div className="px-3 py-3 border-t space-y-2">
         <Button variant="outline" size="sm" className="w-full text-xs gap-1.5"
