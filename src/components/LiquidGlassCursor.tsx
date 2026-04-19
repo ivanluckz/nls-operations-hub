@@ -26,10 +26,12 @@ export default function LiquidGlassCursor() {
     const aura = auraRef.current!;
     const trail = trailRef.current!;
     const splashLayer = splashLayerRef.current!;
+    const dropGroup = dropGroupRef.current!;
 
     const MAGNET_RADIUS = 60; // px around a button where magnetic pull engages
     const MAGNET_PULL = 0.35; // how strongly the orb is pulled toward the nearest edge
     const WOBBLE_MAX = 6; // max px the button itself shifts toward the cursor
+    const DROP_INTERVAL = 35; // ms between droplet spawns while dragging
 
     let mx = window.innerWidth / 2;
     let my = window.innerHeight / 2;
@@ -42,7 +44,66 @@ export default function LiquidGlassCursor() {
     let raf = 0;
     let hovered: HTMLElement | null = null;
     let magnetTarget: HTMLElement | null = null;
+    let dragging = false;
+    let lastDropAt = 0;
+    let dragTint = "var(--primary)"; // current HSL token under the cursor while dragging
     const wobbled = new Set<HTMLElement>();
+    type Drop = {
+      el: SVGCircleElement;
+      x: number;
+      y: number;
+      vx: number;
+      vy: number;
+      r: number;
+      life: number;
+      returning: boolean;
+    };
+    const drops: Drop[] = [];
+
+    // Detect the appropriate liquid tint for the surface under (x, y).
+    // Returns an HSL token reference (without `hsl(...)` wrapper).
+    const resolveTintAt = (x: number, y: number): string => {
+      const stack = document.elementsFromPoint(x, y);
+      for (const node of stack) {
+        const el = node as HTMLElement;
+        if (!el.classList) continue;
+        // Explicit semantic surfaces win first
+        if (el.classList.contains("bg-destructive") || el.closest?.(".bg-destructive,[data-variant='destructive']")) {
+          return "var(--destructive)";
+        }
+        if (el.classList.contains("bg-success") || el.closest?.(".bg-success,[data-variant='success']")) {
+          return "var(--success, var(--primary))";
+        }
+        // Stop scanning once we hit a real painted surface
+        const cs = getComputedStyle(el);
+        if (cs.backgroundColor && cs.backgroundColor !== "rgba(0, 0, 0, 0)" && cs.backgroundColor !== "transparent") {
+          break;
+        }
+      }
+      return "var(--primary)";
+    };
+
+    const spawnDrop = (x: number, y: number, vx: number, vy: number) => {
+      const el = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+      const r = 5 + Math.random() * 4;
+      el.setAttribute("r", String(r));
+      el.setAttribute("cx", String(x));
+      el.setAttribute("cy", String(y));
+      // Tint follows the surface beneath the cursor at spawn time
+      el.setAttribute("fill", `hsl(${dragTint})`);
+      dropGroup.appendChild(el);
+      drops.push({
+        el,
+        x,
+        y,
+        vx: vx * 0.4 + (Math.random() - 0.5) * 1.5,
+        vy: vy * 0.4 + (Math.random() - 0.5) * 1.5,
+        r,
+        life: 1,
+        returning: false,
+      });
+    };
+
 
     const isInteractive = (el: Element | null): HTMLElement | null => {
       if (!el) return null;
