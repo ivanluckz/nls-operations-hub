@@ -566,7 +566,7 @@ const StudentMessages = () => {
       </header>
 
       <div className="flex flex-1 min-h-0">
-        <aside className="hidden md:flex w-60 border-r bg-muted/20 flex-col flex-shrink-0">
+        <aside className="hidden md:flex w-60 flex-col flex-shrink-0">
           <ChannelList />
         </aside>
 
