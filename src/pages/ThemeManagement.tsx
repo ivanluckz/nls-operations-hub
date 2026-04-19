@@ -7,8 +7,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
-  ArrowLeft, Upload, Trash2, Palette, Check, Eye, X, Loader2, Code, HardDrive
+  ArrowLeft, Upload, Trash2, Palette, Check, Eye, X, Loader2, Code, HardDrive, Sparkles, Globe
 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/hooks/use-custom-theme";
@@ -214,6 +215,42 @@ const ThemeManagement = () => {
     URL.revokeObjectURL(url);
   };
 
+  const publishToMarketplace = async (theme: LocalTheme) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { toast({ title: "Sign in required", variant: "destructive" }); return; }
+
+      const cssBlob = new Blob([theme.cssContent], { type: "text/css" });
+      const cssPath = `${user.id}/${theme.id}.css`;
+      const { error: cssErr } = await supabase.storage.from("themes").upload(cssPath, cssBlob, { upsert: true, contentType: "text/css" });
+      if (cssErr) throw cssErr;
+      const { data: cssUrl } = supabase.storage.from("themes").getPublicUrl(cssPath);
+
+      let jsPublicUrl: string | null = null;
+      if (theme.jsContent) {
+        const jsPath = `${user.id}/${theme.id}.js`;
+        const jsBlob = new Blob([theme.jsContent], { type: "application/javascript" });
+        const { error: jsErr } = await supabase.storage.from("themes").upload(jsPath, jsBlob, { upsert: true, contentType: "application/javascript" });
+        if (jsErr) throw jsErr;
+        jsPublicUrl = supabase.storage.from("themes").getPublicUrl(jsPath).data.publicUrl;
+      }
+
+      const { error } = await (supabase as any).from("user_themes").insert({
+        user_id: user.id,
+        name: theme.name,
+        description: theme.description || null,
+        css_url: cssUrl.publicUrl,
+        js_url: jsPublicUrl,
+        is_public: true,
+      });
+      if (error) throw error;
+
+      toast({ title: "Published! 🎉", description: `"${theme.name}" is now in the marketplace.` });
+    } catch (err: any) {
+      toast({ title: "Publish failed", description: err.message, variant: "destructive" });
+    }
+  };
+
   const handleImportJson = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -246,9 +283,14 @@ const ThemeManagement = () => {
   return (
     <div className="min-h-screen bg-transparent p-4 md:p-6">
       <div className="max-w-4xl mx-auto">
-        <Button variant="ghost" onClick={() => navigate(-1)} className="mb-4">
-          <ArrowLeft className="h-4 w-4 mr-2" /> Back
-        </Button>
+        <div className="flex items-center justify-between mb-4">
+          <Button variant="ghost" onClick={() => navigate(-1)}>
+            <ArrowLeft className="h-4 w-4 mr-2" /> Back
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => navigate("/themes/marketplace")} className="gap-1.5">
+            <Sparkles className="h-3.5 w-3.5" /> Browse Marketplace
+          </Button>
+        </div>
 
         <div className="flex items-center gap-3 mb-6">
           <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
@@ -403,6 +445,9 @@ const ThemeManagement = () => {
                             </Button>
                             <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => handleExport(theme)}>
                               Export
+                            </Button>
+                            <Button variant="outline" size="sm" className="text-xs h-7 gap-1" onClick={() => publishToMarketplace(theme)}>
+                              <Globe className="h-3 w-3" /> Publish
                             </Button>
                             <Button variant="ghost" size="sm" className="text-xs h-7 text-destructive hover:text-destructive" onClick={() => handleDeleteTheme(theme)}>
                               <Trash2 className="h-3 w-3" />
