@@ -65,6 +65,48 @@ export type Database = {
         }
         Relationships: []
       }
+      activity_mentions: {
+        Row: {
+          activity_id: string
+          created_at: string
+          id: string
+          mentioned_user_id: string
+          message_id: string
+          read_at: string | null
+        }
+        Insert: {
+          activity_id: string
+          created_at?: string
+          id?: string
+          mentioned_user_id: string
+          message_id: string
+          read_at?: string | null
+        }
+        Update: {
+          activity_id?: string
+          created_at?: string
+          id?: string
+          mentioned_user_id?: string
+          message_id?: string
+          read_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_mentions_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_mentions_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "activity_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       activity_messages: {
         Row: {
           activity_id: string
@@ -394,8 +436,10 @@ export type Database = {
       }
       direct_messages: {
         Row: {
+          audio_duration_ms: number | null
+          audio_url: string | null
           channel_id: string
-          content: string
+          content: string | null
           created_at: string | null
           edited_at: string | null
           id: string
@@ -403,8 +447,10 @@ export type Database = {
           sender_id: string
         }
         Insert: {
+          audio_duration_ms?: number | null
+          audio_url?: string | null
           channel_id: string
-          content: string
+          content?: string | null
           created_at?: string | null
           edited_at?: string | null
           id?: string
@@ -412,8 +458,10 @@ export type Database = {
           sender_id: string
         }
         Update: {
+          audio_duration_ms?: number | null
+          audio_url?: string | null
           channel_id?: string
-          content?: string
+          content?: string | null
           created_at?: string | null
           edited_at?: string | null
           id?: string
@@ -1062,7 +1110,9 @@ export type Database = {
           css_url: string
           description: string | null
           id: string
+          install_count: number
           is_active: boolean | null
+          is_public: boolean
           js_url: string | null
           name: string
           updated_at: string
@@ -1073,7 +1123,9 @@ export type Database = {
           css_url: string
           description?: string | null
           id?: string
+          install_count?: number
           is_active?: boolean | null
+          is_public?: boolean
           js_url?: string | null
           name: string
           updated_at?: string
@@ -1084,7 +1136,9 @@ export type Database = {
           css_url?: string
           description?: string | null
           id?: string
+          install_count?: number
           is_active?: boolean | null
+          is_public?: boolean
           js_url?: string | null
           name?: string
           updated_at?: string
