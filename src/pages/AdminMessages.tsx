@@ -383,7 +383,7 @@ const AdminMessages = () => {
 
           {/* Compose bar */}
           {selectedActivity && (
-            <div className="flex-shrink-0 px-4 py-3 border-t bg-background space-y-2">
+            <div className="chat-glass-composer flex-shrink-0 px-4 py-3 space-y-2">
               <div className="flex items-center gap-2">
                 <Select value={messageType} onValueChange={(v) => setMessageType(v as "announcement" | "discussion")}>
                   <SelectTrigger className="w-[160px] h-8 text-xs">
