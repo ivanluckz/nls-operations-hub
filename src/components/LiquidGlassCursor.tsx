@@ -27,10 +27,27 @@ export default function LiquidGlassCursor() {
     const aura = auraRef.current!;
     const trail = trailRef.current!;
     const splashLayer = splashLayerRef.current!;
+    const dropGroup = dropGroupRef.current!;
 
     const MAGNET_RADIUS = 60; // px around a button where magnetic pull engages
     const MAGNET_PULL = 0.35; // how strongly the orb is pulled toward the nearest edge
     const WOBBLE_MAX = 6; // max px the button itself shifts toward the cursor
+
+    // Metaball droplets — spawned while dragging, return to the orb on release
+    type Drop = {
+      el: SVGCircleElement;
+      x: number;
+      y: number;
+      vx: number;
+      vy: number;
+      r: number;
+      born: number;
+      returning: boolean;
+    };
+    const drops: Drop[] = [];
+    const MAX_DROPS = 22;
+    let dragging = false;
+    let lastSpawn = 0;
 
     let mx = window.innerWidth / 2;
     let my = window.innerHeight / 2;
