@@ -81,6 +81,7 @@ const AdminMessages = () => {
   const [userId, setUserId] = useState("");
   const [userBadges, setUserBadges] = useState<Record<string, string[]>>({});
   const [profileCard, setProfileCard] = useState<ProfileCard | null>(null);
+  const [convSearch, setConvSearch] = useState("");
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const teacherIdsRef = useRef<Record<string, string | null>>({});
