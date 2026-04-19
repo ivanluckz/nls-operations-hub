@@ -222,33 +222,40 @@ const AdminMessages = () => {
   };
 
   const selectedTitle = activities.find(a => a.id === selectedActivity)?.title;
+  const filteredActivities = convSearch.trim()
+    ? activities.filter(a => a.title.toLowerCase().includes(convSearch.toLowerCase()))
+    : activities;
 
   return (
     <AdminLayout>
       {showBanner && <NotificationBanner onEnable={requestPermission} onDismiss={dismissBanner} />}
-      <div className="flex h-[calc(100vh-8rem)] rounded-xl border overflow-hidden">
+      <div className="chat-shell flex h-[calc(100vh-8rem)] rounded-xl border overflow-hidden">
         {/* Sidebar */}
-        <aside className="w-56 border-r bg-muted/20 flex flex-col flex-shrink-0">
-          <div className="px-3 py-4 border-b">
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">All Channels</p>
-            <p className="text-xs text-muted-foreground mt-0.5">{activities.length} activities</p>
+        <aside className="chat-glass-panel w-60 border-r flex flex-col flex-shrink-0">
+          <div className="px-3 py-3 border-b border-border/40 space-y-2">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">All Channels</p>
+              <span className="text-[10px] text-muted-foreground">{activities.length}</span>
+            </div>
+            <ConvSearch value={convSearch} onChange={setConvSearch} placeholder="Search channels…" />
           </div>
           <div className="flex-1 overflow-y-auto py-2 space-y-0.5 px-2">
-            {activities.map((a) => (
+            {filteredActivities.map((a) => (
               <button key={a.id} onClick={() => setSelectedActivity(a.id)}
-                className={`w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors text-left ${
-                  selectedActivity === a.id ? "bg-primary/15 text-foreground font-medium" : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                }`}>
+                className={`chat-conv-item ${selectedActivity === a.id ? "chat-conv-item-active" : ""}`}>
                 <Hash className="h-4 w-4 flex-shrink-0 opacity-70" />
-                <span className="flex-1 truncate">{a.title}</span>
+                <span className="flex-1 truncate text-sm">{a.title}</span>
               </button>
             ))}
+            {filteredActivities.length === 0 && (
+              <p className="text-xs text-muted-foreground text-center py-4">No matches</p>
+            )}
           </div>
         </aside>
 
         {/* Chat area */}
-        <div className="flex flex-col flex-1 min-w-0 bg-background">
-          <div className="px-4 py-3 border-b flex items-center gap-2 flex-shrink-0">
+        <div className="flex flex-col flex-1 min-w-0">
+          <div className="chat-glass-header px-4 py-3 flex items-center gap-2 flex-shrink-0">
             <Hash className="h-5 w-5 text-muted-foreground" />
             <h2 className="font-semibold text-sm">{selectedTitle || "Select a channel"}</h2>
             <Badge variant="outline" className="ml-auto text-xs">Admin</Badge>
