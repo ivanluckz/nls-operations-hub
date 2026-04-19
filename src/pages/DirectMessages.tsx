@@ -53,6 +53,7 @@ interface DM {
   content: string;
   created_at: string;
   edited_at?: string | null;
+  read_at?: string | null;
   senderName?: string;
 }
 
