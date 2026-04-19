@@ -775,6 +775,20 @@ button.bg-success::before {
 button > *, a > *, [role="button"] > * { position: relative; z-index: 1; }
 .no-liquid::before, .no-liquid::after { display: none !important; }
 
+/* Gel wobble — magnetic pull on the button itself toward the cursor.
+   The cursor JS writes --gel-x / --gel-y in px; we translate the element by that amount
+   with an iOS spring so it feels like soft jelly. We DON'T set will-change on every
+   button — only when the wobble class is active. */
+.liquid-gel-wobble {
+  transform: translate3d(var(--gel-x, 0px), var(--gel-y, 0px), 0);
+  transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+  will-change: transform;
+}
+/* Don't fight existing transforms on elements that already animate (e.g. active:scale) */
+.liquid-gel-wobble:active {
+  transform: translate3d(var(--gel-x, 0px), var(--gel-y, 0px), 0) scale(0.97);
+}
+
 @media (pointer: coarse) {
   .ios-tap-card,
   .ios-tappable,
