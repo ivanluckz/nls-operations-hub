@@ -202,6 +202,7 @@ export default function LiquidGlassCursor() {
       window.removeEventListener("mouseleave", onLeave);
       window.removeEventListener("click", onClick);
       if (hovered) hovered.classList.remove("liquid-fill-active");
+      wobbled.forEach((el) => clearWobble(el));
     };
   }, []);
 
