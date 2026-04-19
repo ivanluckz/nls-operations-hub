@@ -370,11 +370,30 @@ export default function LiquidGlassCursor() {
               yChannelSelector="G"
             />
           </filter>
+          <filter id="liquid-goo" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur" />
+            <feColorMatrix
+              in="blur"
+              mode="matrix"
+              values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 22 -10"
+              result="goo"
+            />
+            <feBlend in="SourceGraphic" in2="goo" />
+          </filter>
         </defs>
       </svg>
       <div ref={splashLayerRef} className="liquid-splash-layer" aria-hidden />
       <div ref={trailRef} className="liquid-cursor-trail" aria-hidden />
       <div ref={auraRef} className="liquid-cursor-aura" aria-hidden />
+      {/* Metaball droplet layer — gooey filter fuses circles together */}
+      <svg
+        aria-hidden
+        className="liquid-drop-layer"
+        width="100%"
+        height="100%"
+      >
+        <g ref={dropGroupRef} filter="url(#liquid-goo)" />
+      </svg>
       <div ref={orbRef} className="liquid-cursor-orb" aria-hidden>
         <span className="liquid-cursor-spec" />
       </div>
