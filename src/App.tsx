@@ -46,6 +46,8 @@ import RLCoachDashboard from "./pages/RLCoachDashboard";
 import RLCoachReports from "./pages/RLCoachReports";
 import MedicalDashboard from "./pages/MedicalDashboard";
 import WeeklyTimetable from "./pages/WeeklyTimetable";
+import StudentProfile from "./pages/StudentProfile";
+import ThemeMarketplace from "./pages/ThemeMarketplace";
 
 const queryClient = new QueryClient();
 
@@ -128,6 +130,8 @@ const AppContent = () => {
           {/* Chatbot — requires auth, any role */}
           <Route path="/chatbot" element={<ProtectedRoute><ActivityChatbot /></ProtectedRoute>} />
           <Route path="/themes" element={<ThemeManagement />} />
+          <Route path="/themes/marketplace" element={<ProtectedRoute><ThemeMarketplace /></ProtectedRoute>} />
+          <Route path="/profile/:userId" element={<ProtectedRoute><StudentProfile /></ProtectedRoute>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
         </PageTransition>

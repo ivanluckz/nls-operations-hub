@@ -17,6 +17,8 @@ import { UserProfileCard } from "@/components/chat/UserProfileCard";
 import { ConvSearch } from "@/components/chat/ConvSearch";
 import { DayPill } from "@/components/chat/DayPill";
 import { TypingIndicator } from "@/components/chat/TypingIndicator";
+import { VoiceRecorder } from "@/components/chat/VoiceRecorder";
+import { VoiceBubble } from "@/components/chat/VoiceBubble";
 import IOSSchoolSkeleton from "@/components/IOSSchoolSkeleton";
 
 const REACT_EMOJIS = ['👍', '❤️', '😂', '🔥', '👀', '✅'];
@@ -55,6 +57,8 @@ interface DM {
   edited_at?: string | null;
   read_at?: string | null;
   senderName?: string;
+  audio_url?: string | null;
+  audio_duration_ms?: number | null;
 }
 
 interface Reaction { emoji: string; count: number; mine: boolean; }
@@ -811,9 +815,15 @@ const DirectMessages = () => {
                           <div
                             className={`chat-bubble ${isOwn ? "chat-bubble-own" : "chat-bubble-other"} ${endGroup ? "chat-bubble-tail" : "chat-bubble-stack"}`}
                           >
-                            {msg.content}
-                            {msg.edited_at && (
-                              <span className={`text-[10px] ml-1.5 ${isOwn ? "opacity-70" : "text-muted-foreground"}`}>(edited)</span>
+                            {msg.audio_url ? (
+                              <VoiceBubble url={msg.audio_url} durationMs={msg.audio_duration_ms} isOwn={isOwn} />
+                            ) : (
+                              <>
+                                {msg.content}
+                                {msg.edited_at && (
+                                  <span className={`text-[10px] ml-1.5 ${isOwn ? "opacity-70" : "text-muted-foreground"}`}>(edited)</span>
+                                )}
+                              </>
                             )}
 
                             {/* Hover toolbar */}
@@ -898,6 +908,26 @@ const DirectMessages = () => {
                 placeholder={`Message ${selectedConv.otherName}...`}
                 className="flex-1 bg-transparent border-0 shadow-none resize-none p-0 min-h-[36px] max-h-32 focus-visible:ring-0 text-sm"
                 rows={1}
+              />
+              <VoiceRecorder
+                disabled={!selectedConv || sending}
+                onSend={async (blob, durationMs) => {
+                  if (!selectedConv) return;
+                  const ext = blob.type.includes("webm") ? "webm" : "ogg";
+                  const path = `${userId}/${Date.now()}.${ext}`;
+                  const { error: upErr } = await supabase.storage.from("voice-notes").upload(path, blob, { contentType: blob.type, upsert: false });
+                  if (upErr) throw upErr;
+                  const { data: signed } = await supabase.storage.from("voice-notes").createSignedUrl(path, 60 * 60 * 24 * 365);
+                  const audioUrl = signed?.signedUrl || supabase.storage.from("voice-notes").getPublicUrl(path).data.publicUrl;
+                  const { error } = await (supabase as any).from("direct_messages").insert({
+                    channel_id: selectedConv.channelId,
+                    sender_id: userId,
+                    content: "",
+                    audio_url: audioUrl,
+                    audio_duration_ms: durationMs,
+                  });
+                  if (error) throw error;
+                }}
               />
               <Button size="icon" className="h-8 w-8 rounded-lg flex-shrink-0" onClick={sendMessage}
                 disabled={!content.trim() || sending}>

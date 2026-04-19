@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Crown, ShieldCheck, GraduationCap, MessageSquare, Check, X } from "lucide-react";
+import { Crown, ShieldCheck, GraduationCap, MessageSquare, Check, X, User } from "lucide-react";
 import devBadge from "@/assets/dev.png";
 
 const BADGE_OPTIONS: { name: string; emoji: string; animClass: string; desc: string; img?: string }[] = [
@@ -222,10 +222,16 @@ export function UserProfileCard({
                 ? <><span className="dev-nameplate dev-name-glow">{senderName}</span><img src={devBadge} alt="Dev" className="h-6 w-6 object-contain" /></>
                 : senderName}
             </h2>
-            <Button variant="outline" size="sm" className="gap-1.5 text-xs h-7 shrink-0"
-              onClick={() => { onClose(); navigate(dmPath); }}>
-              <MessageSquare className="h-3 w-3" /> Message
-            </Button>
+            <div className="flex gap-1.5 shrink-0">
+              <Button variant="outline" size="sm" className="gap-1.5 text-xs h-7"
+                onClick={() => { onClose(); navigate(`/profile/${senderId}`); }}>
+                <User className="h-3 w-3" /> Profile
+              </Button>
+              <Button variant="outline" size="sm" className="gap-1.5 text-xs h-7"
+                onClick={() => { onClose(); navigate(dmPath); }}>
+                <MessageSquare className="h-3 w-3" /> Message
+              </Button>
+            </div>
           </div>
 
           {/* Earned badges */}
