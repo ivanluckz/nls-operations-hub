@@ -640,11 +640,11 @@ const DirectMessages = () => {
   }
 
   return (
-    <div className="flex flex-col h-[100dvh] overflow-hidden">
+    <div className="flex flex-col h-[100dvh] overflow-hidden chat-shell">
       {showBanner && <NotificationBanner onEnable={requestPermission} onDismiss={dismissBanner} />}
       <div className="flex flex-1 overflow-hidden">
       {/* Desktop sidebar */}
-      <aside className="hidden md:flex w-64 flex-col border-r border-white/40 dark:border-white/10 glass">
+      <aside className="hidden md:flex w-72 flex-col border-r chat-glass-panel">
         <ConvList
           conversations={conversations}
           selectedChannelId={selectedConv?.channelId ?? null}
@@ -659,7 +659,7 @@ const DirectMessages = () => {
       {/* Main area */}
       <div className="flex flex-col flex-1 min-w-0">
         {/* Header */}
-        <div className="flex-shrink-0 flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2.5 sm:py-3 glass-nav">
+        <div className="flex-shrink-0 flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2.5 sm:py-3 chat-glass-header">
           <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" className="md:hidden h-8 w-8">
