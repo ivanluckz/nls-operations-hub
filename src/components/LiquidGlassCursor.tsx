@@ -14,6 +14,7 @@ export default function LiquidGlassCursor() {
   const auraRef = useRef<HTMLDivElement>(null);
   const trailRef = useRef<HTMLDivElement>(null);
   const splashLayerRef = useRef<HTMLDivElement>(null);
+  const dropGroupRef = useRef<SVGGElement>(null);
 
   useEffect(() => {
     const isTouch =
