@@ -229,6 +229,17 @@ export default function LiquidGlassCursor() {
       window.setTimeout(() => splash.remove(), 700);
     };
 
+    const onDown = (e: MouseEvent) => {
+      if (e.button !== 0) return;
+      dragging = true;
+      dragTint = resolveTintAt(e.clientX, e.clientY);
+    };
+    const onUp = () => {
+      dragging = false;
+      // Mark all live droplets as returning so they slurp back into the orb
+      for (const d of drops) d.returning = true;
+    };
+
     const tick = () => {
       // smoothing — softer when hovering for the "magnetic glide" feel
       const k = hovered ? 0.28 : 0.2;
