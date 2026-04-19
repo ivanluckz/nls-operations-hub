@@ -214,6 +214,41 @@ export default function LiquidGlassCursor() {
 
   return (
     <>
+      {/* Real glass-lens distortion: turbulence noise drives a displacement map.
+          Applied as a backdrop-filter on the orb so the page behind actually warps. */}
+      <svg
+        aria-hidden
+        width="0"
+        height="0"
+        style={{ position: "fixed", pointerEvents: "none", opacity: 0 }}
+      >
+        <defs>
+          <filter id="liquid-lens" x="-20%" y="-20%" width="140%" height="140%">
+            <feTurbulence
+              type="fractalNoise"
+              baseFrequency="0.012 0.018"
+              numOctaves="2"
+              seed="7"
+              result="noise"
+            >
+              <animate
+                attributeName="baseFrequency"
+                dur="14s"
+                values="0.012 0.018; 0.020 0.012; 0.012 0.018"
+                repeatCount="indefinite"
+              />
+            </feTurbulence>
+            <feGaussianBlur in="noise" stdDeviation="1.2" result="softNoise" />
+            <feDisplacementMap
+              in="SourceGraphic"
+              in2="softNoise"
+              scale="22"
+              xChannelSelector="R"
+              yChannelSelector="G"
+            />
+          </filter>
+        </defs>
+      </svg>
       <div ref={splashLayerRef} className="liquid-splash-layer" aria-hidden />
       <div ref={trailRef} className="liquid-cursor-trail" aria-hidden />
       <div ref={auraRef} className="liquid-cursor-aura" aria-hidden />
