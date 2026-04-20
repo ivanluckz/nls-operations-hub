@@ -434,6 +434,92 @@ export type Database = {
         }
         Relationships: []
       }
+      call_participants: {
+        Row: {
+          call_id: string
+          id: string
+          invited_at: string
+          joined_at: string | null
+          left_at: string | null
+          user_id: string
+        }
+        Insert: {
+          call_id: string
+          id?: string
+          invited_at?: string
+          joined_at?: string | null
+          left_at?: string | null
+          user_id: string
+        }
+        Update: {
+          call_id?: string
+          id?: string
+          invited_at?: string
+          joined_at?: string | null
+          left_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "call_participants_call_id_fkey"
+            columns: ["call_id"]
+            isOneToOne: false
+            referencedRelation: "call_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      call_sessions: {
+        Row: {
+          activity_id: string | null
+          call_type: string
+          context_type: string
+          dm_channel_id: string | null
+          ended_at: string | null
+          id: string
+          initiator_id: string
+          started_at: string
+          status: string
+        }
+        Insert: {
+          activity_id?: string | null
+          call_type?: string
+          context_type: string
+          dm_channel_id?: string | null
+          ended_at?: string | null
+          id?: string
+          initiator_id: string
+          started_at?: string
+          status?: string
+        }
+        Update: {
+          activity_id?: string | null
+          call_type?: string
+          context_type?: string
+          dm_channel_id?: string | null
+          ended_at?: string | null
+          id?: string
+          initiator_id?: string
+          started_at?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "call_sessions_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "call_sessions_dm_channel_id_fkey"
+            columns: ["dm_channel_id"]
+            isOneToOne: false
+            referencedRelation: "dm_channels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       direct_messages: {
         Row: {
           audio_duration_ms: number | null
@@ -1312,6 +1398,10 @@ export type Database = {
       bump_theme_install_count: {
         Args: { _theme_id: string }
         Returns: undefined
+      }
+      can_access_call: {
+        Args: { _call_id: string; _user_id: string }
+        Returns: boolean
       }
       count_allocated_students: { Args: never; Returns: number }
       get_teacher_students: {
