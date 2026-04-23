@@ -718,10 +718,10 @@
   height: 14px;
   margin: -7px 0 0 -7px;
   border-radius: 9999px;
-  background: radial-gradient(circle, hsl(0 0% 100% / 0.9), hsl(var(--primary) / 0.5) 40%, transparent 70%);
-  box-shadow: 0 0 0 1px hsl(var(--primary) / 0.45);
+  background: radial-gradient(circle, hsl(0 0% 100% / 0.82), hsl(0 0% 100% / 0.16) 42%, transparent 72%);
+  box-shadow: 0 0 0 1px hsl(0 0% 100% / 0.42);
   animation: lq-splash 0.6s var(--ease-ios-out, cubic-bezier(0.25, 0.1, 0.25, 1)) forwards;
-  mix-blend-mode: plus-lighter;
+  mix-blend-mode: screen;
 }
 @keyframes lq-splash {
   0%   { transform: scale(0.4); opacity: 0.95; }
@@ -737,10 +737,11 @@
   pointer-events: none;
   z-index: 2147483645;
   overflow: visible;
-  mix-blend-mode: plus-lighter;
+  mix-blend-mode: screen;
 }
 
 @media (pointer: coarse), (prefers-reduced-motion: reduce) {
+  .liquid-glass-stage,
   .liquid-cursor-orb,
   .liquid-cursor-aura,
   .liquid-cursor-trail,
