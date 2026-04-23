@@ -382,6 +382,7 @@ export default function LiquidGlassCursor() {
           </filter>
         </defs>
       </svg>
+      <div className="liquid-glass-stage" aria-hidden />
       <div ref={splashLayerRef} className="liquid-splash-layer" aria-hidden />
       <div ref={trailRef} className="liquid-cursor-trail" aria-hidden />
       <div ref={auraRef} className="liquid-cursor-aura" aria-hidden />
