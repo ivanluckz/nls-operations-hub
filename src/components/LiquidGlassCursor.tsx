@@ -1,9 +1,9 @@
 import { useEffect, useRef } from "react";
 
 /**
- * Global Liquid Glass cursor (v2).
- *  - Velocity-aware orb that stretches in the direction of motion (squash & stretch)
- *  - Chromatic-aberration aura (red/blue split) for true "glass refraction"
+ * Global Liquid Glass cursor (v3).
+ *  - Velocity-aware clear lens that stretches in the direction of motion
+ *  - Dark-stage contrast caustics for a true transparent glass read
  *  - Specular highlight that lives inside the orb and tracks motion
  *  - Click ripple "splash" using a pooled SVG burst
  *  - Hovered targets receive cursor coords + velocity for shader-like sweeps
@@ -251,14 +251,14 @@ export default function LiquidGlassCursor() {
       py = oy;
       const speed = Math.min(Math.hypot(vx, vy), 40);
       const angle = Math.atan2(vy, vx) * (180 / Math.PI);
-      // squash & stretch — elongate along motion vector
+      // squash & stretch — elongate the liquid lens along the motion vector
       const stretch = 1 + speed * 0.022;
       const squash = 1 - speed * 0.012;
       const baseScale = hovered ? 1.45 : 1;
       orb.style.transform = `translate3d(${ox - 18}px, ${oy - 18}px, 0) rotate(${angle}deg) scale(${
         baseScale * stretch
       }, ${baseScale * squash})`;
-      // chromatic aura splits opposite the motion direction
+      // transparent edge caustics split opposite the motion direction
       const split = Math.min(speed * 0.35, 6);
       aura.style.transform = `translate3d(${ox - 28}px, ${oy - 28}px, 0) rotate(${angle}deg)`;
       aura.style.setProperty("--lq-split", `${split}px`);
@@ -337,7 +337,7 @@ export default function LiquidGlassCursor() {
 
   return (
     <>
-      {/* Real glass-lens distortion: turbulence noise drives a displacement map.
+      {/* Real liquid-glass distortion: turbulence noise drives a displacement map.
           Applied as a backdrop-filter on the orb so the page behind actually warps. */}
       <svg
         aria-hidden
@@ -382,10 +382,11 @@ export default function LiquidGlassCursor() {
           </filter>
         </defs>
       </svg>
+      <div className="liquid-glass-stage" aria-hidden />
       <div ref={splashLayerRef} className="liquid-splash-layer" aria-hidden />
       <div ref={trailRef} className="liquid-cursor-trail" aria-hidden />
       <div ref={auraRef} className="liquid-cursor-aura" aria-hidden />
-      {/* Metaball droplet layer — gooey filter fuses circles together */}
+      {/* Liquid droplet layer — gooey filter fuses circles into glassy streaks */}
       <svg
         aria-hidden
         className="liquid-drop-layer"
