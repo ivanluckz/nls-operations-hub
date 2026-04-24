@@ -7,7 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import ProtectedRoute from "./components/ProtectedRoute";
 import ErrorBoundary from "./components/ErrorBoundary";
 import PageTransition from "./components/PageTransition";
-import LiquidGlassCursor from "./components/LiquidGlassCursor";
+
 import { useTheme } from "@/hooks/use-custom-theme";
 
 const SandboxedAnimation = lazy(() => import("./components/SandboxedAnimation"));
@@ -61,7 +61,7 @@ const AppContent = () => {
           <SandboxedAnimation jsContent={activeTheme.jsContent} />
         </Suspense>
       )}
-      <LiquidGlassCursor />
+      
       <Toaster />
       <Sonner />
       <BrowserRouter>
