@@ -37,13 +37,13 @@ const WorkoutSelectionCard = () => {
 
       const [wRes, mineRes, allRes] = await Promise.all([
         (supabase as any).from("workouts").select("*").eq("is_active", true).order("name"),
-        (supabase as any).from("workout_signups").select("id, workout_id").eq("student_id", user.id),
+        (supabase as any).from("workout_signups").select("id, workout_id, created_at").eq("student_id", user.id),
         (supabase as any).from("workout_signups").select("workout_id"),
       ]);
 
       setWorkouts(wRes.data || []);
-      const mine: Record<string, string> = {};
-      (mineRes.data || []).forEach((s: any) => { mine[s.workout_id] = s.id; });
+      const mine: Record<string, { id: string; created_at: string }> = {};
+      (mineRes.data || []).forEach((s: any) => { mine[s.workout_id] = { id: s.id, created_at: s.created_at }; });
       setSignups(mine);
 
       const c: Record<string, number> = {};
@@ -59,7 +59,16 @@ const WorkoutSelectionCard = () => {
     const existing = signups[w.id];
     setBusy(true);
     if (existing) {
-      const { error } = await (supabase as any).from("workout_signups").delete().eq("id", existing);
+      const elapsed = daysSince(existing.created_at);
+      if (elapsed < COOLDOWN_DAYS) {
+        setBusy(false);
+        return toast({
+          title: "Locked in for now",
+          description: `You can leave or switch this workout in ${COOLDOWN_DAYS - elapsed} day(s).`,
+          variant: "destructive",
+        });
+      }
+      const { error } = await (supabase as any).from("workout_signups").delete().eq("id", existing.id);
       setBusy(false);
       if (error) return toast({ title: "Error", description: error.message, variant: "destructive" });
       toast({ title: "Left workout" });
@@ -71,7 +80,7 @@ const WorkoutSelectionCard = () => {
       const { error } = await (supabase as any).from("workout_signups").insert({ workout_id: w.id, student_id: userId });
       setBusy(false);
       if (error) return toast({ title: "Error", description: error.message, variant: "destructive" });
-      toast({ title: "Signed up! 💪", description: w.name });
+      toast({ title: "Signed up! 💪", description: `${w.name} · locked in for ${COOLDOWN_DAYS} days` });
     }
     fetchData();
   };
