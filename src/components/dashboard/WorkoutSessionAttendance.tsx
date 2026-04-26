@@ -192,11 +192,6 @@ const WorkoutSessionAttendance = ({ teacherScope = false }: Props) => {
             </div>
           );
         })}
-                </div>
-              )}
-            </div>
-          );
-        })}
       </CardContent>
     </Card>
   );
