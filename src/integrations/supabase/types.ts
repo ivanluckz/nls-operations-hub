@@ -1274,6 +1274,7 @@ export type Database = {
           status: string
           student_id: string
           workout_date: string
+          workout_id: string | null
         }
         Insert: {
           created_at?: string
@@ -1284,6 +1285,7 @@ export type Database = {
           status?: string
           student_id: string
           workout_date?: string
+          workout_id?: string | null
         }
         Update: {
           created_at?: string
@@ -1294,6 +1296,7 @@ export type Database = {
           status?: string
           student_id?: string
           workout_date?: string
+          workout_id?: string | null
         }
         Relationships: [
           {
@@ -1301,6 +1304,13 @@ export type Database = {
             columns: ["student_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workout_attendance_workout_id_fkey"
+            columns: ["workout_id"]
+            isOneToOne: false
+            referencedRelation: "workouts"
             referencedColumns: ["id"]
           },
         ]
@@ -1346,36 +1356,6 @@ export type Database = {
           },
         ]
       }
-      workout_locations: {
-        Row: {
-          created_at: string
-          description: string
-          emoji: string
-          id: string
-          is_active: boolean
-          name: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          description?: string
-          emoji?: string
-          id?: string
-          is_active?: boolean
-          name: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          description?: string
-          emoji?: string
-          id?: string
-          is_active?: boolean
-          name?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
       workout_notifications: {
         Row: {
           acknowledged_at: string | null
@@ -1420,84 +1400,99 @@ export type Database = {
           },
         ]
       }
-      workout_session_signups: {
+      workout_signups: {
         Row: {
           created_at: string
           id: string
-          session_id: string
           student_id: string
+          workout_id: string
         }
         Insert: {
           created_at?: string
           id?: string
-          session_id: string
           student_id: string
+          workout_id: string
         }
         Update: {
           created_at?: string
           id?: string
-          session_id?: string
           student_id?: string
+          workout_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "workout_session_signups_session_id_fkey"
-            columns: ["session_id"]
+            foreignKeyName: "workout_signups_workout_id_fkey"
+            columns: ["workout_id"]
             isOneToOne: false
-            referencedRelation: "workout_sessions"
+            referencedRelation: "workouts"
             referencedColumns: ["id"]
           },
         ]
       }
-      workout_sessions: {
+      workout_teachers: {
+        Row: {
+          created_at: string
+          id: string
+          teacher_id: string
+          workout_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          teacher_id: string
+          workout_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          teacher_id?: string
+          workout_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workout_teachers_workout_id_fkey"
+            columns: ["workout_id"]
+            isOneToOne: false
+            referencedRelation: "workouts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workouts: {
         Row: {
           capacity: number
           created_at: string
           created_by: string
-          day_of_week: string
+          days_of_week: string[]
           description: string
           id: string
           is_active: boolean
-          location_id: string | null
-          start_time: string
-          title: string
+          name: string
           updated_at: string
         }
         Insert: {
           capacity?: number
           created_at?: string
           created_by: string
-          day_of_week: string
+          days_of_week?: string[]
           description?: string
           id?: string
           is_active?: boolean
-          location_id?: string | null
-          start_time?: string
-          title: string
+          name: string
           updated_at?: string
         }
         Update: {
           capacity?: number
           created_at?: string
           created_by?: string
-          day_of_week?: string
+          days_of_week?: string[]
           description?: string
           id?: string
           is_active?: boolean
-          location_id?: string | null
-          start_time?: string
-          title?: string
+          name?: string
           updated_at?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "workout_sessions_location_id_fkey"
-            columns: ["location_id"]
-            isOneToOne: false
-            referencedRelation: "workout_locations"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
     }
     Views: {

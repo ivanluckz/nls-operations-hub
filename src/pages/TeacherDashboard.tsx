@@ -225,7 +225,7 @@ const TeacherDashboard = () => {
         <HouseSelectionCard />
 
         {/* Morning Workout Attendance */}
-        <WorkoutSessionAttendance />
+        <WorkoutSessionAttendance teacherScope />
 
         {/* Stats row */}
         <div className="grid grid-cols-3 gap-4">

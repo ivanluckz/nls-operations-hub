@@ -92,6 +92,8 @@ const UserManagement = () => {
   const [editMentorId, setEditMentorId] = useState<string | null>(null);
   const [houses, setHouses] = useState<House[]>([]);
   const [teachers, setTeachers] = useState<{ id: string; full_name: string }[]>([]);
+  const [allWorkouts, setAllWorkouts] = useState<{ id: string; name: string }[]>([]);
+  const [editWorkoutIds, setEditWorkoutIds] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterClass, setFilterClass] = useState<string>("all");
   const [filterMentor, setFilterMentor] = useState<string>("all");
@@ -107,6 +109,9 @@ const UserManagement = () => {
     });
     (supabase as any).from("profiles").select("id, full_name").in("email", TEACHER_EMAILS).order("full_name").then(({ data }: any) => {
       if (data) setTeachers(data.filter((t: any) => t.full_name));
+    });
+    (supabase as any).from("workouts").select("id, name").order("name").then(({ data }: any) => {
+      if (data) setAllWorkouts(data);
     });
   }, []);
 
@@ -149,12 +154,18 @@ const UserManagement = () => {
     }
   };
 
-  const openEditDialog = (user: Profile) => {
+  const openEditDialog = async (user: Profile) => {
     setEditingUser(user);
     setEditName(user.full_name);
     setEditRole(user.roles[0]?.role || "student");
     setEditHouseId(user.house_id || null);
     setEditMentorId((user as any).mentor_id || null);
+    // Pre-load workout assignments for this user (only relevant for teachers)
+    const { data } = await (supabase as any)
+      .from("workout_teachers")
+      .select("workout_id")
+      .eq("teacher_id", user.id);
+    setEditWorkoutIds((data || []).map((r: any) => r.workout_id));
   };
 
   const getInitials = (name: string) => {
@@ -180,6 +191,14 @@ const UserManagement = () => {
         .from("user_roles")
         .insert({ user_id: editingUser.id, role: editRole });
       if (insertError) throw insertError;
+
+      // Sync morning workout assignments (only meaningful for teachers)
+      await (supabase as any).from("workout_teachers").delete().eq("teacher_id", editingUser.id);
+      if (editRole === "teacher" && editWorkoutIds.length) {
+        const rows = editWorkoutIds.map((wid) => ({ workout_id: wid, teacher_id: editingUser.id }));
+        const { error: wtError } = await (supabase as any).from("workout_teachers").insert(rows);
+        if (wtError) throw wtError;
+      }
 
       toast({ title: "Success", description: "User updated successfully" });
       setEditingUser(null);
@@ -622,6 +641,33 @@ const UserManagement = () => {
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+              )}
+              {editRole === "teacher" && (
+                <div className="grid gap-2">
+                  <Label>Morning Workouts assigned</Label>
+                  {allWorkouts.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">No workouts created yet. Add some in Morning Workouts.</p>
+                  ) : (
+                    <div className="border rounded-md max-h-40 overflow-y-auto p-1">
+                      {allWorkouts.map((w) => {
+                        const on = editWorkoutIds.includes(w.id);
+                        return (
+                          <button
+                            key={w.id}
+                            type="button"
+                            onClick={() => setEditWorkoutIds((prev) =>
+                              prev.includes(w.id) ? prev.filter((x) => x !== w.id) : [...prev, w.id]
+                            )}
+                            className={`w-full text-left px-2 py-1.5 rounded text-sm flex items-center justify-between ${on ? "bg-primary/10" : "hover:bg-muted"}`}
+                          >
+                            <span>{w.name}</span>
+                            {on && <Badge className="text-[10px]">Assigned</Badge>}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               )}
             </div>

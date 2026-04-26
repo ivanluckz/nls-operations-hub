@@ -8,483 +8,358 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Dumbbell, MapPin, Plus, Pencil, Trash2, Users } from "lucide-react";
-import { DAYS_OF_WEEK } from "@/lib/constants";
+import { Dumbbell, Plus, Pencil, Trash2, Users, Trash } from "lucide-react";
 
-type WorkoutLocation = {
+const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
+
+type Workout = {
   id: string;
   name: string;
-  emoji: string;
   description: string;
-  is_active: boolean;
-};
-
-type WorkoutSession = {
-  id: string;
-  title: string;
-  location_id: string | null;
-  day_of_week: string;
-  start_time: string;
+  days_of_week: string[];
   capacity: number;
-  description: string;
   is_active: boolean;
 };
+type WT = { id: string; workout_id: string; teacher_id: string };
+type Signup = { id: string; workout_id: string; student_id: string };
+type Profile = { id: string; full_name: string; email: string };
 
-type Signup = {
-  id: string;
-  session_id: string;
-  student_id: string;
-  student?: { full_name: string; email: string };
-};
-
-const emptyLocation = { name: "", emoji: "💪", description: "", is_active: true };
-const emptySession = {
-  title: "",
-  location_id: "",
-  day_of_week: "Monday",
-  start_time: "06:00",
-  capacity: 30,
+const emptyForm = {
+  name: "",
   description: "",
+  days_of_week: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+  capacity: 30,
   is_active: true,
+  teacher_ids: [] as string[],
 };
 
 const AdminWorkouts = () => {
   const { toast } = useToast();
-  const [locations, setLocations] = useState<WorkoutLocation[]>([]);
-  const [sessions, setSessions] = useState<WorkoutSession[]>([]);
+  const [workouts, setWorkouts] = useState<Workout[]>([]);
+  const [wTeachers, setWTeachers] = useState<WT[]>([]);
   const [signups, setSignups] = useState<Signup[]>([]);
+  const [profiles, setProfiles] = useState<Record<string, Profile>>({});
+  const [teachers, setTeachers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const [locDialog, setLocDialog] = useState(false);
-  const [locForm, setLocForm] = useState<any>(emptyLocation);
-  const [editingLoc, setEditingLoc] = useState<string | null>(null);
-
-  const [sessDialog, setSessDialog] = useState(false);
-  const [sessForm, setSessForm] = useState<any>(emptySession);
-  const [editingSess, setEditingSess] = useState<string | null>(null);
+  const [dialog, setDialog] = useState(false);
+  const [form, setForm] = useState<any>(emptyForm);
+  const [editing, setEditing] = useState<string | null>(null);
 
   const [signupsOpen, setSignupsOpen] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchAll();
-  }, []);
+  useEffect(() => { fetchAll(); }, []);
 
   const fetchAll = async () => {
     setLoading(true);
-    const [locRes, sessRes, signRes] = await Promise.all([
-      (supabase as any).from("workout_locations").select("*").order("name"),
-      (supabase as any).from("workout_sessions").select("*").order("day_of_week"),
-      (supabase as any).from("workout_session_signups").select("id, session_id, student_id"),
+    const [wRes, wtRes, sRes, teacherRes] = await Promise.all([
+      (supabase as any).from("workouts").select("*").order("name"),
+      (supabase as any).from("workout_teachers").select("*"),
+      (supabase as any).from("workout_signups").select("*"),
+      (supabase as any)
+        .from("user_roles")
+        .select("user_id, profile:profiles!inner(id, full_name, email)")
+        .eq("role", "teacher"),
     ]);
-    setLocations(locRes.data || []);
-    setSessions(sessRes.data || []);
+    setWorkouts(wRes.data || []);
+    setWTeachers(wtRes.data || []);
+    setSignups(sRes.data || []);
 
-    // hydrate signups with student names in one extra query
-    const ids = Array.from(new Set((signRes.data || []).map((s: any) => s.student_id)));
-    let profiles: any[] = [];
-    if (ids.length) {
-      const { data } = await supabase.from("profiles").select("id, full_name, email").in("id", ids as string[]);
-      profiles = data || [];
+    const teacherProfiles: Profile[] = (teacherRes.data || [])
+      .map((r: any) => r.profile)
+      .filter((p: any) => p?.full_name)
+      .sort((a: Profile, b: Profile) => a.full_name.localeCompare(b.full_name));
+    setTeachers(teacherProfiles);
+
+    const studentIds: string[] = Array.from(new Set((sRes.data || []).map((s: any) => s.student_id as string)));
+    if (studentIds.length) {
+      const { data } = await supabase.from("profiles").select("id, full_name, email").in("id", studentIds);
+      const map: Record<string, Profile> = {};
+      (data || []).forEach((p: any) => { map[p.id] = p; });
+      // also add teachers to map
+      teacherProfiles.forEach((t) => { map[t.id] = t; });
+      setProfiles(map);
+    } else {
+      const map: Record<string, Profile> = {};
+      teacherProfiles.forEach((t) => { map[t.id] = t; });
+      setProfiles(map);
     }
-    const byId = new Map(profiles.map((p) => [p.id, p]));
-    setSignups(
-      (signRes.data || []).map((s: any) => ({ ...s, student: byId.get(s.student_id) }))
-    );
     setLoading(false);
   };
 
-  /* ---------------- Location handlers ---------------- */
-  const openNewLocation = () => {
-    setEditingLoc(null);
-    setLocForm(emptyLocation);
-    setLocDialog(true);
-  };
-  const openEditLocation = (loc: WorkoutLocation) => {
-    setEditingLoc(loc.id);
-    setLocForm({ name: loc.name, emoji: loc.emoji, description: loc.description, is_active: loc.is_active });
-    setLocDialog(true);
-  };
-  const saveLocation = async () => {
-    if (!locForm.name.trim()) {
-      toast({ title: "Name required", variant: "destructive" });
-      return;
-    }
-    const payload = {
-      name: locForm.name.trim(),
-      emoji: locForm.emoji || "💪",
-      description: locForm.description || "",
-      is_active: locForm.is_active,
-    };
-    const res = editingLoc
-      ? await (supabase as any).from("workout_locations").update(payload).eq("id", editingLoc)
-      : await (supabase as any).from("workout_locations").insert(payload);
-    if (res.error) {
-      toast({ title: "Error", description: res.error.message, variant: "destructive" });
-      return;
-    }
-    toast({ title: editingLoc ? "Location updated" : "Location created" });
-    setLocDialog(false);
-    fetchAll();
-  };
-  const deleteLocation = async (id: string) => {
-    if (!confirm("Delete this location? Sessions using it will keep working but lose the link.")) return;
-    const { error } = await (supabase as any).from("workout_locations").delete().eq("id", id);
-    if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
-    else fetchAll();
+  const openNew = () => {
+    setEditing(null);
+    setForm(emptyForm);
+    setDialog(true);
   };
 
-  /* ---------------- Session handlers ---------------- */
-  const openNewSession = () => {
-    setEditingSess(null);
-    setSessForm({ ...emptySession, location_id: locations[0]?.id || "" });
-    setSessDialog(true);
-  };
-  const openEditSession = (s: WorkoutSession) => {
-    setEditingSess(s.id);
-    setSessForm({
-      title: s.title,
-      location_id: s.location_id || "",
-      day_of_week: s.day_of_week,
-      start_time: s.start_time?.slice(0, 5) || "06:00",
-      capacity: s.capacity,
-      description: s.description,
-      is_active: s.is_active,
+  const openEdit = (w: Workout) => {
+    setEditing(w.id);
+    setForm({
+      name: w.name,
+      description: w.description,
+      days_of_week: w.days_of_week,
+      capacity: w.capacity,
+      is_active: w.is_active,
+      teacher_ids: wTeachers.filter((t) => t.workout_id === w.id).map((t) => t.teacher_id),
     });
-    setSessDialog(true);
+    setDialog(true);
   };
-  const saveSession = async () => {
-    if (!sessForm.title.trim()) {
-      toast({ title: "Title required", variant: "destructive" });
-      return;
-    }
+
+  const save = async () => {
+    if (!form.name.trim()) return toast({ title: "Name required", variant: "destructive" });
+    if (!form.days_of_week.length) return toast({ title: "Pick at least one day", variant: "destructive" });
+
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
+
     const payload: any = {
-      title: sessForm.title.trim(),
-      location_id: sessForm.location_id || null,
-      day_of_week: sessForm.day_of_week,
-      start_time: sessForm.start_time,
-      capacity: Number(sessForm.capacity) || 30,
-      description: sessForm.description || "",
-      is_active: sessForm.is_active,
+      name: form.name.trim(),
+      description: form.description || "",
+      days_of_week: form.days_of_week,
+      capacity: Number(form.capacity) || 30,
+      is_active: form.is_active,
     };
-    if (!editingSess) payload.created_by = user.id;
-    const res = editingSess
-      ? await (supabase as any).from("workout_sessions").update(payload).eq("id", editingSess)
-      : await (supabase as any).from("workout_sessions").insert(payload);
-    if (res.error) {
-      toast({ title: "Error", description: res.error.message, variant: "destructive" });
-      return;
+
+    let workoutId = editing;
+    if (editing) {
+      const { error } = await (supabase as any).from("workouts").update(payload).eq("id", editing);
+      if (error) return toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      payload.created_by = user.id;
+      const { data, error } = await (supabase as any).from("workouts").insert(payload).select("id").single();
+      if (error) return toast({ title: "Error", description: error.message, variant: "destructive" });
+      workoutId = data.id;
     }
-    toast({ title: editingSess ? "Session updated" : "Session created" });
-    setSessDialog(false);
+
+    // sync teachers
+    if (workoutId) {
+      await (supabase as any).from("workout_teachers").delete().eq("workout_id", workoutId);
+      if (form.teacher_ids.length) {
+        const rows = form.teacher_ids.map((tid: string) => ({ workout_id: workoutId, teacher_id: tid }));
+        const { error } = await (supabase as any).from("workout_teachers").insert(rows);
+        if (error) return toast({ title: "Teacher sync error", description: error.message, variant: "destructive" });
+      }
+    }
+
+    toast({ title: editing ? "Workout updated" : "Workout created" });
+    setDialog(false);
     fetchAll();
   };
-  const deleteSession = async (id: string) => {
-    if (!confirm("Delete this session? All student signups will be removed.")) return;
-    const { error } = await (supabase as any).from("workout_sessions").delete().eq("id", id);
+
+  const remove = async (id: string) => {
+    if (!confirm("Delete this workout? All signups will be removed.")) return;
+    const { error } = await (supabase as any).from("workouts").delete().eq("id", id);
     if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
     else fetchAll();
   };
 
   const removeSignup = async (id: string) => {
-    const { error } = await (supabase as any).from("workout_session_signups").delete().eq("id", id);
+    const { error } = await (supabase as any).from("workout_signups").delete().eq("id", id);
     if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
     else fetchAll();
   };
 
-  const signupCount = (sessionId: string) => signups.filter((s) => s.session_id === sessionId).length;
-  const locName = (id: string | null) => locations.find((l) => l.id === id)?.name || "—";
+  const signupCount = (wid: string) => signups.filter((s) => s.workout_id === wid).length;
+  const teachersFor = (wid: string) =>
+    wTeachers.filter((t) => t.workout_id === wid).map((t) => profiles[t.teacher_id]).filter(Boolean);
+
+  const toggleDay = (d: string) => {
+    setForm((f: any) => ({
+      ...f,
+      days_of_week: f.days_of_week.includes(d)
+        ? f.days_of_week.filter((x: string) => x !== d)
+        : [...f.days_of_week, d],
+    }));
+  };
+  const toggleTeacher = (id: string) => {
+    setForm((f: any) => ({
+      ...f,
+      teacher_ids: f.teacher_ids.includes(id)
+        ? f.teacher_ids.filter((x: string) => x !== id)
+        : [...f.teacher_ids, id],
+    }));
+  };
 
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Dumbbell className="h-7 w-7 text-primary" />
-            Morning Workouts
-          </h1>
-          <p className="text-muted-foreground">
-            Manage workout locations and scheduled sessions. Students sign up themselves.
-          </p>
+        <div className="flex justify-between items-start gap-2">
+          <div>
+            <h1 className="text-3xl font-bold flex items-center gap-2">
+              <Dumbbell className="h-7 w-7 text-primary" />
+              Morning Workouts
+            </h1>
+            <p className="text-muted-foreground">
+              Each workout runs on chosen weekdays. Assign teachers and a capacity. Students sign up themselves.
+            </p>
+          </div>
+          <Button onClick={openNew}>
+            <Plus className="h-4 w-4 mr-1" /> New workout
+          </Button>
         </div>
 
-        <Tabs defaultValue="sessions">
-          <TabsList>
-            <TabsTrigger value="sessions">Sessions</TabsTrigger>
-            <TabsTrigger value="locations">Locations</TabsTrigger>
-          </TabsList>
+        {loading ? (
+          <p className="text-muted-foreground">Loading…</p>
+        ) : workouts.length === 0 ? (
+          <Card><CardContent className="py-10 text-center text-muted-foreground">No workouts yet.</CardContent></Card>
+        ) : (
+          <div className="grid gap-3 md:grid-cols-2">
+            {workouts.map((w) => {
+              const count = signupCount(w.id);
+              const full = count >= w.capacity;
+              const ts = teachersFor(w.id);
+              return (
+                <Card key={w.id} className={!w.is_active ? "opacity-60" : ""}>
+                  <CardHeader className="pb-2">
+                    <div className="flex justify-between gap-2">
+                      <div>
+                        <CardTitle className="text-lg">{w.name}</CardTitle>
+                        <CardDescription>{w.days_of_week.join(" · ")}</CardDescription>
+                      </div>
+                      <div className="flex gap-1">
+                        <Button size="icon" variant="ghost" onClick={() => openEdit(w)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button size="icon" variant="ghost" onClick={() => remove(w.id)}>
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {w.description && <p className="text-sm text-muted-foreground">{w.description}</p>}
+                    <div className="flex flex-wrap gap-1">
+                      {ts.length === 0 ? (
+                        <span className="text-xs text-muted-foreground italic">No teachers assigned</span>
+                      ) : ts.map((t) => (
+                        <Badge key={t.id} variant="outline" className="text-[10px]">{t.full_name}</Badge>
+                      ))}
+                    </div>
+                    <div className="flex items-center justify-between pt-1">
+                      <div className="flex gap-2 items-center">
+                        <Badge variant={full ? "destructive" : "secondary"}>
+                          <Users className="h-3 w-3 mr-1" />{count}/{w.capacity}
+                        </Badge>
+                        {!w.is_active && <Badge variant="outline">Inactive</Badge>}
+                      </div>
+                      <Button size="sm" variant="outline" onClick={() => setSignupsOpen(w.id)}>
+                        View signups
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
+      </div>
 
-          {/* ---------------- SESSIONS ---------------- */}
-          <TabsContent value="sessions" className="space-y-4">
-            <div className="flex justify-between items-center">
-              <p className="text-sm text-muted-foreground">{sessions.length} session(s)</p>
-              <Button onClick={openNewSession}>
-                <Plus className="h-4 w-4 mr-1" /> New session
-              </Button>
+      {/* Workout dialog */}
+      <Dialog open={dialog} onOpenChange={setDialog}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{editing ? "Edit workout" : "New workout"}</DialogTitle>
+            <DialogDescription>Define a workout, the weekdays it runs, capacity and assigned teachers.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+            <div>
+              <Label>Name</Label>
+              <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Strength & Conditioning" />
             </div>
-            {loading ? (
-              <p className="text-muted-foreground">Loading…</p>
-            ) : sessions.length === 0 ? (
-              <Card>
-                <CardContent className="py-10 text-center text-muted-foreground">
-                  No sessions yet. Create your first one.
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid gap-3 md:grid-cols-2">
-                {sessions.map((s) => {
-                  const count = signupCount(s.id);
-                  const full = count >= s.capacity;
+            <div>
+              <Label>Description</Label>
+              <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+            </div>
+            <div>
+              <Label>Days of the week</Label>
+              <div className="flex flex-wrap gap-2 mt-1">
+                {WEEKDAYS.map((d) => {
+                  const on = form.days_of_week.includes(d);
                   return (
-                    <Card key={s.id} className={!s.is_active ? "opacity-60" : ""}>
-                      <CardHeader className="pb-2">
-                        <div className="flex justify-between gap-2">
-                          <div>
-                            <CardTitle className="text-lg">{s.title}</CardTitle>
-                            <CardDescription>
-                              {s.day_of_week} · {s.start_time?.slice(0, 5)} · {locName(s.location_id)}
-                            </CardDescription>
-                          </div>
-                          <div className="flex gap-1">
-                            <Button size="icon" variant="ghost" onClick={() => openEditSession(s)}>
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                            <Button size="icon" variant="ghost" onClick={() => deleteSession(s.id)}>
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </div>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="space-y-2">
-                        {s.description && <p className="text-sm text-muted-foreground">{s.description}</p>}
-                        <div className="flex items-center justify-between">
-                          <div className="flex gap-2 items-center">
-                            <Badge variant={full ? "destructive" : "secondary"}>
-                              <Users className="h-3 w-3 mr-1" />
-                              {count}/{s.capacity}
-                            </Badge>
-                            {!s.is_active && <Badge variant="outline">Inactive</Badge>}
-                          </div>
-                          <Button size="sm" variant="outline" onClick={() => setSignupsOpen(s.id)}>
-                            View signups
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
+                    <button
+                      key={d}
+                      type="button"
+                      onClick={() => toggleDay(d)}
+                      className={`px-3 py-1.5 rounded-md text-xs border transition ${on ? "bg-primary text-primary-foreground border-primary" : "bg-background hover:border-primary/50"}`}
+                    >
+                      {d}
+                    </button>
                   );
                 })}
               </div>
-            )}
-          </TabsContent>
-
-          {/* ---------------- LOCATIONS ---------------- */}
-          <TabsContent value="locations" className="space-y-4">
-            <div className="flex justify-between items-center">
-              <p className="text-sm text-muted-foreground">{locations.length} location(s)</p>
-              <Button onClick={openNewLocation}>
-                <Plus className="h-4 w-4 mr-1" /> New location
-              </Button>
-            </div>
-            {loading ? (
-              <p className="text-muted-foreground">Loading…</p>
-            ) : (
-              <div className="grid gap-3 md:grid-cols-3">
-                {locations.map((loc) => (
-                  <Card key={loc.id} className={!loc.is_active ? "opacity-60" : ""}>
-                    <CardHeader className="pb-2">
-                      <div className="flex justify-between">
-                        <div className="flex items-center gap-2">
-                          <span className="text-2xl">{loc.emoji}</span>
-                          <div>
-                            <CardTitle className="text-base flex items-center gap-2">
-                              <MapPin className="h-4 w-4" />
-                              {loc.name}
-                            </CardTitle>
-                          </div>
-                        </div>
-                        <div className="flex gap-1">
-                          <Button size="icon" variant="ghost" onClick={() => openEditLocation(loc)}>
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button size="icon" variant="ghost" onClick={() => deleteLocation(loc.id)}>
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-sm text-muted-foreground">{loc.description || "—"}</p>
-                      {!loc.is_active && <Badge variant="outline" className="mt-2">Inactive</Badge>}
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </TabsContent>
-        </Tabs>
-      </div>
-
-      {/* ---------------- Location dialog ---------------- */}
-      <Dialog open={locDialog} onOpenChange={setLocDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{editingLoc ? "Edit location" : "New location"}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            <div>
-              <Label>Name</Label>
-              <Input value={locForm.name} onChange={(e) => setLocForm({ ...locForm, name: e.target.value })} />
             </div>
             <div>
-              <Label>Emoji</Label>
+              <Label>Capacity (max participants)</Label>
               <Input
-                maxLength={4}
-                value={locForm.emoji}
-                onChange={(e) => setLocForm({ ...locForm, emoji: e.target.value })}
+                type="number"
+                min={1}
+                value={form.capacity}
+                onChange={(e) => setForm({ ...form, capacity: e.target.value })}
               />
             </div>
             <div>
-              <Label>Description</Label>
-              <Textarea
-                value={locForm.description}
-                onChange={(e) => setLocForm({ ...locForm, description: e.target.value })}
-              />
+              <Label>Assigned teachers</Label>
+              <div className="border rounded-md max-h-44 overflow-y-auto p-1 mt-1">
+                {teachers.length === 0 ? (
+                  <p className="text-xs text-muted-foreground p-2">No teachers found.</p>
+                ) : teachers.map((t) => {
+                  const on = form.teacher_ids.includes(t.id);
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => toggleTeacher(t.id)}
+                      className={`w-full text-left px-2 py-1.5 rounded text-sm flex items-center justify-between ${on ? "bg-primary/10" : "hover:bg-muted"}`}
+                    >
+                      <span>{t.full_name}</span>
+                      {on && <Badge className="text-[10px]">Selected</Badge>}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
             <div className="flex items-center gap-2">
-              <Switch
-                checked={locForm.is_active}
-                onCheckedChange={(v) => setLocForm({ ...locForm, is_active: v })}
-              />
-              <Label>Active</Label>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setLocDialog(false)}>Cancel</Button>
-            <Button onClick={saveLocation}>Save</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* ---------------- Session dialog ---------------- */}
-      <Dialog open={sessDialog} onOpenChange={setSessDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{editingSess ? "Edit session" : "New session"}</DialogTitle>
-            <DialogDescription>Schedule a morning workout. Students will see and join it.</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3">
-            <div>
-              <Label>Title</Label>
-              <Input
-                value={sessForm.title}
-                onChange={(e) => setSessForm({ ...sessForm, title: e.target.value })}
-                placeholder="e.g. Strength & Conditioning"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>Location</Label>
-                <Select
-                  value={sessForm.location_id}
-                  onValueChange={(v) => setSessForm({ ...sessForm, location_id: v })}
-                >
-                  <SelectTrigger><SelectValue placeholder="Pick location" /></SelectTrigger>
-                  <SelectContent>
-                    {locations.filter((l) => l.is_active || l.id === sessForm.location_id).map((l) => (
-                      <SelectItem key={l.id} value={l.id}>{l.emoji} {l.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Day</Label>
-                <Select
-                  value={sessForm.day_of_week}
-                  onValueChange={(v) => setSessForm({ ...sessForm, day_of_week: v })}
-                >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {DAYS_OF_WEEK.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>Start time</Label>
-                <Input
-                  type="time"
-                  value={sessForm.start_time}
-                  onChange={(e) => setSessForm({ ...sessForm, start_time: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label>Capacity</Label>
-                <Input
-                  type="number"
-                  min={1}
-                  value={sessForm.capacity}
-                  onChange={(e) => setSessForm({ ...sessForm, capacity: e.target.value })}
-                />
-              </div>
-            </div>
-            <div>
-              <Label>Description</Label>
-              <Textarea
-                value={sessForm.description}
-                onChange={(e) => setSessForm({ ...sessForm, description: e.target.value })}
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <Switch
-                checked={sessForm.is_active}
-                onCheckedChange={(v) => setSessForm({ ...sessForm, is_active: v })}
-              />
+              <Switch checked={form.is_active} onCheckedChange={(v) => setForm({ ...form, is_active: v })} />
               <Label>Active (visible to students)</Label>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setSessDialog(false)}>Cancel</Button>
-            <Button onClick={saveSession}>Save</Button>
+            <Button variant="ghost" onClick={() => setDialog(false)}>Cancel</Button>
+            <Button onClick={save}>Save</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* ---------------- Signups dialog ---------------- */}
+      {/* Signups dialog */}
       <Dialog open={!!signupsOpen} onOpenChange={(o) => !o && setSignupsOpen(null)}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Signups</DialogTitle>
-            <DialogDescription>
-              {sessions.find((s) => s.id === signupsOpen)?.title}
-            </DialogDescription>
+            <DialogDescription>{workouts.find((w) => w.id === signupsOpen)?.name}</DialogDescription>
           </DialogHeader>
           <div className="max-h-96 overflow-y-auto space-y-2">
-            {signups.filter((s) => s.session_id === signupsOpen).length === 0 ? (
+            {signups.filter((s) => s.workout_id === signupsOpen).length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-6">No signups yet.</p>
             ) : (
-              signups
-                .filter((s) => s.session_id === signupsOpen)
-                .map((s) => (
+              signups.filter((s) => s.workout_id === signupsOpen).map((s) => {
+                const p = profiles[s.student_id];
+                return (
                   <div key={s.id} className="flex items-center justify-between border rounded-md p-2">
                     <div>
-                      <p className="text-sm font-medium">{s.student?.full_name || "Unknown"}</p>
-                      <p className="text-xs text-muted-foreground">{s.student?.email}</p>
+                      <p className="text-sm font-medium">{p?.full_name || "Unknown"}</p>
+                      <p className="text-xs text-muted-foreground">{p?.email}</p>
                     </div>
                     <Button size="sm" variant="ghost" onClick={() => removeSignup(s.id)}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
+                      <Trash className="h-4 w-4 text-destructive" />
                     </Button>
                   </div>
-                ))
+                );
+              })
             )}
           </div>
         </DialogContent>
