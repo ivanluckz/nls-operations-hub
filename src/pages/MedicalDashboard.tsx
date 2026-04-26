@@ -585,6 +585,51 @@ const MedicalDashboard = () => {
             </Card>
           </TabsContent>
 
+          {/* ABSENT TODAY TAB */}
+          <TabsContent value="absent">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5 text-amber-500" />
+                  Absent / Late from Workout Today
+                </CardTitle>
+                <CardDescription>
+                  If a student came to you instead of their workout, log a visit — it'll auto-mark today's workout as 🏥 medical.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="max-h-96 overflow-auto space-y-2">
+                  {absentToday.length === 0 ? (
+                    <p className="text-center text-sm text-muted-foreground py-8">
+                      Nobody flagged absent or late today. ✅
+                    </p>
+                  ) : (
+                    absentToday.map((a) => (
+                      <div key={a.id} className="flex items-center justify-between border rounded-lg p-3">
+                        <div className="min-w-0">
+                          <p className="font-medium text-sm truncate">{a.student_name}</p>
+                          <p className="text-xs text-muted-foreground flex items-center gap-2 mt-0.5">
+                            <Badge variant={a.status === "absent" ? "destructive" : "secondary"} className="text-[10px]">
+                              {a.status}
+                            </Badge>
+                            <span className="truncate">{a.location}</span>
+                          </p>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => convertAbsentToMedical(a.student_id, a.student_name)}
+                        >
+                          <Stethoscope className="h-4 w-4 mr-1" /> Log visit
+                        </Button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           {/* CLEARANCES TAB */}
           <TabsContent value="clearances">
             <Card>
