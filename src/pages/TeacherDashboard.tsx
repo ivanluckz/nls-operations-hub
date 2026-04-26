@@ -224,6 +224,9 @@ const TeacherDashboard = () => {
       <main className="container mx-auto px-4 py-6 space-y-6">
         <HouseSelectionCard />
 
+        {/* Morning Workout Attendance */}
+        <WorkoutSessionAttendance />
+
         {/* Stats row */}
         <div className="grid grid-cols-3 gap-4">
           <Card className="relative overflow-hidden">
