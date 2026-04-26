@@ -18,8 +18,11 @@ const WorkoutSelectionCard = () => {
   const { toast } = useToast();
   const [userId, setUserId] = useState<string | null>(null);
   const [workouts, setWorkouts] = useState<Workout[]>([]);
-  const [signups, setSignups] = useState<Record<string, string>>({});
+  const [signups, setSignups] = useState<Record<string, { id: string; created_at: string }>>({});
   const [counts, setCounts] = useState<Record<string, number>>({});
+
+  const COOLDOWN_DAYS = 100;
+  const daysSince = (iso: string) => Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
 
@@ -34,13 +37,13 @@ const WorkoutSelectionCard = () => {
 
       const [wRes, mineRes, allRes] = await Promise.all([
         (supabase as any).from("workouts").select("*").eq("is_active", true).order("name"),
-        (supabase as any).from("workout_signups").select("id, workout_id").eq("student_id", user.id),
+        (supabase as any).from("workout_signups").select("id, workout_id, created_at").eq("student_id", user.id),
         (supabase as any).from("workout_signups").select("workout_id"),
       ]);
 
       setWorkouts(wRes.data || []);
-      const mine: Record<string, string> = {};
-      (mineRes.data || []).forEach((s: any) => { mine[s.workout_id] = s.id; });
+      const mine: Record<string, { id: string; created_at: string }> = {};
+      (mineRes.data || []).forEach((s: any) => { mine[s.workout_id] = { id: s.id, created_at: s.created_at }; });
       setSignups(mine);
 
       const c: Record<string, number> = {};
@@ -56,7 +59,16 @@ const WorkoutSelectionCard = () => {
     const existing = signups[w.id];
     setBusy(true);
     if (existing) {
-      const { error } = await (supabase as any).from("workout_signups").delete().eq("id", existing);
+      const elapsed = daysSince(existing.created_at);
+      if (elapsed < COOLDOWN_DAYS) {
+        setBusy(false);
+        return toast({
+          title: "Locked in for now",
+          description: `You can leave or switch this workout in ${COOLDOWN_DAYS - elapsed} day(s).`,
+          variant: "destructive",
+        });
+      }
+      const { error } = await (supabase as any).from("workout_signups").delete().eq("id", existing.id);
       setBusy(false);
       if (error) return toast({ title: "Error", description: error.message, variant: "destructive" });
       toast({ title: "Left workout" });
@@ -68,7 +80,7 @@ const WorkoutSelectionCard = () => {
       const { error } = await (supabase as any).from("workout_signups").insert({ workout_id: w.id, student_id: userId });
       setBusy(false);
       if (error) return toast({ title: "Error", description: error.message, variant: "destructive" });
-      toast({ title: "Signed up! 💪", description: w.name });
+      toast({ title: "Signed up! 💪", description: `${w.name} · locked in for ${COOLDOWN_DAYS} days` });
     }
     fetchData();
   };
@@ -82,7 +94,7 @@ const WorkoutSelectionCard = () => {
           <Dumbbell className="h-5 w-5 text-primary" />
           <CardTitle className="text-lg">Morning Workouts</CardTitle>
         </div>
-        <CardDescription>Pick the workouts you want to attend each week</CardDescription>
+        <CardDescription>Pick your workouts — once you join, you're locked in for {COOLDOWN_DAYS} days.</CardDescription>
       </CardHeader>
       <CardContent>
         {workouts.length === 0 ? (
@@ -91,8 +103,12 @@ const WorkoutSelectionCard = () => {
           <div className="space-y-2">
             {workouts.map((w) => {
               const count = counts[w.id] || 0;
-              const joined = !!signups[w.id];
+              const signup = signups[w.id];
+              const joined = !!signup;
               const full = count >= w.capacity;
+              const elapsed = signup ? daysSince(signup.created_at) : 0;
+              const locked = joined && elapsed < COOLDOWN_DAYS;
+              const daysLeft = COOLDOWN_DAYS - elapsed;
               return (
                 <div key={w.id} className={`flex items-center justify-between rounded-lg border p-3 ${joined ? "border-primary bg-primary/5" : ""}`}>
                   <div className="flex-1 min-w-0">
@@ -102,6 +118,11 @@ const WorkoutSelectionCard = () => {
                       {w.days_of_week.join(" · ")}
                     </p>
                     {w.description && <p className="text-xs text-muted-foreground mt-0.5 truncate">{w.description}</p>}
+                    {locked && (
+                      <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1">
+                        🔒 Locked for {daysLeft} more day{daysLeft === 1 ? "" : "s"}
+                      </p>
+                    )}
                   </div>
                   <div className="flex items-center gap-2 shrink-0 ml-2">
                     <Badge variant={full && !joined ? "destructive" : "secondary"} className="text-[10px]">
@@ -110,10 +131,10 @@ const WorkoutSelectionCard = () => {
                     <Button
                       size="sm"
                       variant={joined ? "default" : "outline"}
-                      disabled={busy || (full && !joined)}
+                      disabled={busy || (full && !joined) || locked}
                       onClick={() => toggle(w)}
                     >
-                      {joined ? "Leave" : full ? "Full" : "Join"}
+                      {joined ? (locked ? "Locked" : "Leave") : full ? "Full" : "Join"}
                     </Button>
                   </div>
                 </div>
