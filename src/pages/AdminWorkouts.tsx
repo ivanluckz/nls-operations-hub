@@ -75,7 +75,7 @@ const AdminWorkouts = () => {
       .sort((a: Profile, b: Profile) => a.full_name.localeCompare(b.full_name));
     setTeachers(teacherProfiles);
 
-    const studentIds = Array.from(new Set((sRes.data || []).map((s: any) => s.student_id)));
+    const studentIds: string[] = Array.from(new Set((sRes.data || []).map((s: any) => s.student_id as string)));
     if (studentIds.length) {
       const { data } = await supabase.from("profiles").select("id, full_name, email").in("id", studentIds);
       const map: Record<string, Profile> = {};
