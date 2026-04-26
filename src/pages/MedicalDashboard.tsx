@@ -536,8 +536,12 @@ const MedicalDashboard = () => {
         <AttendanceChart title="Workout Attendance (Last 7 Days)" />
 
         <Tabs defaultValue="visits" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="visits"><ClipboardList className="h-4 w-4 mr-2" /> Visits</TabsTrigger>
+            <TabsTrigger value="absent">
+              <AlertTriangle className="h-4 w-4 mr-2" /> Absent
+              {absentToday.length > 0 && <Badge variant="destructive" className="ml-2 h-5 min-w-5 px-1 text-[10px]">{absentToday.length}</Badge>}
+            </TabsTrigger>
             <TabsTrigger value="clearances"><ShieldCheck className="h-4 w-4 mr-2" /> Clearances</TabsTrigger>
             <TabsTrigger value="excuse"><UserCheck className="h-4 w-4 mr-2" /> Excuse</TabsTrigger>
           </TabsList>
