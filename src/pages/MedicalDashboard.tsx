@@ -109,6 +109,7 @@ const MedicalDashboard = () => {
   const [todayVisits, setTodayVisits] = useState<Visit[]>([]);
   const [activeClearances, setActiveClearances] = useState<Clearance[]>([]);
   const [todayWorkoutCount, setTodayWorkoutCount] = useState(0);
+  const [absentToday, setAbsentToday] = useState<Array<{ id: string; student_id: string; student_name: string; status: string; location: string }>>([]);
 
   // Excuse tab state
   const [allStudents, setAllStudents] = useState<Student[]>([]);
