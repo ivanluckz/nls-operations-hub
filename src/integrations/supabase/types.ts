@@ -1508,6 +1508,14 @@ export type Database = {
         Returns: boolean
       }
       count_allocated_students: { Args: never; Returns: number }
+      get_profile_email: { Args: { _user_id: string }; Returns: string }
+      get_profile_emails: {
+        Args: { _user_ids: string[] }
+        Returns: {
+          email: string
+          id: string
+        }[]
+      }
       get_teacher_students: {
         Args: { teacher_user_id: string }
         Returns: {

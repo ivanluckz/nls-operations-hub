@@ -1,6 +1,6 @@
 // Send web push notification to a recipient's subscribed devices
-import webpush from "npm:web-push@3.6.7";
-import { createClient } from "npm:@supabase/supabase-js@2.45.0";
+import webpush from "https://esm.sh/web-push@3.6.7";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
