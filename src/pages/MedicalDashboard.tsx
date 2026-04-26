@@ -109,6 +109,7 @@ const MedicalDashboard = () => {
   const [todayVisits, setTodayVisits] = useState<Visit[]>([]);
   const [activeClearances, setActiveClearances] = useState<Clearance[]>([]);
   const [todayWorkoutCount, setTodayWorkoutCount] = useState(0);
+  const [absentToday, setAbsentToday] = useState<Array<{ id: string; student_id: string; student_name: string; status: string; location: string }>>([]);
 
   // Excuse tab state
   const [allStudents, setAllStudents] = useState<Student[]>([]);
@@ -153,15 +154,21 @@ const MedicalDashboard = () => {
   const fetchData = async () => {
     const today = new Date().toISOString().split("T")[0];
 
-    const [{ data: visits }, { data: clearances }, { count: workoutCount }] = await Promise.all([
+    const [{ data: visits }, { data: clearances }, { count: workoutCount }, { data: absent }] = await Promise.all([
       (supabase as any).from("medical_visits").select("*").eq("visit_date", today).order("scanned_at", { ascending: false }),
       (supabase as any).from("workout_clearances").select("*").order("created_at", { ascending: false }),
       (supabase as any).from("workout_attendance").select("id", { count: "exact", head: true }).eq("workout_date", today),
+      (supabase as any).from("workout_attendance")
+        .select("id, student_id, status, location")
+        .eq("workout_date", today)
+        .in("status", ["absent", "late"])
+        .order("scanned_at", { ascending: false }),
     ]);
 
     const studentIds = new Set<string>();
     (visits || []).forEach((v: any) => studentIds.add(v.student_id));
     (clearances || []).forEach((c: any) => studentIds.add(c.student_id));
+    (absent || []).forEach((a: any) => studentIds.add(a.student_id));
 
     const nameMap: Record<string, string> = {};
     if (studentIds.size > 0) {
@@ -175,6 +182,7 @@ const MedicalDashboard = () => {
     setTodayVisits((visits || []).map((v: any) => ({ ...v, student_name: nameMap[v.student_id] || "Unknown" })));
     setActiveClearances((clearances || []).map((c: any) => ({ ...c, student_name: nameMap[c.student_id] || "Unknown" })));
     setTodayWorkoutCount(workoutCount || 0);
+    setAbsentToday((absent || []).map((a: any) => ({ ...a, student_name: nameMap[a.student_id] || "Unknown" })));
   };
 
   const fetchAllStudents = async () => {
@@ -250,6 +258,24 @@ const MedicalDashboard = () => {
     } finally {
       setSaving(false);
     }
+  };
+
+  const convertAbsentToMedical = async (studentId: string, studentName: string) => {
+    if (!userId) return;
+    if (!confirm(`Log a medical visit for ${studentName}? This will mark today's workout as 🏥 medical.`)) return;
+    const condition = window.prompt(`Reason / condition for ${studentName}:`, "Reported to medical office");
+    if (!condition) return;
+    const { error } = await (supabase as any).from("medical_visits").insert({
+      student_id: studentId,
+      medical_staff_id: userId,
+      condition: condition.trim(),
+    });
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "✅ Visit logged", description: `${studentName} → workout auto-marked medical` });
+    fetchData();
   };
 
   const openClearanceDialog = () => {
@@ -510,8 +536,12 @@ const MedicalDashboard = () => {
         <AttendanceChart title="Workout Attendance (Last 7 Days)" />
 
         <Tabs defaultValue="visits" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="visits"><ClipboardList className="h-4 w-4 mr-2" /> Visits</TabsTrigger>
+            <TabsTrigger value="absent">
+              <AlertTriangle className="h-4 w-4 mr-2" /> Absent
+              {absentToday.length > 0 && <Badge variant="destructive" className="ml-2 h-5 min-w-5 px-1 text-[10px]">{absentToday.length}</Badge>}
+            </TabsTrigger>
             <TabsTrigger value="clearances"><ShieldCheck className="h-4 w-4 mr-2" /> Clearances</TabsTrigger>
             <TabsTrigger value="excuse"><UserCheck className="h-4 w-4 mr-2" /> Excuse</TabsTrigger>
           </TabsList>
@@ -550,6 +580,51 @@ const MedicalDashboard = () => {
                       )}
                     </TableBody>
                   </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* ABSENT TODAY TAB */}
+          <TabsContent value="absent">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5 text-amber-500" />
+                  Absent / Late from Workout Today
+                </CardTitle>
+                <CardDescription>
+                  If a student came to you instead of their workout, log a visit — it'll auto-mark today's workout as 🏥 medical.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="max-h-96 overflow-auto space-y-2">
+                  {absentToday.length === 0 ? (
+                    <p className="text-center text-sm text-muted-foreground py-8">
+                      Nobody flagged absent or late today. ✅
+                    </p>
+                  ) : (
+                    absentToday.map((a) => (
+                      <div key={a.id} className="flex items-center justify-between border rounded-lg p-3">
+                        <div className="min-w-0">
+                          <p className="font-medium text-sm truncate">{a.student_name}</p>
+                          <p className="text-xs text-muted-foreground flex items-center gap-2 mt-0.5">
+                            <Badge variant={a.status === "absent" ? "destructive" : "secondary"} className="text-[10px]">
+                              {a.status}
+                            </Badge>
+                            <span className="truncate">{a.location}</span>
+                          </p>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => convertAbsentToMedical(a.student_id, a.student_name)}
+                        >
+                          <Stethoscope className="h-4 w-4 mr-1" /> Log visit
+                        </Button>
+                      </div>
+                    ))
+                  )}
                 </div>
               </CardContent>
             </Card>

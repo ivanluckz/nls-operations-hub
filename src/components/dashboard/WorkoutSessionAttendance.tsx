@@ -28,7 +28,7 @@ const WorkoutSessionAttendance = ({ teacherScope = false }: Props) => {
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [signups, setSignups] = useState<Signup[]>([]);
   const [profiles, setProfiles] = useState<Record<string, Profile>>({});
-  const [marked, setMarked] = useState<Record<string, boolean>>({}); // `${workout_id}:${student_id}` -> true
+  const [marked, setMarked] = useState<Record<string, string>>({}); // `${workout_id}:${student_id}` -> status
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -72,7 +72,7 @@ const WorkoutSessionAttendance = ({ teacherScope = false }: Props) => {
 
       const [sRes, attRes] = await Promise.all([
         (supabase as any).from("workout_signups").select("id, workout_id, student_id"),
-        (supabase as any).from("workout_attendance").select("student_id, workout_id").eq("workout_date", todayDate),
+        (supabase as any).from("workout_attendance").select("student_id, workout_id, status").eq("workout_date", todayDate),
       ]);
 
       const relevantSignups: Signup[] = (sRes.data || []).filter((s: Signup) => todayIds.has(s.workout_id));
@@ -88,8 +88,8 @@ const WorkoutSessionAttendance = ({ teacherScope = false }: Props) => {
         setProfiles({});
       }
 
-      const m: Record<string, boolean> = {};
-      (attRes.data || []).forEach((a: any) => { m[`${a.workout_id || ""}:${a.student_id}`] = true; });
+      const m: Record<string, string> = {};
+      (attRes.data || []).forEach((a: any) => { m[`${a.workout_id || ""}:${a.student_id}`] = a.status || "present"; });
       setMarked(m);
     } finally {
       setLoading(false);
@@ -113,7 +113,7 @@ const WorkoutSessionAttendance = ({ teacherScope = false }: Props) => {
       toast({ title: "Couldn't mark present", description: error.message, variant: "destructive" });
       return;
     }
-    setMarked((prev) => ({ ...prev, [key]: true }));
+    setMarked((prev) => ({ ...prev, [key]: "present" }));
     toast({ title: "Marked present 💪" });
   };
 
@@ -139,7 +139,7 @@ const WorkoutSessionAttendance = ({ teacherScope = false }: Props) => {
         ) : workouts.map((w) => {
           const isToday = w.days_of_week.includes(todayDay);
           const sessSignups = signups.filter((sg) => sg.workout_id === w.id);
-          const presentCount = sessSignups.filter((sg) => marked[`${w.id}:${sg.student_id}`]).length;
+          const presentCount = sessSignups.filter((sg) => marked[`${w.id}:${sg.student_id}`] === "present").length;
           return (
             <div key={w.id} className={`rounded-lg border p-3 space-y-2 ${!isToday ? "opacity-70" : ""}`}>
               <div className="flex items-center justify-between">
@@ -167,11 +167,19 @@ const WorkoutSessionAttendance = ({ teacherScope = false }: Props) => {
                   {sessSignups.map((sg) => {
                     const p = profiles[sg.student_id];
                     const key = `${w.id}:${sg.student_id}`;
-                    const isPresent = !!marked[key];
+                    const status = marked[key];
+                    const isPresent = status === "present";
+                    const isMedical = status === "medical";
+                    const isExcused = status === "excused";
+                    const rowBg = isMedical ? "bg-blue-500/10" : isExcused ? "bg-amber-500/10" : isPresent ? "bg-primary/5" : "bg-muted/40";
                     return (
-                      <div key={sg.id} className={`flex items-center justify-between rounded-md px-2 py-1.5 ${isPresent ? "bg-primary/5" : "bg-muted/40"}`}>
+                      <div key={sg.id} className={`flex items-center justify-between rounded-md px-2 py-1.5 ${rowBg}`}>
                         <span className="text-sm truncate">{p?.full_name || "Unknown"}</span>
-                        {isPresent ? (
+                        {isMedical ? (
+                          <Badge className="text-[10px] bg-blue-500 hover:bg-blue-500">🏥 Medical</Badge>
+                        ) : isExcused ? (
+                          <Badge variant="outline" className="text-[10px] border-amber-500 text-amber-600">Excused</Badge>
+                        ) : isPresent ? (
                           <Badge className="text-[10px]"><Check className="h-3 w-3 mr-1" />Present</Badge>
                         ) : (
                           <Button
