@@ -16,6 +16,7 @@ import HouseBadge from "@/components/ui/HouseBadge";
 import HouseSelectionCard from "@/components/student/HouseSelectionCard";
 import AttendanceChart from "@/components/dashboard/AttendanceChart";
 import TodayScheduleWidget from "@/components/dashboard/TodayScheduleWidget";
+import WorkoutSessionAttendance from "@/components/dashboard/WorkoutSessionAttendance";
 import MealQRScanner from "@/components/kitchen/MealQRScanner";
 import { UserProfileCard } from "@/components/chat/UserProfileCard";
 import IOSSchoolSkeleton from "@/components/IOSSchoolSkeleton";
