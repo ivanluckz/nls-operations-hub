@@ -13,6 +13,7 @@ import FloatingChatButton from "@/components/student/FloatingChatButton";
 import HouseBadge from "@/components/ui/HouseBadge";
 import HouseSelectionCard from "@/components/student/HouseSelectionCard";
 import TodayScheduleWidget from "@/components/dashboard/TodayScheduleWidget";
+import WorkoutSessionAttendance from "@/components/dashboard/WorkoutSessionAttendance";
 import RecentActivityFeed from "@/components/dashboard/RecentActivityFeed";
 import AttendanceChart from "@/components/dashboard/AttendanceChart";
 import CapacityAlerts from "@/components/dashboard/CapacityAlerts";
@@ -184,6 +185,9 @@ const AdminDashboard = () => {
 
         {/* House Selection */}
         <HouseSelectionCard />
+
+        {/* Morning Workout Attendance */}
+        <WorkoutSessionAttendance />
 
         {/* Quick Actions */}
         <div>

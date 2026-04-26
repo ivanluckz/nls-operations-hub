@@ -16,6 +16,7 @@ import HouseBadge from "@/components/ui/HouseBadge";
 import HouseSelectionCard from "@/components/student/HouseSelectionCard";
 import AttendanceChart from "@/components/dashboard/AttendanceChart";
 import TodayScheduleWidget from "@/components/dashboard/TodayScheduleWidget";
+import WorkoutSessionAttendance from "@/components/dashboard/WorkoutSessionAttendance";
 import MealQRScanner from "@/components/kitchen/MealQRScanner";
 import { UserProfileCard } from "@/components/chat/UserProfileCard";
 import IOSSchoolSkeleton from "@/components/IOSSchoolSkeleton";
@@ -222,6 +223,9 @@ const TeacherDashboard = () => {
 
       <main className="container mx-auto px-4 py-6 space-y-6">
         <HouseSelectionCard />
+
+        {/* Morning Workout Attendance */}
+        <WorkoutSessionAttendance />
 
         {/* Stats row */}
         <div className="grid grid-cols-3 gap-4">
