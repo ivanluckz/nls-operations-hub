@@ -272,9 +272,20 @@ ${personalContext}
 - For schedule questions, reference the actual activity data above
 - Be warm and professional`;
 
-    // Use client-provided system prompt if available (DevAI), otherwise use built-in one
-    const finalSystemPrompt = clientSystemPrompt || systemPrompt;
-    console.log(`User ${user.id} (${userRole}) calling Lovable AI Gateway... (custom prompt: ${!!clientSystemPrompt})`);
+    // Only privileged users (admin/moderator/Dev badge holders) may override the system prompt.
+    // This prevents AI credit abuse and prompt-injection bypass by regular students.
+    let canUseCustomPrompt = userRole === 'admin' || userRole === 'moderator';
+    if (!canUseCustomPrompt && clientSystemPrompt) {
+      const { data: devBadge } = await supabaseAuth
+        .from('user_badges')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('badge_name', 'Dev')
+        .maybeSingle();
+      canUseCustomPrompt = !!devBadge;
+    }
+    const finalSystemPrompt = (canUseCustomPrompt && clientSystemPrompt) ? clientSystemPrompt : systemPrompt;
+    console.log(`User ${user.id} (${userRole}) calling Lovable AI Gateway... (custom prompt allowed: ${canUseCustomPrompt}, sent: ${!!clientSystemPrompt})`);
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
