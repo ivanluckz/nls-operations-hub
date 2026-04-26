@@ -25,7 +25,7 @@ type Workout = {
   is_active: boolean;
 };
 type WT = { id: string; workout_id: string; teacher_id: string };
-type Signup = { id: string; workout_id: string; student_id: string };
+type Signup = { id: string; workout_id: string; student_id: string; created_at: string };
 type Profile = { id: string; full_name: string; email: string };
 
 const emptyForm = {
@@ -169,10 +169,22 @@ const AdminWorkouts = () => {
     else fetchAll();
   };
 
-  const removeSignup = async (id: string) => {
-    const { error } = await (supabase as any).from("workout_signups").delete().eq("id", id);
+  const COOLDOWN_DAYS = 100;
+  const daysSince = (iso: string) => Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
+
+  const removeSignup = async (s: Signup, studentName: string) => {
+    const elapsed = daysSince(s.created_at);
+    const locked = elapsed < COOLDOWN_DAYS;
+    const msg = locked
+      ? `${studentName} is still in their ${COOLDOWN_DAYS}-day commitment (${COOLDOWN_DAYS - elapsed} day(s) left). Override and remove anyway?`
+      : `Remove ${studentName} from this workout?`;
+    if (!confirm(msg)) return;
+    const { error } = await (supabase as any).from("workout_signups").delete().eq("id", s.id);
     if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
-    else fetchAll();
+    else {
+      toast({ title: locked ? "Cooldown overridden" : "Signup removed", description: studentName });
+      fetchAll();
+    }
   };
 
   const signupCount = (wid: string) => signups.filter((s) => s.workout_id === wid).length;
@@ -359,14 +371,30 @@ const AdminWorkouts = () => {
             ) : (
               signups.filter((s) => s.workout_id === signupsOpen).map((s) => {
                 const p = profiles[s.student_id];
+                const elapsed = daysSince(s.created_at);
+                const locked = elapsed < COOLDOWN_DAYS;
+                const daysLeft = COOLDOWN_DAYS - elapsed;
                 return (
                   <div key={s.id} className="flex items-center justify-between border rounded-md p-2">
-                    <div>
-                      <p className="text-sm font-medium">{p?.full_name || "Unknown"}</p>
-                      <p className="text-xs text-muted-foreground">{p?.email}</p>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">{p?.full_name || "Unknown"}</p>
+                      <p className="text-xs text-muted-foreground truncate">{p?.email}</p>
+                      {locked ? (
+                        <Badge variant="outline" className="mt-1 text-[10px] border-amber-500 text-amber-600 dark:text-amber-400">
+                          🔒 {daysLeft}d left in cooldown
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="mt-1 text-[10px]">Cooldown cleared</Badge>
+                      )}
                     </div>
-                    <Button size="sm" variant="ghost" onClick={() => removeSignup(s.id)}>
-                      <Trash className="h-4 w-4 text-destructive" />
+                    <Button
+                      size="sm"
+                      variant={locked ? "outline" : "ghost"}
+                      onClick={() => removeSignup(s, p?.full_name || "this student")}
+                      title={locked ? "Override cooldown and remove" : "Remove signup"}
+                    >
+                      <Trash className="h-4 w-4 text-destructive mr-1" />
+                      <span className="text-xs">{locked ? "Override" : "Remove"}</span>
                     </Button>
                   </div>
                 );
