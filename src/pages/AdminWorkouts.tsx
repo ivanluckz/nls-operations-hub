@@ -56,23 +56,27 @@ const AdminWorkouts = () => {
 
   const fetchAll = async () => {
     setLoading(true);
-    const [wRes, wtRes, sRes, teacherRes] = await Promise.all([
+    const [wRes, wtRes, sRes, teacherRolesRes] = await Promise.all([
       (supabase as any).from("workouts").select("*").order("name"),
       (supabase as any).from("workout_teachers").select("*"),
       (supabase as any).from("workout_signups").select("*"),
-      (supabase as any)
-        .from("user_roles")
-        .select("user_id, profile:profiles!inner(id, full_name, email)")
-        .eq("role", "teacher"),
+      supabase.from("user_roles").select("user_id").eq("role", "teacher"),
     ]);
     setWorkouts(wRes.data || []);
     setWTeachers(wtRes.data || []);
     setSignups(sRes.data || []);
 
-    const teacherProfiles: Profile[] = (teacherRes.data || [])
-      .map((r: any) => r.profile)
-      .filter((p: any) => p?.full_name)
-      .sort((a: Profile, b: Profile) => a.full_name.localeCompare(b.full_name));
+    const teacherIds: string[] = (teacherRolesRes.data || []).map((r: any) => r.user_id as string);
+    let teacherProfiles: Profile[] = [];
+    if (teacherIds.length) {
+      const { data } = await supabase
+        .from("profiles")
+        .select("id, full_name, email")
+        .in("id", teacherIds);
+      teacherProfiles = (data || [])
+        .filter((p: any) => p?.full_name)
+        .sort((a: any, b: any) => a.full_name.localeCompare(b.full_name)) as Profile[];
+    }
     setTeachers(teacherProfiles);
 
     const studentIds: string[] = Array.from(new Set((sRes.data || []).map((s: any) => s.student_id as string)));
