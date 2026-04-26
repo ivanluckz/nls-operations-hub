@@ -94,7 +94,7 @@ const WorkoutSelectionCard = () => {
           <Dumbbell className="h-5 w-5 text-primary" />
           <CardTitle className="text-lg">Morning Workouts</CardTitle>
         </div>
-        <CardDescription>Pick the workouts you want to attend each week</CardDescription>
+        <CardDescription>Pick your workouts — once you join, you're locked in for {COOLDOWN_DAYS} days.</CardDescription>
       </CardHeader>
       <CardContent>
         {workouts.length === 0 ? (
