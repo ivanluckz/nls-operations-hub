@@ -192,6 +192,14 @@ const UserManagement = () => {
         .insert({ user_id: editingUser.id, role: editRole });
       if (insertError) throw insertError;
 
+      // Sync morning workout assignments (only meaningful for teachers)
+      await (supabase as any).from("workout_teachers").delete().eq("teacher_id", editingUser.id);
+      if (editRole === "teacher" && editWorkoutIds.length) {
+        const rows = editWorkoutIds.map((wid) => ({ workout_id: wid, teacher_id: editingUser.id }));
+        const { error: wtError } = await (supabase as any).from("workout_teachers").insert(rows);
+        if (wtError) throw wtError;
+      }
+
       toast({ title: "Success", description: "User updated successfully" });
       setEditingUser(null);
       fetchUsers();
