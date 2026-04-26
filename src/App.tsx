@@ -48,6 +48,7 @@ import MedicalDashboard from "./pages/MedicalDashboard";
 import WeeklyTimetable from "./pages/WeeklyTimetable";
 import StudentProfile from "./pages/StudentProfile";
 import ThemeMarketplace from "./pages/ThemeMarketplace";
+import AdminWorkouts from "./pages/AdminWorkouts";
 
 const queryClient = new QueryClient();
 
@@ -112,6 +113,7 @@ const AppContent = () => {
           <Route path="/admin/admin-ai" element={<ProtectedRoute requiredRole="admin"><AdminAI /></ProtectedRoute>} />
           <Route path="/admin/meal-reports" element={<ProtectedRoute requiredRole="admin"><KitchenReports /></ProtectedRoute>} />
           <Route path="/admin/workout-reports" element={<ProtectedRoute requiredRole="admin"><RLCoachReports /></ProtectedRoute>} />
+          <Route path="/admin/workouts" element={<ProtectedRoute requiredRole="admin"><AdminWorkouts /></ProtectedRoute>} />
           <Route path="/admin/co-curricular/timetable" element={<ProtectedRoute requiredRole="admin"><WeeklyTimetable /></ProtectedRoute>} />
 
           {/* Teacher */}
