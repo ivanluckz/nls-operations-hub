@@ -28,7 +28,7 @@ const WorkoutSessionAttendance = ({ teacherScope = false }: Props) => {
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [signups, setSignups] = useState<Signup[]>([]);
   const [profiles, setProfiles] = useState<Record<string, Profile>>({});
-  const [marked, setMarked] = useState<Record<string, boolean>>({}); // `${workout_id}:${student_id}` -> true
+  const [marked, setMarked] = useState<Record<string, string>>({}); // `${workout_id}:${student_id}` -> status
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
 
