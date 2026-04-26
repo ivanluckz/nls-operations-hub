@@ -43,6 +43,7 @@ import {
   Zap,
   UtensilsCrossed,
   CalendarDays,
+  Dumbbell,
 } from "lucide-react";
 
 import nlsLogo from "@/assets/nls-logo.png";
@@ -64,6 +65,7 @@ const coCurricularItems = [
   { title: "Badge Requests", url: "/admin/co-curricular/badge-requests", icon: Award, description: "Approve student badges" },
   { title: "Admin AI", url: "/admin/admin-ai", icon: Zap, description: "AI-powered request processing", highlight: true },
   { title: "Meal Reports", url: "/admin/meal-reports", icon: UtensilsCrossed, description: "View meal attendance data" },
+  { title: "Morning Workouts", url: "/admin/workouts", icon: Dumbbell, description: "Manage workout sessions and locations" },
   { title: "Direct Messages", url: "/admin/dms", icon: MessageSquare, description: "Message anyone directly" },
 ];
 

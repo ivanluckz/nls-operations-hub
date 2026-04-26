@@ -1346,6 +1346,36 @@ export type Database = {
           },
         ]
       }
+      workout_locations: {
+        Row: {
+          created_at: string
+          description: string
+          emoji: string
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          emoji?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          emoji?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       workout_notifications: {
         Row: {
           acknowledged_at: string | null
@@ -1386,6 +1416,85 @@ export type Database = {
             columns: ["student_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workout_session_signups: {
+        Row: {
+          created_at: string
+          id: string
+          session_id: string
+          student_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          session_id: string
+          student_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          session_id?: string
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workout_session_signups_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "workout_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workout_sessions: {
+        Row: {
+          capacity: number
+          created_at: string
+          created_by: string
+          day_of_week: string
+          description: string
+          id: string
+          is_active: boolean
+          location_id: string | null
+          start_time: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          capacity?: number
+          created_at?: string
+          created_by: string
+          day_of_week: string
+          description?: string
+          id?: string
+          is_active?: boolean
+          location_id?: string | null
+          start_time?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          capacity?: number
+          created_at?: string
+          created_by?: string
+          day_of_week?: string
+          description?: string
+          id?: string
+          is_active?: boolean
+          location_id?: string | null
+          start_time?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workout_sessions_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "workout_locations"
             referencedColumns: ["id"]
           },
         ]
