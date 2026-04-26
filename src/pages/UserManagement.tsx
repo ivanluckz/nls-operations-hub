@@ -92,6 +92,8 @@ const UserManagement = () => {
   const [editMentorId, setEditMentorId] = useState<string | null>(null);
   const [houses, setHouses] = useState<House[]>([]);
   const [teachers, setTeachers] = useState<{ id: string; full_name: string }[]>([]);
+  const [allWorkouts, setAllWorkouts] = useState<{ id: string; name: string }[]>([]);
+  const [editWorkoutIds, setEditWorkoutIds] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterClass, setFilterClass] = useState<string>("all");
   const [filterMentor, setFilterMentor] = useState<string>("all");
@@ -107,6 +109,9 @@ const UserManagement = () => {
     });
     (supabase as any).from("profiles").select("id, full_name").in("email", TEACHER_EMAILS).order("full_name").then(({ data }: any) => {
       if (data) setTeachers(data.filter((t: any) => t.full_name));
+    });
+    (supabase as any).from("workouts").select("id, name").order("name").then(({ data }: any) => {
+      if (data) setAllWorkouts(data);
     });
   }, []);
 
@@ -149,12 +154,18 @@ const UserManagement = () => {
     }
   };
 
-  const openEditDialog = (user: Profile) => {
+  const openEditDialog = async (user: Profile) => {
     setEditingUser(user);
     setEditName(user.full_name);
     setEditRole(user.roles[0]?.role || "student");
     setEditHouseId(user.house_id || null);
     setEditMentorId((user as any).mentor_id || null);
+    // Pre-load workout assignments for this user (only relevant for teachers)
+    const { data } = await (supabase as any)
+      .from("workout_teachers")
+      .select("workout_id")
+      .eq("teacher_id", user.id);
+    setEditWorkoutIds((data || []).map((r: any) => r.workout_id));
   };
 
   const getInitials = (name: string) => {
