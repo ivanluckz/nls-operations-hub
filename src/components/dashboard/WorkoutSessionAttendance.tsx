@@ -59,12 +59,16 @@ const WorkoutSessionAttendance = ({ teacherScope = false }: Props) => {
         assignedIds = new Set((wtRes.data || []).map((r: any) => r.workout_id));
       }
 
-      const todayWorkouts = allWorkouts.filter(
-        (w) => w.days_of_week.includes(todayDay) && (!assignedIds || assignedIds.has(w.id))
-      );
-      setWorkouts(todayWorkouts);
+      // For teachers: show all workouts they're assigned to (any day) so they always
+      // see their assignments. For other scopes: only show workouts running today.
+      const visibleWorkouts = teacherScope
+        ? allWorkouts.filter((w) => !assignedIds || assignedIds.has(w.id))
+        : allWorkouts.filter((w) => w.days_of_week.includes(todayDay));
+      setWorkouts(visibleWorkouts);
 
-      const todayIds = new Set(todayWorkouts.map((w) => w.id));
+      const todayIds = new Set(
+        visibleWorkouts.filter((w) => w.days_of_week.includes(todayDay)).map((w) => w.id)
+      );
 
       const [sRes, attRes] = await Promise.all([
         (supabase as any).from("workout_signups").select("id, workout_id, student_id"),
