@@ -72,7 +72,7 @@ const WorkoutSessionAttendance = ({ teacherScope = false }: Props) => {
 
       const [sRes, attRes] = await Promise.all([
         (supabase as any).from("workout_signups").select("id, workout_id, student_id"),
-        (supabase as any).from("workout_attendance").select("student_id, workout_id").eq("workout_date", todayDate),
+        (supabase as any).from("workout_attendance").select("student_id, workout_id, status").eq("workout_date", todayDate),
       ]);
 
       const relevantSignups: Signup[] = (sRes.data || []).filter((s: Signup) => todayIds.has(s.workout_id));
