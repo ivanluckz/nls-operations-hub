@@ -103,8 +103,12 @@ const WorkoutSelectionCard = () => {
           <div className="space-y-2">
             {workouts.map((w) => {
               const count = counts[w.id] || 0;
-              const joined = !!signups[w.id];
+              const signup = signups[w.id];
+              const joined = !!signup;
               const full = count >= w.capacity;
+              const elapsed = signup ? daysSince(signup.created_at) : 0;
+              const locked = joined && elapsed < COOLDOWN_DAYS;
+              const daysLeft = COOLDOWN_DAYS - elapsed;
               return (
                 <div key={w.id} className={`flex items-center justify-between rounded-lg border p-3 ${joined ? "border-primary bg-primary/5" : ""}`}>
                   <div className="flex-1 min-w-0">
@@ -114,6 +118,11 @@ const WorkoutSelectionCard = () => {
                       {w.days_of_week.join(" · ")}
                     </p>
                     {w.description && <p className="text-xs text-muted-foreground mt-0.5 truncate">{w.description}</p>}
+                    {locked && (
+                      <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1">
+                        🔒 Locked for {daysLeft} more day{daysLeft === 1 ? "" : "s"}
+                      </p>
+                    )}
                   </div>
                   <div className="flex items-center gap-2 shrink-0 ml-2">
                     <Badge variant={full && !joined ? "destructive" : "secondary"} className="text-[10px]">
@@ -122,10 +131,10 @@ const WorkoutSelectionCard = () => {
                     <Button
                       size="sm"
                       variant={joined ? "default" : "outline"}
-                      disabled={busy || (full && !joined)}
+                      disabled={busy || (full && !joined) || locked}
                       onClick={() => toggle(w)}
                     >
-                      {joined ? "Leave" : full ? "Full" : "Join"}
+                      {joined ? (locked ? "Locked" : "Leave") : full ? "Full" : "Join"}
                     </Button>
                   </div>
                 </div>
