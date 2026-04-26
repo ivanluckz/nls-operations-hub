@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -47,13 +47,7 @@ export default function ThemeMarketplace() {
   const [installing, setInstalling] = useState<string | null>(null);
   const [sort, setSort] = useState<SortKey>("top");
 
-  useEffect(() => { (async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) setMeId(user.id);
-    await load(user?.id);
-  })(); }, []);
-
-  const load = async (uid?: string) => {
+  const load = useCallback(async (uid?: string) => {
     setLoading(true);
     try {
       const { data, error } = await (supabase as any)
@@ -91,10 +85,14 @@ export default function ThemeMarketplace() {
           const css = await (await fetch(t.css_url)).text();
           let js: string | null = null;
           if (t.js_url) {
-            try { js = await (await fetch(t.js_url)).text(); } catch {}
+            try { js = await (await fetch(t.js_url)).text(); } catch (jsErr) {
+              console.warn(`Failed to load JS for theme ${t.id}:`, jsErr);
+            }
           }
           previewMap[t.id] = { css, js, color: previewColor(css) };
-        } catch {}
+        } catch (err) {
+          console.warn(`Failed to load preview for theme ${t.id}:`, err);
+        }
       }));
       setPreviews(previewMap);
     } catch (err: any) {
@@ -102,7 +100,13 @@ export default function ThemeMarketplace() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
+
+  useEffect(() => { (async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) setMeId(user.id);
+    await load(user?.id);
+  })(); }, [load]);
 
   const toggleLike = async (t: PublicTheme) => {
     if (!meId) { toast({ variant: "destructive", title: "Sign in required" }); return; }

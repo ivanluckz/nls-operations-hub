@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -36,9 +36,7 @@ const WorkoutSessionAttendance = ({ teacherScope = false }: Props) => {
   const todayDay = DAYS[today.getDay()];
   const todayDate = today.toISOString().slice(0, 10);
 
-  useEffect(() => { fetchData(); /* eslint-disable-next-line */ }, [teacherScope]);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -47,7 +45,7 @@ const WorkoutSessionAttendance = ({ teacherScope = false }: Props) => {
 
       // Fetch all active workouts. RLS lets everyone authenticated see active workouts.
       const wRes = await (supabase as any).from("workouts").select("*").eq("is_active", true);
-      let allWorkouts: Workout[] = wRes.data || [];
+      const allWorkouts: Workout[] = wRes.data || [];
 
       // Filter to today + (if teacherScope) only those assigned to this teacher.
       let assignedIds: Set<string> | null = null;
@@ -94,7 +92,9 @@ const WorkoutSessionAttendance = ({ teacherScope = false }: Props) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [teacherScope, todayDay, todayDate]);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
 
   const markPresent = async (workoutId: string, workoutName: string, studentId: string) => {
     if (!userId) return;

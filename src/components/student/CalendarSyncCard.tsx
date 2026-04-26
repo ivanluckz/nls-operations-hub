@@ -27,7 +27,7 @@ const CalendarSyncCard = () => {
       toast({ variant: "destructive", title: "Connection Failed", description: "Could not connect Google Calendar. Please try again." });
       window.history.replaceState({}, "", window.location.pathname);
     }
-  }, []);
+  }, [toast]);
 
   const checkConnection = async () => {
     try {
