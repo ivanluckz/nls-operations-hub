@@ -186,6 +186,9 @@ const AdminDashboard = () => {
         {/* House Selection */}
         <HouseSelectionCard />
 
+        {/* Morning Workout Attendance */}
+        <WorkoutSessionAttendance />
+
         {/* Quick Actions */}
         <div>
           <h2 className="text-base sm:text-lg font-semibold mb-3">Quick Actions</h2>
