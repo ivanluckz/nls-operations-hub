@@ -643,6 +643,33 @@ const UserManagement = () => {
                   </Select>
                 </div>
               )}
+              {editRole === "teacher" && (
+                <div className="grid gap-2">
+                  <Label>Morning Workouts assigned</Label>
+                  {allWorkouts.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">No workouts created yet. Add some in Morning Workouts.</p>
+                  ) : (
+                    <div className="border rounded-md max-h-40 overflow-y-auto p-1">
+                      {allWorkouts.map((w) => {
+                        const on = editWorkoutIds.includes(w.id);
+                        return (
+                          <button
+                            key={w.id}
+                            type="button"
+                            onClick={() => setEditWorkoutIds((prev) =>
+                              prev.includes(w.id) ? prev.filter((x) => x !== w.id) : [...prev, w.id]
+                            )}
+                            className={`w-full text-left px-2 py-1.5 rounded text-sm flex items-center justify-between ${on ? "bg-primary/10" : "hover:bg-muted"}`}
+                          >
+                            <span>{w.name}</span>
+                            {on && <Badge className="text-[10px]">Assigned</Badge>}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setEditingUser(null)}>Cancel</Button>
