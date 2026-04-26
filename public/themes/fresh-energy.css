@@ -1,0 +1,100 @@
+/* Fresh Energy Theme - Wellness & Health Focused */
+/* Color scheme: Bright whites with vibrant green and ocean blue */
+
+html:root {
+  /* Primary - Forest Green */
+  --primary: 142 72% 29% !important;
+  --primary-foreground: 0 0% 98% !important;
+
+  /* Background - Off-white */
+  --background: 120 20% 96% !important;
+  --foreground: 40 10% 20% !important;
+
+  /* Card - Pure white */
+  --card: 0 0% 100% !important;
+  --card-foreground: 40 10% 20% !important;
+
+  /* Popover */
+  --popover: 0 0% 100% !important;
+  --popover-foreground: 40 10% 20% !important;
+
+  /* Secondary - Sky Blue */
+  --secondary: 200 90% 56% !important;
+  --secondary-foreground: 0 0% 100% !important;
+
+  /* Muted - Light gray */
+  --muted: 120 10% 90% !important;
+  --muted-foreground: 40 5% 45% !important;
+
+  /* Accent - Vibrant Teal */
+  --accent: 180 100% 35% !important;
+  --accent-foreground: 0 0% 100% !important;
+
+  /* Destructive - Coral red */
+  --destructive: 0 84% 60% !important;
+  --destructive-foreground: 0 0% 98% !important;
+
+  /* Border */
+  --border: 120 15% 90% !important;
+  --input: 120 15% 92% !important;
+  --ring: 142 72% 29% !important;
+
+  /* Radius */
+  --radius: 1rem !important;
+}
+
+/* Wellness-themed typography */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', sans-serif !important;
+}
+
+/* Soft shadows for card depth */
+[class*="Card"] {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+  border: 1px solid rgba(142, 184, 92, 0.1) !important;
+}
+
+/* Button styles - friendly and encouraging */
+button {
+  font-weight: 600 !important;
+  border-radius: 0.75rem !important;
+}
+
+button:hover {
+  background-color: hsl(142, 72%, 35%) !important;
+  color: white !important;
+  box-shadow: 0 4px 12px rgba(142, 184, 92, 0.3) !important;
+}
+
+/* Badge styling - health theme */
+[class*="Badge"] {
+  border-radius: 2rem !important;
+  font-weight: 600 !important;
+  font-size: 0.8rem !important;
+}
+
+/* Progress bars - healing greens */
+.bg-green-500 {
+  background: linear-gradient(90deg, hsl(142, 72%, 29%), hsl(120, 100%, 40%)) !important;
+}
+
+.bg-blue-500 {
+  background: hsl(200, 90%, 56%) !important;
+}
+
+/* Input focus states */
+input:focus,
+textarea:focus {
+  border-color: hsl(142, 72%, 29%) !important;
+  box-shadow: 0 0 0 3px rgba(142, 184, 92, 0.1) !important;
+}
+
+/* Animation - Subtle pulse */
+@keyframes wellness-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.9; }
+}
+
+.animate-pulse {
+  animation: wellness-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite !important;
+}

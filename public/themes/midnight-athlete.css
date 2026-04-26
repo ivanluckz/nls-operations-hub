@@ -1,0 +1,85 @@
+/* Midnight Athlete Theme - Dark Energy for Champions */
+/* Color scheme: Dark navy base with neon cyan and electric pink accents */
+
+html:root {
+  /* Primary - Electric Cyan */
+  --primary: 180 100% 50% !important;
+  --primary-foreground: 240 10% 3% !important;
+
+  /* Background - Deep Navy */
+  --background: 240 15% 8% !important;
+  --foreground: 0 0% 95% !important;
+
+  /* Card - Slightly lighter navy */
+  --card: 240 15% 12% !important;
+  --card-foreground: 0 0% 95% !important;
+
+  /* Popover */
+  --popover: 240 15% 12% !important;
+  --popover-foreground: 0 0% 95% !important;
+
+  /* Secondary - Slate gray */
+  --secondary: 240 10% 25% !important;
+  --secondary-foreground: 0 0% 95% !important;
+
+  /* Muted - Neutral gray */
+  --muted: 240 10% 30% !important;
+  --muted-foreground: 0 0% 60% !important;
+
+  /* Accent - Electric Magenta */
+  --accent: 300 100% 50% !important;
+  --accent-foreground: 240 10% 3% !important;
+
+  /* Destructive - Bright Red */
+  --destructive: 0 84% 60% !important;
+  --destructive-foreground: 0 0% 98% !important;
+
+  /* Border */
+  --border: 240 10% 25% !important;
+  --input: 240 10% 20% !important;
+  --ring: 180 100% 50% !important;
+
+  /* Radius */
+  --radius: 0.5rem !important;
+}
+
+/* Enhanced button styles for athletic feel */
+button {
+  font-weight: 600 !important;
+  letter-spacing: 0.5px !important;
+}
+
+button:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 8px 16px rgba(0, 255, 255, 0.2) !important;
+}
+
+/* Card elevation */
+[class*="Card"] {
+  border: 1px solid rgba(0, 255, 255, 0.1) !important;
+  background: linear-gradient(135deg, rgba(20, 20, 40, 0.9), rgba(30, 20, 50, 0.9)) !important;
+}
+
+/* Badge styling */
+[class*="Badge"] {
+  text-transform: uppercase !important;
+  font-size: 0.7rem !important;
+  letter-spacing: 1px !important;
+  font-weight: 700 !important;
+}
+
+/* Progress bars - neon green */
+.bg-green-500 {
+  background-color: hsl(120, 100%, 40%) !important;
+}
+
+/* Focus states */
+:focus-visible {
+  outline: 2px solid hsl(180, 100%, 50%) !important;
+  outline-offset: 2px !important;
+}
+
+/* Smooth transitions */
+* {
+  transition: color 200ms, background-color 200ms, border-color 200ms !important;
+}

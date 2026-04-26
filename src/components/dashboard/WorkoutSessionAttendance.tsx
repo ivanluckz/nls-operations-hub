@@ -119,6 +119,10 @@ const WorkoutSessionAttendance = ({ teacherScope = false }: Props) => {
 
   if (loading) return null;
 
+  const totalStudents = signups.length;
+  const totalPresent = Object.values(marked).filter((s) => s === "present").length;
+  const attendanceRate = totalStudents > 0 ? Math.round((totalPresent / totalStudents) * 100) : 0;
+
   return (
     <Card className="border-2">
       <CardHeader className="pb-3">
@@ -130,6 +134,17 @@ const WorkoutSessionAttendance = ({ teacherScope = false }: Props) => {
           {todayDay} · {workouts.length} workout{workouts.length === 1 ? "" : "s"}
           {teacherScope ? " assigned to you" : " scheduled"}
         </CardDescription>
+        {totalStudents > 0 && (
+          <div className="mt-3 space-y-1.5">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">Overall attendance</span>
+              <span className="font-semibold text-primary">{totalPresent}/{totalStudents} ({attendanceRate}%)</span>
+            </div>
+            <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
+              <div className="bg-green-500 h-full rounded-full transition-all duration-500" style={{ width: `${attendanceRate}%` }} />
+            </div>
+          </div>
+        )}
       </CardHeader>
       <CardContent className="space-y-4">
         {workouts.length === 0 ? (
@@ -140,10 +155,11 @@ const WorkoutSessionAttendance = ({ teacherScope = false }: Props) => {
           const isToday = w.days_of_week.includes(todayDay);
           const sessSignups = signups.filter((sg) => sg.workout_id === w.id);
           const presentCount = sessSignups.filter((sg) => marked[`${w.id}:${sg.student_id}`] === "present").length;
+          const workoutRate = sessSignups.length > 0 ? Math.round((presentCount / sessSignups.length) * 100) : 0;
           return (
-            <div key={w.id} className={`rounded-lg border p-3 space-y-2 ${!isToday ? "opacity-70" : ""}`}>
+            <div key={w.id} className={`rounded-lg border p-3 space-y-2.5 transition-opacity ${!isToday ? "opacity-70" : ""}`}>
               <div className="flex items-center justify-between">
-                <div>
+                <div className="flex-1">
                   <p className="font-semibold text-sm flex items-center gap-2">
                     {w.name}
                     {!isToday && <Badge variant="outline" className="text-[10px]">Not today</Badge>}
@@ -153,11 +169,19 @@ const WorkoutSessionAttendance = ({ teacherScope = false }: Props) => {
                   </p>
                 </div>
                 {isToday && (
-                  <Badge variant="secondary" className="text-[10px]">
-                    <Users className="h-3 w-3 mr-1" />{presentCount}/{sessSignups.length} present
-                  </Badge>
+                  <div className="text-right">
+                    <Badge variant="secondary" className="text-[10px] whitespace-nowrap">
+                      <Users className="h-3 w-3 mr-1" />{presentCount}/{sessSignups.length}
+                    </Badge>
+                    <div className="text-[10px] text-muted-foreground mt-1">{workoutRate}%</div>
+                  </div>
                 )}
               </div>
+              {isToday && sessSignups.length > 0 && (
+                <div className="w-full bg-muted rounded-full h-1.5">
+                  <div className="bg-blue-500 h-full rounded-full transition-all" style={{ width: `${workoutRate}%` }} />
+                </div>
+              )}
               {!isToday ? (
                 <p className="text-xs text-muted-foreground italic">Attendance opens on scheduled days.</p>
               ) : sessSignups.length === 0 ? (
@@ -176,20 +200,20 @@ const WorkoutSessionAttendance = ({ teacherScope = false }: Props) => {
                       <div key={sg.id} className={`flex items-center justify-between rounded-md px-2 py-1.5 ${rowBg}`}>
                         <span className="text-sm truncate">{p?.full_name || "Unknown"}</span>
                         {isMedical ? (
-                          <Badge className="text-[10px] bg-blue-500 hover:bg-blue-500">🏥 Medical</Badge>
+                          <Badge className="text-[10px] bg-blue-500 hover:bg-blue-500 animate-pulse">🏥 Medical</Badge>
                         ) : isExcused ? (
                           <Badge variant="outline" className="text-[10px] border-amber-500 text-amber-600">Excused</Badge>
                         ) : isPresent ? (
-                          <Badge className="text-[10px]"><Check className="h-3 w-3 mr-1" />Present</Badge>
+                          <Badge className="text-[10px] bg-green-600 animate-in fade-in duration-300"><Check className="h-3 w-3 mr-1" />Present</Badge>
                         ) : (
                           <Button
                             size="sm"
                             variant="outline"
-                            className="h-7 text-xs"
+                            className="h-7 text-xs hover:bg-primary hover:text-primary-foreground transition-all"
                             disabled={busy === key}
                             onClick={() => markPresent(w.id, w.name, sg.student_id)}
                           >
-                            Mark present
+                            {busy === key ? "..." : "Mark ✓"}
                           </Button>
                         )}
                       </div>

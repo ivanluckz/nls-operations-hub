@@ -1,6 +1,7 @@
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
+import { seedMarketplaceThemes } from "./lib/seed-theme-marketplace";
 
 // Restore custom theme CSS from IndexedDB on load
 const activeThemeId = localStorage.getItem("nls-active-theme-id");
