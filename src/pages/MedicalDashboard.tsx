@@ -260,6 +260,24 @@ const MedicalDashboard = () => {
     }
   };
 
+  const convertAbsentToMedical = async (studentId: string, studentName: string) => {
+    if (!userId) return;
+    if (!confirm(`Log a medical visit for ${studentName}? This will mark today's workout as 🏥 medical.`)) return;
+    const condition = window.prompt(`Reason / condition for ${studentName}:`, "Reported to medical office");
+    if (!condition) return;
+    const { error } = await (supabase as any).from("medical_visits").insert({
+      student_id: studentId,
+      medical_staff_id: userId,
+      condition: condition.trim(),
+    });
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "✅ Visit logged", description: `${studentName} → workout auto-marked medical` });
+    fetchData();
+  };
+
   const openClearanceDialog = () => {
     if (!scannedStudentId) return;
     setVisitDialogOpen(false);
