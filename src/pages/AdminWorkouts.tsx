@@ -142,10 +142,17 @@ const AdminWorkouts = () => {
 
     // sync teachers
     if (workoutId) {
-      await (supabase as any).from("workout_teachers").delete().eq("workout_id", workoutId);
-      if (form.teacher_ids.length) {
-        const rows = form.teacher_ids.map((tid: string) => ({ workout_id: workoutId, teacher_id: tid }));
-        const { error } = await (supabase as any).from("workout_teachers").insert(rows);
+      const uniqueIds: string[] = Array.from(new Set((form.teacher_ids as string[]).filter(Boolean)));
+      const { error: delErr } = await (supabase as any)
+        .from("workout_teachers")
+        .delete()
+        .eq("workout_id", workoutId);
+      if (delErr) return toast({ title: "Teacher sync error", description: delErr.message, variant: "destructive" });
+      if (uniqueIds.length) {
+        const rows = uniqueIds.map((tid) => ({ workout_id: workoutId, teacher_id: tid }));
+        const { error } = await (supabase as any)
+          .from("workout_teachers")
+          .upsert(rows, { onConflict: "workout_id,teacher_id", ignoreDuplicates: true });
         if (error) return toast({ title: "Teacher sync error", description: error.message, variant: "destructive" });
       }
     }
