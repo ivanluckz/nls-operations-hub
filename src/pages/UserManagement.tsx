@@ -194,9 +194,12 @@ const UserManagement = () => {
 
       // Sync morning workout assignments (only meaningful for teachers)
       await (supabase as any).from("workout_teachers").delete().eq("teacher_id", editingUser.id);
-      if (editRole === "teacher" && editWorkoutIds.length) {
-        const rows = editWorkoutIds.map((wid) => ({ workout_id: wid, teacher_id: editingUser.id }));
-        const { error: wtError } = await (supabase as any).from("workout_teachers").insert(rows);
+      const uniqueWorkoutIds = Array.from(new Set(editWorkoutIds.filter(Boolean)));
+      if (editRole === "teacher" && uniqueWorkoutIds.length) {
+        const rows = uniqueWorkoutIds.map((wid) => ({ workout_id: wid, teacher_id: editingUser.id }));
+        const { error: wtError } = await (supabase as any)
+          .from("workout_teachers")
+          .upsert(rows, { onConflict: "workout_id,teacher_id", ignoreDuplicates: true });
         if (wtError) throw wtError;
       }
 
