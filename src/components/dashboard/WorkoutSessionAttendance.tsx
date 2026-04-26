@@ -134,25 +134,33 @@ const WorkoutSessionAttendance = ({ teacherScope = false }: Props) => {
       <CardContent className="space-y-4">
         {workouts.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-4">
-            {teacherScope ? "You're not assigned to any workouts today." : "No workouts scheduled today."}
+            {teacherScope ? "You're not assigned to any workouts." : "No workouts scheduled today."}
           </p>
         ) : workouts.map((w) => {
+          const isToday = w.days_of_week.includes(todayDay);
           const sessSignups = signups.filter((sg) => sg.workout_id === w.id);
           const presentCount = sessSignups.filter((sg) => marked[`${w.id}:${sg.student_id}`]).length;
           return (
-            <div key={w.id} className="rounded-lg border p-3 space-y-2">
+            <div key={w.id} className={`rounded-lg border p-3 space-y-2 ${!isToday ? "opacity-70" : ""}`}>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-semibold text-sm">{w.name}</p>
+                  <p className="font-semibold text-sm flex items-center gap-2">
+                    {w.name}
+                    {!isToday && <Badge variant="outline" className="text-[10px]">Not today</Badge>}
+                  </p>
                   <p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
                     <Calendar className="h-3 w-3" />{w.days_of_week.join(" · ")}
                   </p>
                 </div>
-                <Badge variant="secondary" className="text-[10px]">
-                  <Users className="h-3 w-3 mr-1" />{presentCount}/{sessSignups.length} present
-                </Badge>
+                {isToday && (
+                  <Badge variant="secondary" className="text-[10px]">
+                    <Users className="h-3 w-3 mr-1" />{presentCount}/{sessSignups.length} present
+                  </Badge>
+                )}
               </div>
-              {sessSignups.length === 0 ? (
+              {!isToday ? (
+                <p className="text-xs text-muted-foreground italic">Attendance opens on scheduled days.</p>
+              ) : sessSignups.length === 0 ? (
                 <p className="text-xs text-muted-foreground italic">No students signed up.</p>
               ) : (
                 <div className="space-y-1">
@@ -179,6 +187,11 @@ const WorkoutSessionAttendance = ({ teacherScope = false }: Props) => {
                       </div>
                     );
                   })}
+                </div>
+              )}
+            </div>
+          );
+        })}
                 </div>
               )}
             </div>
