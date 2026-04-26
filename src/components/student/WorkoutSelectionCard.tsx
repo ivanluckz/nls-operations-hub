@@ -18,8 +18,11 @@ const WorkoutSelectionCard = () => {
   const { toast } = useToast();
   const [userId, setUserId] = useState<string | null>(null);
   const [workouts, setWorkouts] = useState<Workout[]>([]);
-  const [signups, setSignups] = useState<Record<string, string>>({});
+  const [signups, setSignups] = useState<Record<string, { id: string; created_at: string }>>({});
   const [counts, setCounts] = useState<Record<string, number>>({});
+
+  const COOLDOWN_DAYS = 100;
+  const daysSince = (iso: string) => Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
 
