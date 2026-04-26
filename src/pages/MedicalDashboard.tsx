@@ -154,15 +154,21 @@ const MedicalDashboard = () => {
   const fetchData = async () => {
     const today = new Date().toISOString().split("T")[0];
 
-    const [{ data: visits }, { data: clearances }, { count: workoutCount }] = await Promise.all([
+    const [{ data: visits }, { data: clearances }, { count: workoutCount }, { data: absent }] = await Promise.all([
       (supabase as any).from("medical_visits").select("*").eq("visit_date", today).order("scanned_at", { ascending: false }),
       (supabase as any).from("workout_clearances").select("*").order("created_at", { ascending: false }),
       (supabase as any).from("workout_attendance").select("id", { count: "exact", head: true }).eq("workout_date", today),
+      (supabase as any).from("workout_attendance")
+        .select("id, student_id, status, location")
+        .eq("workout_date", today)
+        .in("status", ["absent", "late"])
+        .order("scanned_at", { ascending: false }),
     ]);
 
     const studentIds = new Set<string>();
     (visits || []).forEach((v: any) => studentIds.add(v.student_id));
     (clearances || []).forEach((c: any) => studentIds.add(c.student_id));
+    (absent || []).forEach((a: any) => studentIds.add(a.student_id));
 
     const nameMap: Record<string, string> = {};
     if (studentIds.size > 0) {
@@ -176,6 +182,7 @@ const MedicalDashboard = () => {
     setTodayVisits((visits || []).map((v: any) => ({ ...v, student_name: nameMap[v.student_id] || "Unknown" })));
     setActiveClearances((clearances || []).map((c: any) => ({ ...c, student_name: nameMap[c.student_id] || "Unknown" })));
     setTodayWorkoutCount(workoutCount || 0);
+    setAbsentToday((absent || []).map((a: any) => ({ ...a, student_name: nameMap[a.student_id] || "Unknown" })));
   };
 
   const fetchAllStudents = async () => {
