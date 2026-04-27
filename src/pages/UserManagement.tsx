@@ -697,6 +697,26 @@ const UserManagement = () => {
                   </Select>
                 </div>
               )}
+              {editRole === "student" && (
+                <div className="grid gap-2">
+                  <Label htmlFor="student-workout">Morning Workout</Label>
+                  <Select
+                    value={editStudentWorkoutId || "none"}
+                    onValueChange={(v) => setEditStudentWorkoutId(v === "none" ? null : v)}
+                  >
+                    <SelectTrigger id="student-workout"><SelectValue placeholder="No workout" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No workout</SelectItem>
+                      {allWorkouts.map((w) => (
+                        <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Students may only join one workout. Selecting a new one replaces the previous (cooldown bypassed for admins/moderators).
+                  </p>
+                </div>
+              )}
               {editRole === "teacher" && (
                 <div className="grid gap-2">
                   <Label>Morning Workouts assigned</Label>
