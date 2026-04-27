@@ -194,6 +194,16 @@ const Leaderboard = () => {
               </button>
             ))}
           </div>
+
+          <div className="relative w-full sm:w-56 ml-auto">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              value={nameSearch}
+              onChange={(e) => setNameSearch(e.target.value)}
+              placeholder="Search by name..."
+              className="pl-9 h-8 text-xs"
+            />
+          </div>
         </div>
 
         {loading ? (
