@@ -52,8 +52,60 @@ const AdminWorkouts = () => {
   const [editing, setEditing] = useState<string | null>(null);
 
   const [signupsOpen, setSignupsOpen] = useState<string | null>(null);
+  const [attendance, setAttendance] = useState<Record<string, { status: string; id: string }>>({});
 
   useEffect(() => { fetchAll(); }, []);
+
+  const loadAttendance = async (workoutId: string) => {
+    const { data } = await (supabase as any)
+      .from("workout_attendance")
+      .select("id, student_id, status")
+      .eq("workout_id", workoutId)
+      .gte("workout_date", new Date().toISOString().split('T')[0]);
+
+    const map: Record<string, { status: string; id: string }> = {};
+    (data || []).forEach((record: any) => {
+      map[record.student_id] = { status: record.status || 'unmarked', id: record.id };
+    });
+    setAttendance(map);
+  };
+
+  const markAttendance = async (studentId: string, status: string, workoutId: string) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const today = new Date().toISOString().split('T')[0];
+    const existing = attendance[studentId]?.id;
+
+    try {
+      if (existing) {
+        await (supabase as any)
+          .from("workout_attendance")
+          .update({ status, scanned_at: new Date().toISOString() })
+          .eq("id", existing);
+      } else {
+        await (supabase as any)
+          .from("workout_attendance")
+          .insert({
+            student_id: studentId,
+            workout_id: workoutId,
+            status,
+            workout_date: today,
+            scanned_at: new Date().toISOString(),
+            scanned_by: user.id,
+            location: "Admin"
+          });
+      }
+
+      setAttendance(prev => ({
+        ...prev,
+        [studentId]: { status, id: existing || `new_${studentId}` }
+      }));
+      toast({ title: "✓", description: `Marked as ${status}` });
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to save attendance", variant: "destructive" });
+    }
+  };
 
   const fetchAll = async () => {
     setLoading(true);
@@ -400,10 +452,16 @@ const AdminWorkouts = () => {
       </Dialog>
 
       {/* Signups dialog */}
-      <Dialog open={!!signupsOpen} onOpenChange={(o) => !o && setSignupsOpen(null)}>
-        <DialogContent>
+      <Dialog open={!!signupsOpen} onOpenChange={(o) => {
+        if (o && signupsOpen) {
+          loadAttendance(signupsOpen);
+        } else {
+          setSignupsOpen(null);
+        }
+      }}>
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Signups</DialogTitle>
+            <DialogTitle>Enrollment & Attendance</DialogTitle>
             <DialogDescription>{workouts.find((w) => w.id === signupsOpen)?.name}</DialogDescription>
           </DialogHeader>
           <div className="max-h-96 overflow-y-auto space-y-2">
@@ -415,28 +473,66 @@ const AdminWorkouts = () => {
                 const elapsed = daysSince(s.created_at);
                 const locked = elapsed < COOLDOWN_DAYS;
                 const daysLeft = COOLDOWN_DAYS - elapsed;
+                const att = attendance[s.student_id];
+                const statusColor = att?.status === 'present' ? 'bg-green-100 text-green-800' :
+                  att?.status === 'absent' ? 'bg-red-100 text-red-800' :
+                  att?.status === 'late' ? 'bg-yellow-100 text-yellow-800' :
+                  att?.status === 'excused' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800';
+
                 return (
-                  <div key={s.id} className="flex items-center justify-between border rounded-md p-2">
-                    <div className="min-w-0">
+                  <div key={s.id} className="flex items-center justify-between border rounded-md p-3">
+                    <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium truncate">{p?.full_name || "Unknown"}</p>
                       <p className="text-xs text-muted-foreground truncate">{p?.email}</p>
-                      {locked ? (
-                        <Badge variant="outline" className="mt-1 text-[10px] border-amber-500 text-amber-600 dark:text-amber-400">
-                          🔒 {daysLeft}d left in cooldown
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="mt-1 text-[10px]">Cooldown cleared</Badge>
-                      )}
+                      <div className="flex gap-1 mt-1 flex-wrap">
+                        {locked ? (
+                          <Badge variant="outline" className="text-[10px] border-amber-500 text-amber-600 dark:text-amber-400">
+                            🔒 {daysLeft}d cooldown
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-[10px]">✓ Cleared</Badge>
+                        )}
+                        {att && (
+                          <Badge className={`text-[10px] ${statusColor}`}>
+                            {att.status.charAt(0).toUpperCase() + att.status.slice(1)}
+                          </Badge>
+                        )}
+                      </div>
                     </div>
-                    <Button
-                      size="sm"
-                      variant={locked ? "outline" : "ghost"}
-                      onClick={() => removeSignup(s, p?.full_name || "this student")}
-                      title={locked ? "Override cooldown and remove" : "Remove signup"}
-                    >
-                      <Trash className="h-4 w-4 text-destructive mr-1" />
-                      <span className="text-xs">{locked ? "Override" : "Remove"}</span>
-                    </Button>
+                    <div className="flex gap-1 flex-wrap justify-end ml-2">
+                      <Button
+                        size="xs"
+                        variant={att?.status === 'present' ? 'default' : 'outline'}
+                        onClick={() => markAttendance(s.student_id, 'present', signupsOpen!)}
+                        className="text-[11px]"
+                      >
+                        Present
+                      </Button>
+                      <Button
+                        size="xs"
+                        variant={att?.status === 'absent' ? 'destructive' : 'outline'}
+                        onClick={() => markAttendance(s.student_id, 'absent', signupsOpen!)}
+                        className="text-[11px]"
+                      >
+                        Absent
+                      </Button>
+                      <Button
+                        size="xs"
+                        variant={att?.status === 'late' ? 'secondary' : 'outline'}
+                        onClick={() => markAttendance(s.student_id, 'late', signupsOpen!)}
+                        className="text-[11px]"
+                      >
+                        Late
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => removeSignup(s, p?.full_name || "this student")}
+                        title={locked ? "Override cooldown and remove" : "Remove signup"}
+                      >
+                        <Trash className="h-3 w-3 text-destructive" />
+                      </Button>
+                    </div>
                   </div>
                 );
               })
