@@ -175,7 +175,9 @@ const MentorSelectionCard = () => {
                 </button>
               );
             })}
-          </div>
+            </div>
+            )}
+          </>
         )}
       </CardContent>
     </Card>
