@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { isDevUser } from "@/lib/dev-badge";
@@ -84,7 +84,7 @@ const StudentDashboard = () => {
 
       return () => { supabase.removeChannel(channel); };
     });
-  }, []);
+  }, [toast]);
 
   const fetchData = async () => {
     try {

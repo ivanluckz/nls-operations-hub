@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -39,13 +39,7 @@ const AttendanceReports = () => {
   const [activities, setActivities] = useState<{ id: string; title: string }[]>([]);
   const [students, setStudents] = useState<{ id: string; full_name: string }[]>([]);
 
-  useEffect(() => {
-    fetchUserRole();
-    fetchNotifications();
-    fetchActivitiesAndStudents();
-  }, [filterStatus, filterDate]);
-
-  const fetchUserRole = async () => {
+  const fetchUserRole = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
@@ -58,9 +52,9 @@ const AttendanceReports = () => {
     if (roleData) {
       setUserRole(roleData.role);
     }
-  };
+  }, []);
 
-  const fetchActivitiesAndStudents = async () => {
+  const fetchActivitiesAndStudents = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -100,9 +94,9 @@ const AttendanceReports = () => {
     } catch (error) {
       console.error("Error fetching activities/students:", error);
     }
-  };
+  }, []);
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -183,7 +177,14 @@ const AttendanceReports = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filterStatus, filterDate, toast]);
+
+  useEffect(() => {
+    fetchUserRole();
+    fetchNotifications();
+    fetchActivitiesAndStudents();
+  }, [fetchUserRole, fetchNotifications, fetchActivitiesAndStudents]);
+
 
   const acknowledgeNotification = async (notificationId: string) => {
     try {

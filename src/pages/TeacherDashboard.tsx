@@ -54,11 +54,7 @@ const TeacherDashboard = () => {
   const [profileCard, setProfileCard] = useState<{ studentId: string; studentName: string } | null>(null);
   const [studentBadges, setStudentBadges] = useState<Record<string, string[]>>({});
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -109,7 +105,11 @@ const TeacherDashboard = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const handleLunchScan = useCallback(async (studentId: string) => {
     if (!userId) return;

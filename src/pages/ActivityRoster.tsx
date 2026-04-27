@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -44,11 +44,7 @@ const ActivityRoster = () => {
   const [expandedActivities, setExpandedActivities] = useState<Set<string>>(new Set());
   const [userRole, setUserRole] = useState<string>("");
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -125,7 +121,11 @@ const ActivityRoster = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const toggleActivity = (activityId: string) => {
     const newExpanded = new Set(expandedActivities);

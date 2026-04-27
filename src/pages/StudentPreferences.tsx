@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -75,12 +75,7 @@ const StudentPreferences = () => {
     return Array.from(cats).sort();
   }, [activities]);
 
-  useEffect(() => {
-    fetchActivities();
-    fetchExistingPreferences();
-  }, []);
-
-  const fetchActivities = async () => {
+  const fetchActivities = useCallback(async () => {
     try {
       // Issue #34: Add query limit to prevent unbounded queries
       const { data } = await supabase
@@ -101,9 +96,9 @@ const StudentPreferences = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
-  const fetchExistingPreferences = async () => {
+  const fetchExistingPreferences = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -151,7 +146,12 @@ const StudentPreferences = () => {
     } catch (error) {
       console.error("Error fetching preferences:", error);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchActivities();
+    fetchExistingPreferences();
+  }, [fetchActivities, fetchExistingPreferences]);
 
   const getActivitiesByDay = (day: string, slot?: number) => {
     let filtered: Activity[];

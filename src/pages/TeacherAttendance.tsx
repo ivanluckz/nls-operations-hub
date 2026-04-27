@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -82,26 +82,7 @@ const TeacherAttendance = () => {
     ? selectedActivityData.days_of_week.filter(d => normalizeDay(d) === selectedDay).length
     : 0;
 
-  useEffect(() => {
-    fetchActivities();
-  }, []);
-
-  // When activity or day changes, reset slot to 1
-  useEffect(() => {
-    setSelectedSlot(1);
-  }, [selectedActivity, selectedDay]);
-
-  useEffect(() => {
-    if (selectedActivity && selectedDay) {
-      const init = async () => {
-        await fetchStudents();
-        await createOrLoadSession();
-      };
-      init();
-    }
-  }, [selectedActivity, selectedDay, selectedSlot]);
-
-  const fetchActivities = async () => {
+  const fetchActivities = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -130,9 +111,9 @@ const TeacherAttendance = () => {
     } catch (error) {
       console.error("Error fetching activities:", error);
     }
-  };
+  }, []);
 
-  const fetchStudents = async () => {
+  const fetchStudents = useCallback(async () => {
     try {
       // Two-step fetch: get student IDs from allocations, then profiles
       const { data: allocations } = await supabase
@@ -174,9 +155,9 @@ const TeacherAttendance = () => {
     } catch (error) {
       console.error("Error fetching students:", error);
     }
-  };
+  }, [selectedActivity, selectedDay, selectedSlot]);
 
-  const createOrLoadSession = async () => {
+  const createOrLoadSession = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -222,7 +203,26 @@ const TeacherAttendance = () => {
         description: "Failed to create attendance session",
       });
     }
-  };
+  }, [selectedActivity, selectedDay, selectedSlot, toast]);
+
+  useEffect(() => {
+    fetchActivities();
+  }, [fetchActivities]);
+
+  // When activity or day changes, reset slot to 1
+  useEffect(() => {
+    setSelectedSlot(1);
+  }, [selectedActivity, selectedDay]);
+
+  useEffect(() => {
+    if (selectedActivity && selectedDay) {
+      const init = async () => {
+        await fetchStudents();
+        await createOrLoadSession();
+      };
+      init();
+    }
+  }, [selectedActivity, selectedDay, selectedSlot, fetchStudents, createOrLoadSession]);
 
   const loadExistingAttendance = async (sid: string) => {
     try {

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -62,23 +62,7 @@ const ModeratorActivities = () => {
   });
   const [teacherSearchTerm, setTeacherSearchTerm] = useState("");
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  // Auto-open edit dialog from URL param (global search deep-link)
-  useEffect(() => {
-    const editActivityId = searchParams.get("editActivity");
-    if (editActivityId && activities.length > 0 && teachers.length >= 0) {
-      const activity = activities.find((a) => a.id === editActivityId);
-      if (activity) {
-        handleOpenDialog(activity);
-        setSearchParams({}, { replace: true });
-      }
-    }
-  }, [activities, teachers, searchParams]);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       const { data: activitiesData } = await supabase
         .from("activities")
@@ -115,9 +99,13 @@ const ModeratorActivities = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
-  const handleOpenDialog = (activity?: Activity) => {
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const handleOpenDialog = useCallback((activity?: Activity) => {
     if (activity) {
       setEditingActivity(activity);
       // Find teacher IDs that match the teacher_in_charge names
@@ -152,7 +140,19 @@ const ModeratorActivities = () => {
     }
     setTeacherSearchTerm("");
     setDialogOpen(true);
-  };
+  }, [teachers]);
+
+  // Auto-open edit dialog from URL param (global search deep-link)
+  useEffect(() => {
+    const editActivityId = searchParams.get("editActivity");
+    if (editActivityId && activities.length > 0 && teachers.length >= 0) {
+      const activity = activities.find((a) => a.id === editActivityId);
+      if (activity) {
+        handleOpenDialog(activity);
+        setSearchParams({}, { replace: true });
+      }
+    }
+  }, [activities, teachers, searchParams, handleOpenDialog, setSearchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

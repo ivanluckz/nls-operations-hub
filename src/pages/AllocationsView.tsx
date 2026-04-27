@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -66,52 +66,7 @@ const AllocationsView = () => {
   // Capacity data for warning icons
   const [capacityMap, setCapacityMap] = useState<Record<string, { enrollment: number; capacity: number }>>({});
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  useEffect(() => {
-    let filtered = allocations.filter(alloc =>
-      alloc.student_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      alloc.student_email.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-    if (activityFilter !== "all") {
-      filtered = filtered.filter(alloc =>
-        alloc.monday_activity === activityFilter ||
-        alloc.tuesday_activity === activityFilter ||
-        alloc.wednesday_slot1_activity === activityFilter ||
-        alloc.wednesday_slot2_activity === activityFilter ||
-        alloc.thursday_activity === activityFilter ||
-        alloc.friday_activity === activityFilter
-      );
-    }
-    if (classFilter !== "all") {
-      filtered = filtered.filter(alloc => alloc.student_class === classFilter);
-    }
-    if (dayFilter !== "all") {
-      filtered = filtered.filter(alloc => {
-        if (dayFilter === "Monday") return !!alloc.monday_activity;
-        if (dayFilter === "Tuesday") return !!alloc.tuesday_activity;
-        if (dayFilter === "Wednesday") return !!(alloc.wednesday_slot1_activity || alloc.wednesday_slot2_activity);
-        if (dayFilter === "Thursday") return !!alloc.thursday_activity;
-        if (dayFilter === "Friday") return !!alloc.friday_activity;
-        return true;
-      });
-    }
-    setFilteredAllocations(filtered);
-  }, [searchTerm, activityFilter, dayFilter, classFilter, allocations]);
-
-  const isAssigned = (alloc: StudentAllocation) =>
-    !!(alloc.monday_activity || alloc.tuesday_activity ||
-       alloc.wednesday_slot1_activity || alloc.wednesday_slot2_activity ||
-       alloc.thursday_activity || alloc.friday_activity);
-
-  const isFullyAssigned = (alloc: StudentAllocation) =>
-    !!(alloc.monday_activity && alloc.tuesday_activity &&
-       alloc.wednesday_slot1_activity && alloc.wednesday_slot2_activity &&
-       alloc.thursday_activity && alloc.friday_activity);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -201,7 +156,52 @@ const AllocationsView = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  useEffect(() => {
+    let filtered = allocations.filter(alloc =>
+      alloc.student_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      alloc.student_email.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    if (activityFilter !== "all") {
+      filtered = filtered.filter(alloc =>
+        alloc.monday_activity === activityFilter ||
+        alloc.tuesday_activity === activityFilter ||
+        alloc.wednesday_slot1_activity === activityFilter ||
+        alloc.wednesday_slot2_activity === activityFilter ||
+        alloc.thursday_activity === activityFilter ||
+        alloc.friday_activity === activityFilter
+      );
+    }
+    if (classFilter !== "all") {
+      filtered = filtered.filter(alloc => alloc.student_class === classFilter);
+    }
+    if (dayFilter !== "all") {
+      filtered = filtered.filter(alloc => {
+        if (dayFilter === "Monday") return !!alloc.monday_activity;
+        if (dayFilter === "Tuesday") return !!alloc.tuesday_activity;
+        if (dayFilter === "Wednesday") return !!(alloc.wednesday_slot1_activity || alloc.wednesday_slot2_activity);
+        if (dayFilter === "Thursday") return !!alloc.thursday_activity;
+        if (dayFilter === "Friday") return !!alloc.friday_activity;
+        return true;
+      });
+    }
+    setFilteredAllocations(filtered);
+  }, [searchTerm, activityFilter, dayFilter, classFilter, allocations]);
+
+  const isAssigned = (alloc: StudentAllocation) =>
+    !!(alloc.monday_activity || alloc.tuesday_activity ||
+       alloc.wednesday_slot1_activity || alloc.wednesday_slot2_activity ||
+       alloc.thursday_activity || alloc.friday_activity);
+
+  const isFullyAssigned = (alloc: StudentAllocation) =>
+    !!(alloc.monday_activity && alloc.tuesday_activity &&
+       alloc.wednesday_slot1_activity && alloc.wednesday_slot2_activity &&
+       alloc.thursday_activity && alloc.friday_activity);
 
   const handleBack = () => {
     navigate(userRole === 'admin' ? '/admin' : '/moderator');

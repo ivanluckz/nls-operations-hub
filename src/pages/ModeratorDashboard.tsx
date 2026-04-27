@@ -52,15 +52,7 @@ const ModeratorDashboard = () => {
   const [lunchCount, setLunchCount] = useState(0);
   const [lastScanned, setLastScanned] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchStats();
-    fetchLunchCount();
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) setUserId(user.id);
-    });
-  }, []);
-
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     try {
       const [
         { count: activitiesCount },
@@ -86,9 +78,9 @@ const ModeratorDashboard = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
-  const fetchLunchCount = async () => {
+  const fetchLunchCount = useCallback(async () => {
     const today = new Date().toISOString().split("T")[0];
     const { count } = await (supabase as any)
       .from("meal_attendance")
@@ -96,7 +88,15 @@ const ModeratorDashboard = () => {
       .eq("meal_type", "lunch")
       .eq("meal_date", today);
     setLunchCount(count || 0);
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchStats();
+    fetchLunchCount();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) setUserId(user.id);
+    });
+  }, [fetchStats, fetchLunchCount]);
 
   const handleLunchScan = useCallback(async (studentId: string) => {
     if (!userId) return;

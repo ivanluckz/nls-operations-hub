@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -101,6 +101,33 @@ const ActivityMessaging = () => {
     init();
   }, []);
 
+  const fetchMessages = useCallback(async () => {
+    const { data } = await supabase
+      .from("activity_messages")
+      .select("*")
+      .eq("activity_id", selectedActivity)
+      .order("created_at", { ascending: true })
+      .limit(200);
+
+    if (data) {
+      const senderIds = [...new Set(data.map(m => m.sender_id))];
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, full_name")
+        .in("id", senderIds);
+
+      const profileMap = new Map(profiles?.map(p => [p.id, p.full_name]) || []);
+      setMessages(
+        data.map(m => ({
+          ...m,
+          message_type: m.message_type as "announcement" | "discussion",
+          sender_name: profileMap.get(m.sender_id) || "Unknown",
+          is_teacher: m.sender_id === userId,
+        }))
+      );
+    }
+  }, [selectedActivity, userId]);
+
   useEffect(() => {
     if (!selectedActivity) return;
     fetchMessages();
@@ -136,38 +163,11 @@ const ActivityMessaging = () => {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [selectedActivity, userId]);
+  }, [selectedActivity, userId, fetchMessages]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
-
-  const fetchMessages = async () => {
-    const { data } = await supabase
-      .from("activity_messages")
-      .select("*")
-      .eq("activity_id", selectedActivity)
-      .order("created_at", { ascending: true })
-      .limit(200);
-
-    if (data) {
-      const senderIds = [...new Set(data.map(m => m.sender_id))];
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("id, full_name")
-        .in("id", senderIds);
-
-      const profileMap = new Map(profiles?.map(p => [p.id, p.full_name]) || []);
-      setMessages(
-        data.map(m => ({
-          ...m,
-          message_type: m.message_type as "announcement" | "discussion",
-          sender_name: profileMap.get(m.sender_id) || "Unknown",
-          is_teacher: m.sender_id === userId,
-        }))
-      );
-    }
-  };
 
   const handleSend = async () => {
     if (!content.trim() || !selectedActivity) return;

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -48,11 +48,7 @@ const RLCoachReports = () => {
   const [endDate, setEndDate] = useState(() => new Date().toISOString().split("T")[0]);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    fetchReports();
-  }, [startDate, endDate]);
-
-  const fetchReports = async () => {
+  const fetchReports = useCallback(async () => {
     setLoading(true);
     try {
       // Fetch meal records
@@ -92,7 +88,11 @@ const RLCoachReports = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [startDate, endDate]);
+
+  useEffect(() => {
+    fetchReports();
+  }, [fetchReports]);
 
   const mealSummary = MEAL_TYPES.reduce((acc, type) => {
     acc[type] = mealRecords.filter(r => r.meal_type === type).length;

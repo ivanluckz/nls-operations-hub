@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -52,20 +52,15 @@ const KitchenReports = () => {
   const [loading, setLoading] = useState(false);
   const [totalStudents, setTotalStudents] = useState(0);
 
-  useEffect(() => {
-    fetchReports();
-    fetchTotalStudents();
-  }, [startDate, endDate]);
-
-  const fetchTotalStudents = async () => {
+  const fetchTotalStudents = useCallback(async () => {
     const { count } = await supabase
       .from("user_roles")
       .select("id", { count: "exact", head: true })
       .eq("role", "student");
     setTotalStudents(count || 0);
-  };
+  }, []);
 
-  const fetchReports = async () => {
+  const fetchReports = useCallback(async () => {
     setLoading(true);
     const { data, error } = await (supabase as any)
       .from("meal_attendance")
@@ -96,7 +91,12 @@ const KitchenReports = () => {
       setRecords([]);
     }
     setLoading(false);
-  };
+  }, [startDate, endDate]);
+
+  useEffect(() => {
+    fetchReports();
+    fetchTotalStudents();
+  }, [fetchReports, fetchTotalStudents]);
 
   // Build daily summaries
   const dailySummaries: DailySummary[] = (() => {
