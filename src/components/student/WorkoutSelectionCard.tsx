@@ -73,6 +73,15 @@ const WorkoutSelectionCard = () => {
       if (error) return toast({ title: "Error", description: error.message, variant: "destructive" });
       toast({ title: "Left workout" });
     } else {
+      // Enforce single workout per student client-side (DB also enforces via unique index)
+      if (Object.keys(signups).length > 0) {
+        setBusy(false);
+        return toast({
+          title: "Only one workout allowed",
+          description: "Leave your current workout first before joining another.",
+          variant: "destructive",
+        });
+      }
       if ((counts[w.id] || 0) >= w.capacity) {
         setBusy(false);
         return toast({ title: "Workout full", variant: "destructive" });
@@ -92,9 +101,9 @@ const WorkoutSelectionCard = () => {
       <CardHeader className="pb-3">
         <div className="flex items-center gap-2">
           <Dumbbell className="h-5 w-5 text-primary" />
-          <CardTitle className="text-lg">Morning Workouts</CardTitle>
+          <CardTitle className="text-lg">Morning Workouts <span className="ml-1 text-xs font-medium text-destructive">*Required</span></CardTitle>
         </div>
-        <CardDescription>Pick your workouts — once you join, you're locked in for {COOLDOWN_DAYS} days.</CardDescription>
+        <CardDescription>Pick ONE workout — you're locked in for {COOLDOWN_DAYS} days. You cannot join more than one.</CardDescription>
       </CardHeader>
       <CardContent>
         {workouts.length === 0 ? (

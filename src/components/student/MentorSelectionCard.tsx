@@ -121,7 +121,7 @@ const MentorSelectionCard = () => {
       <CardHeader className="pb-3">
         <div className="flex items-center gap-2">
           <UserCheck className="h-5 w-5 text-primary" />
-          <CardTitle className="text-lg">Your Mentor</CardTitle>
+          <CardTitle className="text-lg">Your Mentor <span className="ml-1 text-xs font-medium text-destructive">*Required</span></CardTitle>
         </div>
         <CardDescription>
           {currentMentor ? `Your mentor is ${currentMentor.full_name}` : "Choose your mentor teacher"}

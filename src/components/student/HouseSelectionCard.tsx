@@ -75,7 +75,7 @@ const HouseSelectionCard = () => {
       <CardHeader className="pb-3">
         <div className="flex items-center gap-2">
           <Home className="h-5 w-5 text-primary" />
-          <CardTitle className="text-lg">Your House</CardTitle>
+          <CardTitle className="text-lg">Your House <span className="ml-1 text-xs font-medium text-destructive">*Required</span></CardTitle>
         </div>
         <CardDescription>
           {currentHouse ? `You're in ${currentHouse.name}` : "Choose your house to get started"}
