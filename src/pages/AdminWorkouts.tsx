@@ -522,7 +522,7 @@ const AdminWorkouts = () => {
                     </div>
                     <div className="flex gap-1 flex-wrap justify-end ml-2">
                       <Button
-                        size="xs"
+                        size="sm"
                         variant={att?.status === 'present' ? 'default' : 'outline'}
                         onClick={() => markAttendance(s.student_id, 'present', signupsOpen!)}
                         className="text-[11px]"
@@ -530,7 +530,7 @@ const AdminWorkouts = () => {
                         Present
                       </Button>
                       <Button
-                        size="xs"
+                        size="sm"
                         variant={att?.status === 'absent' ? 'destructive' : 'outline'}
                         onClick={() => markAttendance(s.student_id, 'absent', signupsOpen!)}
                         className="text-[11px]"
@@ -538,7 +538,7 @@ const AdminWorkouts = () => {
                         Absent
                       </Button>
                       <Button
-                        size="xs"
+                        size="sm"
                         variant={att?.status === 'late' ? 'secondary' : 'outline'}
                         onClick={() => markAttendance(s.student_id, 'late', signupsOpen!)}
                         className="text-[11px]"
