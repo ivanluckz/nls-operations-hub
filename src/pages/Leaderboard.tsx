@@ -142,8 +142,9 @@ const Leaderboard = () => {
       .slice(0, 50);
   }, [baseEntries, rawBadges, activityMap, streakMap, activityFilter, timeFilter]);
 
-  const top3 = entries.slice(0, 3);
-  const rest = entries.slice(3);
+  const q = nameSearch.trim().toLowerCase();
+  const visibleEntries = q ? entries.filter(e => e.name.toLowerCase().includes(q)) : entries;
+  const top3 = visibleEntries.slice(0, 3);
   const currentRank = entries.findIndex(e => e.id === currentUserId) + 1;
 
   return (
