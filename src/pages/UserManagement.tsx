@@ -239,6 +239,21 @@ const UserManagement = () => {
         if (wtError) throw wtError;
       }
 
+      // Sync student's morning workout (enforce single workout per student)
+      if (editRole === "student") {
+        const { error: delSignupErr } = await (supabase as any)
+          .from("workout_signups")
+          .delete()
+          .eq("student_id", editingUser.id);
+        if (delSignupErr) throw delSignupErr;
+        if (editStudentWorkoutId) {
+          const { error: insSignupErr } = await (supabase as any)
+            .from("workout_signups")
+            .insert({ student_id: editingUser.id, workout_id: editStudentWorkoutId });
+          if (insSignupErr) throw insSignupErr;
+        }
+      }
+
       toast({ title: "Success", description: "User updated successfully" });
       setEditingUser(null);
       fetchUsers();
