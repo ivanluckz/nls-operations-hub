@@ -261,35 +261,56 @@ const AdminWorkouts = () => {
     }));
   };
 
+  const buildExportData = () => {
+    const workoutById: Record<string, Workout> = {};
+    workouts.forEach((w) => { workoutById[w.id] = w; });
+    return {
+      workouts: workouts.map((w) => ({
+        id: w.id,
+        name: w.name,
+        description: w.description || "",
+        days_of_week: w.days_of_week || [],
+        capacity: w.capacity,
+        is_active: w.is_active,
+        created_at: (w as any).created_at || new Date().toISOString(),
+      })),
+      teachers: teachers.map((t) => ({ id: t.id, full_name: t.full_name, email: t.email })),
+      workoutTeachers: wTeachers.map((wt) => ({
+        workout_id: wt.workout_id,
+        workout_name: workoutById[wt.workout_id]?.name || "—",
+        teacher_id: wt.teacher_id,
+        teacher_name: profiles[wt.teacher_id]?.full_name || "—",
+      })),
+      signups: signups.map((s) => ({
+        id: s.id,
+        workout_id: s.workout_id,
+        workout_name: workoutById[s.workout_id]?.name || "—",
+        student_id: s.student_id,
+        student_name: profiles[s.student_id]?.full_name || "Unknown",
+        student_email: profiles[s.student_id]?.email || "—",
+        created_at: s.created_at,
+      })),
+      profiles,
+    };
+  };
+
   const handleDownloadExcel = () => {
     try {
-      const exportData = {
-        workouts,
-        teachers,
-        workoutTeachers: wTeachers,
-        signups,
-        profiles,
-      };
-      exportWorkoutsToExcel(exportData);
+      exportWorkoutsToExcel(buildExportData());
       toast({ title: "✅ Downloaded", description: "Workouts exported to Excel" });
-    } catch (error) {
-      toast({ title: "Error", description: "Failed to export data", variant: "destructive" });
+    } catch (error: any) {
+      console.error("Excel export failed:", error);
+      toast({ title: "Error", description: error?.message || "Failed to export data", variant: "destructive" });
     }
   };
 
   const handleDownloadCSV = () => {
     try {
-      const exportData = {
-        workouts,
-        teachers,
-        workoutTeachers: wTeachers,
-        signups,
-        profiles,
-      };
-      exportWorkoutsAsCSV(exportData);
+      exportWorkoutsAsCSV(buildExportData());
       toast({ title: "✅ Downloaded", description: "Workouts exported as CSV" });
-    } catch (error) {
-      toast({ title: "Error", description: "Failed to export data", variant: "destructive" });
+    } catch (error: any) {
+      console.error("CSV export failed:", error);
+      toast({ title: "Error", description: error?.message || "Failed to export data", variant: "destructive" });
     }
   };
 
