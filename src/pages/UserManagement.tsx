@@ -102,8 +102,35 @@ const UserManagement = () => {
   const [bulkRole, setBulkRole] = useState<AppRole>("student");
   const [bulkUpdating, setBulkUpdating] = useState(false);
 
+  async function fetchUsersInit() {
+    try {
+      const { data: profilesData, error: profilesError } = await supabase
+        .from("profiles")
+        .select("id, email, full_name, avatar_url, house_id, mentor_id, banned, created_at" as any)
+        .order("created_at", { ascending: false });
+
+      if (profilesError) throw profilesError;
+
+      const { data: rolesData } = await supabase
+        .from("user_roles")
+        .select("user_id, role");
+
+      const usersWithRoles: Profile[] = (profilesData || []).map((profile: any) => ({
+        ...profile,
+        roles: (rolesData || []).filter((r) => r.user_id === profile.id) as any
+      }));
+
+      setUsers(usersWithRoles);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      toast({ title: "Error", description: "Failed to load users", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  }
+
   useEffect(() => {
-    fetchUsers();
+    fetchUsersInit();
     (supabase as any).from("houses").select("id, name, color").order("name").then(({ data }: any) => {
       if (data) setHouses(data);
     });
@@ -113,6 +140,7 @@ const UserManagement = () => {
     (supabase as any).from("workouts").select("id, name").order("name").then(({ data }: any) => {
       if (data) setAllWorkouts(data);
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Auto-open edit dialog from URL param (global search deep-link)
