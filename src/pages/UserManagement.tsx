@@ -94,6 +94,7 @@ const UserManagement = () => {
   const [teachers, setTeachers] = useState<{ id: string; full_name: string }[]>([]);
   const [allWorkouts, setAllWorkouts] = useState<{ id: string; name: string }[]>([]);
   const [editWorkoutIds, setEditWorkoutIds] = useState<string[]>([]);
+  const [editStudentWorkoutId, setEditStudentWorkoutId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterClass, setFilterClass] = useState<string>("all");
   const [filterMentor, setFilterMentor] = useState<string>("all");
