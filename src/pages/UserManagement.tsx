@@ -94,6 +94,7 @@ const UserManagement = () => {
   const [teachers, setTeachers] = useState<{ id: string; full_name: string }[]>([]);
   const [allWorkouts, setAllWorkouts] = useState<{ id: string; name: string }[]>([]);
   const [editWorkoutIds, setEditWorkoutIds] = useState<string[]>([]);
+  const [editStudentWorkoutId, setEditStudentWorkoutId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterClass, setFilterClass] = useState<string>("all");
   const [filterMentor, setFilterMentor] = useState<string>("all");
@@ -194,6 +195,13 @@ const UserManagement = () => {
       .select("workout_id")
       .eq("teacher_id", user.id);
     setEditWorkoutIds((data || []).map((r: any) => r.workout_id));
+    // Pre-load student's morning workout signup (single workout enforced)
+    const { data: signups } = await (supabase as any)
+      .from("workout_signups")
+      .select("workout_id, created_at")
+      .eq("student_id", user.id)
+      .order("created_at", { ascending: true });
+    setEditStudentWorkoutId(signups?.[0]?.workout_id ?? null);
   };
 
   const getInitials = (name: string) => {
@@ -229,6 +237,21 @@ const UserManagement = () => {
           .from("workout_teachers")
           .upsert(rows, { onConflict: "workout_id,teacher_id", ignoreDuplicates: true });
         if (wtError) throw wtError;
+      }
+
+      // Sync student's morning workout (enforce single workout per student)
+      if (editRole === "student") {
+        const { error: delSignupErr } = await (supabase as any)
+          .from("workout_signups")
+          .delete()
+          .eq("student_id", editingUser.id);
+        if (delSignupErr) throw delSignupErr;
+        if (editStudentWorkoutId) {
+          const { error: insSignupErr } = await (supabase as any)
+            .from("workout_signups")
+            .insert({ student_id: editingUser.id, workout_id: editStudentWorkoutId });
+          if (insSignupErr) throw insSignupErr;
+        }
       }
 
       toast({ title: "Success", description: "User updated successfully" });
@@ -672,6 +695,26 @@ const UserManagement = () => {
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+              )}
+              {editRole === "student" && (
+                <div className="grid gap-2">
+                  <Label htmlFor="student-workout">Morning Workout</Label>
+                  <Select
+                    value={editStudentWorkoutId || "none"}
+                    onValueChange={(v) => setEditStudentWorkoutId(v === "none" ? null : v)}
+                  >
+                    <SelectTrigger id="student-workout"><SelectValue placeholder="No workout" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No workout</SelectItem>
+                      {allWorkouts.map((w) => (
+                        <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Students may only join one workout. Selecting a new one replaces the previous (cooldown bypassed for admins/moderators).
+                  </p>
                 </div>
               )}
               {editRole === "teacher" && (
