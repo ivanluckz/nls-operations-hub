@@ -135,9 +135,15 @@ const UserManagement = () => {
     (supabase as any).from("houses").select("id, name, color").order("name").then(({ data }: any) => {
       if (data) setHouses(data);
     });
-    (supabase as any).from("profiles").select("id, full_name").in("email", TEACHER_EMAILS).order("full_name").then(({ data }: any) => {
-      if (data) setTeachers(data.filter((t: any) => t.full_name));
-    });
+    (async () => {
+      const { data: teacherRoleRows } = await (supabase as any)
+        .from("user_roles").select("user_id").eq("role", "teacher");
+      const ids = (teacherRoleRows || []).map((r: any) => r.user_id);
+      if (!ids.length) { setTeachers([]); return; }
+      const { data } = await (supabase as any)
+        .from("profiles").select("id, full_name").in("id", ids).order("full_name");
+      setTeachers((data || []).filter((t: any) => t.full_name));
+    })();
     (supabase as any).from("workouts").select("id, name").order("name").then(({ data }: any) => {
       if (data) setAllWorkouts(data);
     });
