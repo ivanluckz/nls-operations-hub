@@ -113,7 +113,7 @@ const UserManagement = () => {
     (supabase as any).from("workouts").select("id, name").order("name").then(({ data }: any) => {
       if (data) setAllWorkouts(data);
     });
-  }, [fetchUsers]);
+  }, []);
 
   // Auto-open edit dialog from URL param (global search deep-link)
   useEffect(() => {
