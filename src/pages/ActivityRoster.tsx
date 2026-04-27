@@ -297,6 +297,38 @@ const ActivityRoster = () => {
               <Download className="w-4 h-4 mr-2" />
               Download PDF
             </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                try {
+                  exportActivitiesToExcel(filteredActivities);
+                  toast({ title: "✅ Downloaded", description: "Activities exported to Excel" });
+                } catch (e: any) {
+                  console.error("Excel export failed:", e);
+                  toast({ variant: "destructive", title: "Error", description: e?.message || "Failed to export" });
+                }
+              }}
+            >
+              <FileSpreadsheet className="w-4 h-4 mr-2" />
+              Excel
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                try {
+                  exportActivitiesAsCSV(filteredActivities);
+                  toast({ title: "✅ Downloaded", description: "Activities exported as CSV" });
+                } catch (e: any) {
+                  console.error("CSV export failed:", e);
+                  toast({ variant: "destructive", title: "Error", description: e?.message || "Failed to export" });
+                }
+              }}
+            >
+              <FileText className="w-4 h-4 mr-2" />
+              CSV
+            </Button>
           </div>
         </div>
 
