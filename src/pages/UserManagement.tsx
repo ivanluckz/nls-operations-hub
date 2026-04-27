@@ -195,6 +195,13 @@ const UserManagement = () => {
       .select("workout_id")
       .eq("teacher_id", user.id);
     setEditWorkoutIds((data || []).map((r: any) => r.workout_id));
+    // Pre-load student's morning workout signup (single workout enforced)
+    const { data: signups } = await (supabase as any)
+      .from("workout_signups")
+      .select("workout_id, created_at")
+      .eq("student_id", user.id)
+      .order("created_at", { ascending: true });
+    setEditStudentWorkoutId(signups?.[0]?.workout_id ?? null);
   };
 
   const getInitials = (name: string) => {
