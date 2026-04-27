@@ -11,6 +11,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import IOSSchoolSkeleton from "@/components/IOSSchoolSkeleton";
+import { exportActivitiesToExcel, exportActivitiesAsCSV } from "@/lib/activity-export";
 
 interface Activity {
   id: string;
