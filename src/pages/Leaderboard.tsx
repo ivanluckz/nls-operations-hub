@@ -5,7 +5,8 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Trophy } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { ArrowLeft, Trophy, Search } from "lucide-react";
 import devBadge from "@/assets/dev.png";
 import { devNameClass } from "@/lib/dev-badge";
 import { UserProfileCard } from "@/components/chat/UserProfileCard";
@@ -58,6 +59,7 @@ const Leaderboard = () => {
   const [loading, setLoading] = useState(true);
   const [activityFilter, setActivityFilter] = useState("all");
   const [timeFilter, setTimeFilter] = useState<TimePeriod>("all");
+  const [nameSearch, setNameSearch] = useState("");
   const [profileCard, setProfileCard] = useState<{
     senderId: string; senderName: string; badges: string[];
   } | null>(null);
@@ -140,8 +142,9 @@ const Leaderboard = () => {
       .slice(0, 50);
   }, [baseEntries, rawBadges, activityMap, streakMap, activityFilter, timeFilter]);
 
-  const top3 = entries.slice(0, 3);
-  const rest = entries.slice(3);
+  const q = nameSearch.trim().toLowerCase();
+  const visibleEntries = q ? entries.filter(e => e.name.toLowerCase().includes(q)) : entries;
+  const top3 = visibleEntries.slice(0, 3);
   const currentRank = entries.findIndex(e => e.id === currentUserId) + 1;
 
   return (
@@ -192,6 +195,16 @@ const Leaderboard = () => {
               </button>
             ))}
           </div>
+
+          <div className="relative w-full sm:w-56 ml-auto">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              value={nameSearch}
+              onChange={(e) => setNameSearch(e.target.value)}
+              placeholder="Search by name..."
+              className="pl-9 h-8 text-xs"
+            />
+          </div>
         </div>
 
         {loading ? (
@@ -237,7 +250,7 @@ const Leaderboard = () => {
 
             {/* Rankings table */}
             <div className="space-y-1">
-              {entries.map((entry, i) => {
+              {visibleEntries.map((entry, i) => {
                 const isMe = entry.id === currentUserId;
                 return (
                   <button key={entry.id}

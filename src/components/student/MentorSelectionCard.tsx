@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { UserCheck, Check } from "lucide-react";
+import { UserCheck, Check, Search } from "lucide-react";
 
 const TEACHER_EMAILS = [
   "alina.herzog@ntare-louisenlund.org",
@@ -50,6 +51,13 @@ const MentorSelectionCard = () => {
   const [selectedMentorId, setSelectedMentorId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+
+  const filteredTeachers = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return teachers;
+    return teachers.filter((t) => t.full_name?.toLowerCase().includes(q));
+  }, [teachers, search]);
 
   useEffect(() => {
     fetchData();
@@ -131,8 +139,21 @@ const MentorSelectionCard = () => {
         {teachers.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-4">No teachers available</p>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-64 overflow-y-auto">
-            {teachers.map((teacher) => {
+          <>
+            <div className="relative mb-3">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search teacher by name..."
+                className="pl-9"
+              />
+            </div>
+            {filteredTeachers.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">No teachers match "{search}"</p>
+            ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-64 overflow-y-auto">
+            {filteredTeachers.map((teacher) => {
               const isSelected = teacher.id === selectedMentorId;
               return (
                 <button
@@ -154,7 +175,9 @@ const MentorSelectionCard = () => {
                 </button>
               );
             })}
-          </div>
+            </div>
+            )}
+          </>
         )}
       </CardContent>
     </Card>

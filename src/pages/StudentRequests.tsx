@@ -6,9 +6,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Send, Loader2, Clock, CheckCircle2, XCircle, ArrowRightLeft, Calendar, Trash2, HelpCircle } from "lucide-react";
+import { ArrowLeft, Send, Loader2, Clock, CheckCircle2, XCircle, ArrowRightLeft, Calendar, Trash2, HelpCircle, Search } from "lucide-react";
 import WelcomeHeader from "@/components/student/WelcomeHeader";
 import FloatingChatButton from "@/components/student/FloatingChatButton";
 import IOSSchoolSkeleton from "@/components/IOSSchoolSkeleton";
@@ -62,6 +63,7 @@ const StudentRequests = () => {
   const [requests, setRequests] = useState<StudentRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [requestSearch, setRequestSearch] = useState("");
 
   // Form state
   const [requestType, setRequestType] = useState("");
@@ -367,9 +369,27 @@ const StudentRequests = () => {
           {/* Past Requests */}
           {requests.length > 0 && (
             <div className="space-y-4">
-              <h2 className="text-lg font-semibold">Your Requests</h2>
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <h2 className="text-lg font-semibold">Your Requests</h2>
+                <div className="relative w-full sm:w-64">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    value={requestSearch}
+                    onChange={(e) => setRequestSearch(e.target.value)}
+                    placeholder="Search requests..."
+                    className="pl-9 h-9"
+                  />
+                </div>
+              </div>
               <div className="space-y-3">
-                {requests.map((req) => {
+                {requests
+                  .filter(req => {
+                    const q = requestSearch.trim().toLowerCase();
+                    if (!q) return true;
+                    const typeLabel = REQUEST_TYPES.find(t => t.value === req.request_type)?.label || req.request_type;
+                    return typeLabel.toLowerCase().includes(q) || req.reason?.toLowerCase().includes(q) || req.status.toLowerCase().includes(q);
+                  })
+                  .map((req) => {
                   const statusCfg = STATUS_CONFIG[req.status] || STATUS_CONFIG.pending;
                   const StatusIcon = statusCfg.icon;
                   const typeLabel = REQUEST_TYPES.find(t => t.value === req.request_type)?.label || req.request_type;

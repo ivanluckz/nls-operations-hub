@@ -6,7 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Award, Check, X, Clock } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Award, Check, X, Clock, Search } from "lucide-react";
 
 const BADGE_OPTIONS = [
   { name: "Growing", emoji: "🌱" },
@@ -33,6 +34,7 @@ const AdminBadgeRequests = () => {
   const [filter, setFilter] = useState<"pending" | "approved" | "rejected">("pending");
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
 
   useEffect(() => { fetchRequests(); }, []);
 
@@ -112,7 +114,10 @@ const AdminBadgeRequests = () => {
     }
   };
 
-  const filtered = requests.filter(r => r.status === filter);
+  const q = search.trim().toLowerCase();
+  const filtered = requests
+    .filter(r => r.status === filter)
+    .filter(r => !q || r.student_name?.toLowerCase().includes(q) || r.badge_name.toLowerCase().includes(q) || r.reason?.toLowerCase().includes(q));
   const pendingCount = requests.filter(r => r.status === "pending").length;
 
   return (
@@ -144,6 +149,16 @@ const AdminBadgeRequests = () => {
             </TabsTrigger>
           </TabsList>
         </Tabs>
+
+        <div className="relative max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by student, badge, or reason..."
+            className="pl-9"
+          />
+        </div>
 
         {loading ? (
           <div className="text-center text-muted-foreground py-12">Loading requests...</div>
