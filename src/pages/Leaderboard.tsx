@@ -250,7 +250,7 @@ const Leaderboard = () => {
 
             {/* Rankings table */}
             <div className="space-y-1">
-              {entries.map((entry, i) => {
+              {visibleEntries.map((entry, i) => {
                 const isMe = entry.id === currentUserId;
                 return (
                   <button key={entry.id}
