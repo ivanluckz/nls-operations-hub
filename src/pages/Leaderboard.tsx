@@ -5,7 +5,8 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Trophy } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { ArrowLeft, Trophy, Search } from "lucide-react";
 import devBadge from "@/assets/dev.png";
 import { devNameClass } from "@/lib/dev-badge";
 import { UserProfileCard } from "@/components/chat/UserProfileCard";
@@ -58,6 +59,7 @@ const Leaderboard = () => {
   const [loading, setLoading] = useState(true);
   const [activityFilter, setActivityFilter] = useState("all");
   const [timeFilter, setTimeFilter] = useState<TimePeriod>("all");
+  const [nameSearch, setNameSearch] = useState("");
   const [profileCard, setProfileCard] = useState<{
     senderId: string; senderName: string; badges: string[];
   } | null>(null);
