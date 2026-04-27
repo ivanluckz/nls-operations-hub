@@ -12,7 +12,8 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Dumbbell, Plus, Pencil, Trash2, Users, Trash } from "lucide-react";
+import { Dumbbell, Plus, Pencil, Trash2, Users, Trash, Download } from "lucide-react";
+import { exportWorkoutsToExcel, exportWorkoutsAsCSV } from "@/lib/workout-export";
 
 const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
 
@@ -208,10 +209,42 @@ const AdminWorkouts = () => {
     }));
   };
 
+  const handleDownloadExcel = () => {
+    try {
+      const exportData = {
+        workouts,
+        teachers,
+        workoutTeachers: wTeachers,
+        signups,
+        profiles,
+      };
+      exportWorkoutsToExcel(exportData);
+      toast({ title: "✅ Downloaded", description: "Workouts exported to Excel" });
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to export data", variant: "destructive" });
+    }
+  };
+
+  const handleDownloadCSV = () => {
+    try {
+      const exportData = {
+        workouts,
+        teachers,
+        workoutTeachers: wTeachers,
+        signups,
+        profiles,
+      };
+      exportWorkoutsAsCSV(exportData);
+      toast({ title: "✅ Downloaded", description: "Workouts exported as CSV" });
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to export data", variant: "destructive" });
+    }
+  };
+
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <div className="flex justify-between items-start gap-2">
+        <div className="flex justify-between items-start gap-4">
           <div>
             <h1 className="text-3xl font-bold flex items-center gap-2">
               <Dumbbell className="h-7 w-7 text-primary" />
@@ -221,9 +254,17 @@ const AdminWorkouts = () => {
               Each workout runs on chosen weekdays. Assign teachers and a capacity. Students sign up themselves.
             </p>
           </div>
-          <Button onClick={openNew}>
-            <Plus className="h-4 w-4 mr-1" /> New workout
-          </Button>
+          <div className="flex gap-2 flex-wrap justify-end">
+            <Button onClick={handleDownloadExcel} variant="outline">
+              <Download className="h-4 w-4 mr-1" /> Excel
+            </Button>
+            <Button onClick={handleDownloadCSV} variant="outline">
+              <Download className="h-4 w-4 mr-1" /> CSV
+            </Button>
+            <Button onClick={openNew}>
+              <Plus className="h-4 w-4 mr-1" /> New workout
+            </Button>
+          </div>
         </div>
 
         {loading ? (
