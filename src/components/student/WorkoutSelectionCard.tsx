@@ -73,6 +73,15 @@ const WorkoutSelectionCard = () => {
       if (error) return toast({ title: "Error", description: error.message, variant: "destructive" });
       toast({ title: "Left workout" });
     } else {
+      // Enforce single workout per student client-side (DB also enforces via unique index)
+      if (Object.keys(signups).length > 0) {
+        setBusy(false);
+        return toast({
+          title: "Only one workout allowed",
+          description: "Leave your current workout first before joining another.",
+          variant: "destructive",
+        });
+      }
       if ((counts[w.id] || 0) >= w.capacity) {
         setBusy(false);
         return toast({ title: "Workout full", variant: "destructive" });
