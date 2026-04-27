@@ -69,14 +69,21 @@ const MentorSelectionCard = () => {
 
       setSelectedMentorId((profile as any)?.mentor_id || null);
 
-      // Fetch teachers by known email list — works even before role migration runs
-      const { data: teacherProfiles } = await (supabase as any)
-        .from("profiles")
-        .select("id, full_name")
-        .in("email", TEACHER_EMAILS)
-        .order("full_name");
+      // Fetch ALL teachers (anyone with the 'teacher' role) so students may pick any teacher as mentor
+      const { data: teacherRoleRows } = await (supabase as any)
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "teacher");
+      const teacherIds = (teacherRoleRows || []).map((r: any) => r.user_id);
+      const { data: teacherProfiles } = teacherIds.length
+        ? await (supabase as any)
+            .from("profiles")
+            .select("id, full_name")
+            .in("id", teacherIds)
+            .order("full_name")
+        : { data: [] as any[] };
 
-      setTeachers((teacherProfiles || []).filter(t => t.full_name));
+      setTeachers((teacherProfiles || []).filter((t: any) => t.full_name));
     } finally {
       setLoading(false);
     }
