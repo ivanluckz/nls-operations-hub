@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Dumbbell, Plus, Pencil, Trash2, Users, Trash, Download } from "lucide-react";
-import { exportWorkoutsToExcel, exportWorkoutsAsCSV } from "@/lib/workout-export";
+import { exportWorkoutsToExcel, exportWorkoutsAsCSV, exportWorkoutsAsGoogleSheets } from "@/lib/workout-export";
 
 const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
 
