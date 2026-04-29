@@ -366,6 +366,9 @@ const AdminWorkouts = () => {
             <Button onClick={handleDownloadCSV} variant="outline">
               <Download className="h-4 w-4 mr-1" /> CSV
             </Button>
+            <Button onClick={handleDownloadGoogleSheets} variant="outline">
+              <Download className="h-4 w-4 mr-1" /> Google Sheets
+            </Button>
             <Button onClick={openNew}>
               <Plus className="h-4 w-4 mr-1" /> New workout
             </Button>
