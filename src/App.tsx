@@ -49,6 +49,7 @@ import WeeklyTimetable from "./pages/WeeklyTimetable";
 import StudentProfile from "./pages/StudentProfile";
 import ThemeMarketplace from "./pages/ThemeMarketplace";
 import AdminWorkouts from "./pages/AdminWorkouts";
+import AdminGoogleSheets from "./pages/AdminGoogleSheets";
 
 const queryClient = new QueryClient();
 
@@ -115,6 +116,7 @@ const AppContent = () => {
           <Route path="/admin/workout-reports" element={<ProtectedRoute requiredRole="admin"><RLCoachReports /></ProtectedRoute>} />
           <Route path="/admin/workouts" element={<ProtectedRoute requiredRole="admin"><AdminWorkouts /></ProtectedRoute>} />
           <Route path="/admin/co-curricular/timetable" element={<ProtectedRoute requiredRole="admin"><WeeklyTimetable /></ProtectedRoute>} />
+          <Route path="/admin/google-sheets" element={<ProtectedRoute requiredRole="admin"><AdminGoogleSheets /></ProtectedRoute>} />
 
           {/* Teacher */}
           <Route path="/teacher" element={<ProtectedRoute requiredRole="teacher"><TeacherDashboard /></ProtectedRoute>} />
