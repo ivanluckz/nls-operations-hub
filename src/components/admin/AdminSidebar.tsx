@@ -44,6 +44,7 @@ import {
   UtensilsCrossed,
   CalendarDays,
   Dumbbell,
+  Sheet,
 } from "lucide-react";
 
 import nlsLogo from "@/assets/nls-logo.png";
