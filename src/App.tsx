@@ -49,6 +49,7 @@ import WeeklyTimetable from "./pages/WeeklyTimetable";
 import StudentProfile from "./pages/StudentProfile";
 import ThemeMarketplace from "./pages/ThemeMarketplace";
 import AdminWorkouts from "./pages/AdminWorkouts";
+import AdminGoogleSheets from "./pages/AdminGoogleSheets";
 
 const queryClient = new QueryClient();
 
