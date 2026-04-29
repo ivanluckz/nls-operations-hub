@@ -132,19 +132,30 @@ const AdminWorkouts = () => {
     }
     setTeachers(teacherProfiles);
 
-    const studentIds: string[] = Array.from(new Set((sRes.data || []).map((s: any) => s.student_id as string)));
+    // Fetch ALL student profiles (not just those with signups) so the
+    // export includes the "not enrolled" list AND no signup ever resolves
+    // to "Unknown" because of a missing fetch.
+    const { data: studentRoleRows } = await supabase
+      .from("user_roles")
+      .select("user_id")
+      .eq("role", "student")
+      .limit(5000);
+    const studentIds: string[] = Array.from(new Set([
+      ...((studentRoleRows || []).map((r: any) => r.user_id as string)),
+      ...((sRes.data || []).map((s: any) => s.student_id as string)),
+    ]));
+
+    const map: Record<string, Profile> = {};
     if (studentIds.length) {
-      const { data } = await supabase.from("profiles").select("id, full_name, email").in("id", studentIds);
-      const map: Record<string, Profile> = {};
-      (data || []).forEach((p: any) => { map[p.id] = p; });
-      // also add teachers to map
-      teacherProfiles.forEach((t) => { map[t.id] = t; });
-      setProfiles(map);
-    } else {
-      const map: Record<string, Profile> = {};
-      teacherProfiles.forEach((t) => { map[t.id] = t; });
-      setProfiles(map);
+      const { data: studentProfiles } = await supabase
+        .from("profiles")
+        .select("id, full_name, email")
+        .in("id", studentIds)
+        .limit(5000);
+      (studentProfiles || []).forEach((p: any) => { map[p.id] = p; });
     }
+    teacherProfiles.forEach((t) => { map[t.id] = t; });
+    setProfiles(map);
     setLoading(false);
   };
 
