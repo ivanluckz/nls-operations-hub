@@ -331,6 +331,21 @@ const AdminWorkouts = () => {
     }
   };
 
+  const handleDownloadGoogleSheets = async () => {
+    try {
+      const { copied } = await exportWorkoutsAsGoogleSheets(buildExportData());
+      toast({
+        title: copied ? "✅ Copied & opened Google Sheets" : "✅ Downloaded",
+        description: copied
+          ? "A new Google Sheet opened — press Ctrl/Cmd+V to paste your data."
+          : "TSV downloaded. Open Google Sheets → File → Import to load it.",
+      });
+    } catch (error: any) {
+      console.error("Google Sheets export failed:", error);
+      toast({ title: "Error", description: error?.message || "Failed to export data", variant: "destructive" });
+    }
+  };
+
   return (
     <AdminLayout>
       <div className="space-y-6">
