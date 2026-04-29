@@ -17,6 +17,10 @@ const GATEWAY = "https://connector-gateway.lovable.dev/google_sheets/v4";
 function gatewayHeaders() {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   const GS_KEY = Deno.env.get("GOOGLE_SHEETS_API_KEY");
+  console.log("[gsheets] Checking credentials:", {
+    LOVABLE_API_KEY: LOVABLE_API_KEY ? "✓ set" : "✗ missing",
+    GS_KEY: GS_KEY ? "✓ set" : "✗ missing",
+  });
   if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
   if (!GS_KEY) throw new Error("GOOGLE_SHEETS_API_KEY is not configured");
   return {
@@ -27,27 +31,27 @@ function gatewayHeaders() {
 }
 
 async function gsClear(spreadsheetId: string, range: string) {
-  const r = await fetch(
-    `${GATEWAY}/spreadsheets/${spreadsheetId}/values/${range}:clear`,
-    { method: "POST", headers: gatewayHeaders() }
-  );
+  const url = `${GATEWAY}/spreadsheets/${spreadsheetId}/values/${range}:clear`;
+  console.log("[gsheets] Clearing:", url);
+  const r = await fetch(url, { method: "POST", headers: gatewayHeaders() });
   if (!r.ok) {
     const t = await r.text();
+    console.error("[gsheets] Clear failed:", { status: r.status, body: t });
     throw new Error(`Sheets clear failed [${r.status}]: ${t}`);
   }
 }
 
 async function gsWrite(spreadsheetId: string, range: string, values: any[][]) {
-  const r = await fetch(
-    `${GATEWAY}/spreadsheets/${spreadsheetId}/values/${range}?valueInputOption=RAW`,
-    {
-      method: "PUT",
-      headers: gatewayHeaders(),
-      body: JSON.stringify({ values }),
-    }
-  );
+  const url = `${GATEWAY}/spreadsheets/${spreadsheetId}/values/${range}?valueInputOption=RAW`;
+  console.log("[gsheets] Writing:", { url, rows: values.length });
+  const r = await fetch(url, {
+    method: "PUT",
+    headers: gatewayHeaders(),
+    body: JSON.stringify({ values }),
+  });
   if (!r.ok) {
     const t = await r.text();
+    console.error("[gsheets] Write failed:", { status: r.status, body: t });
     throw new Error(`Sheets write failed [${r.status}]: ${t}`);
   }
 }
