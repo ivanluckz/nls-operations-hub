@@ -40,6 +40,7 @@ const pageTitles: Record<string, { title: string; description: string }> = {
 export function AdminLayout({ children, title, description }: AdminLayoutProps) {
   const location = useLocation();
   const pageInfo = pageTitles[location.pathname] || { title: title || "Admin", description: description || "" };
+  useGoogleSheetsAutoSync(true);
 
   return (
     <SidebarProvider>
