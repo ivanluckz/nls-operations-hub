@@ -68,6 +68,7 @@ const coCurricularItems = [
   { title: "Meal Reports", url: "/admin/meal-reports", icon: UtensilsCrossed, description: "View meal attendance data" },
   { title: "Morning Workouts", url: "/admin/workouts", icon: Dumbbell, description: "Manage workout sessions and locations" },
   { title: "Direct Messages", url: "/admin/dms", icon: MessageSquare, description: "Message anyone directly" },
+  { title: "Google Sheets Sync", url: "/admin/google-sheets", icon: Sheet, description: "Live-sync workouts and activities to Google Sheets" },
 ];
 
 interface UserProfile {
