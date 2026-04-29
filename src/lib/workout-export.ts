@@ -209,29 +209,103 @@ export function exportWorkoutsToExcel(data: WorkoutExportData) {
 }
 
 /**
- * Alternative: Export as CSV for direct Google Sheets import
+ * Escape a CSV cell — wraps in quotes and escapes inner quotes.
+ */
+const csv = (v: any): string => {
+  const s = v === null || v === undefined ? '' : String(v);
+  return `"${s.replace(/"/g, '""')}"`;
+};
+
+/**
+ * Export full student-by-workout enrollment list as CSV (Google Sheets friendly).
+ * Produces one row per student enrollment, plus a summary section at the top
+ * and a row for every student who is NOT enrolled in any workout.
  */
 export function exportWorkoutsAsCSV(data: WorkoutExportData) {
-  const csvData = [
-    'Workout,Status,Capacity,Days,Enrolled,% Full,Teachers',
-    ...data.workouts.map(w => {
-      const signupCount = data.signups.filter(s => s.workout_id === w.id).length;
-      const fillPercent = Math.round((signupCount / w.capacity) * 100);
+  const lines: string[] = [];
+  const today = new Date().toISOString().split('T')[0];
+
+  // ---- Header / metadata ----
+  lines.push(csv('NLS MORNING WORKOUT — STUDENT ENROLLMENTS'));
+  lines.push([csv('Generated'), csv(new Date().toLocaleString())].join(','));
+  lines.push([csv('Total Workouts'), csv(data.workouts.length)].join(','));
+  lines.push([csv('Total Enrollments'), csv(data.signups.length)].join(','));
+  lines.push('');
+
+  // ---- Workout summary ----
+  lines.push(csv('WORKOUT SUMMARY'));
+  lines.push(['Workout', 'Status', 'Capacity', 'Enrolled', '% Full', 'Days', 'Teachers'].map(csv).join(','));
+  [...data.workouts]
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .forEach(w => {
+      const count = data.signups.filter(s => s.workout_id === w.id).length;
+      const pct = w.capacity > 0 ? Math.round((count / w.capacity) * 100) : 0;
       const teachers = data.workoutTeachers
         .filter(wt => wt.workout_id === w.id)
         .map(wt => wt.teacher_name)
-        .join('; ');
+        .join('; ') || '—';
+      lines.push([
+        csv(w.name),
+        csv(w.is_active ? 'Active' : 'Inactive'),
+        csv(w.capacity),
+        csv(count),
+        csv(pct + '%'),
+        csv((w.days_of_week || []).join(', ')),
+        csv(teachers),
+      ].join(','));
+    });
+  lines.push('');
 
-      return `"${w.name}","${w.is_active ? 'Active' : 'Inactive'}",${w.capacity},"${w.days_of_week.join(', ')}",${signupCount},${fillPercent}%,"${teachers}"`;
-    })
-  ].join('\n');
+  // ---- All students with their workout(s) ----
+  lines.push(csv('STUDENT ENROLLMENTS'));
+  lines.push(['Student Name', 'Email', 'Workout', 'Days', 'Teachers', 'Enrolled On'].map(csv).join(','));
 
-  const blob = new Blob([csvData], { type: 'text/csv' });
+  const enrolledStudentIds = new Set<string>();
+  const sortedSignups = [...data.signups].sort((a, b) =>
+    (a.student_name || '').localeCompare(b.student_name || '') ||
+    (a.workout_name || '').localeCompare(b.workout_name || '')
+  );
+
+  sortedSignups.forEach(s => {
+    enrolledStudentIds.add(s.student_id);
+    const w = data.workouts.find(x => x.id === s.workout_id);
+    const teachers = data.workoutTeachers
+      .filter(wt => wt.workout_id === s.workout_id)
+      .map(wt => wt.teacher_name)
+      .join('; ') || '—';
+    lines.push([
+      csv(s.student_name || 'Unknown'),
+      csv(s.student_email || '—'),
+      csv(s.workout_name || w?.name || '—'),
+      csv(w ? (w.days_of_week || []).join(', ') : '—'),
+      csv(teachers),
+      csv(s.created_at ? new Date(s.created_at).toLocaleDateString() : '—'),
+    ].join(','));
+  });
+
+  // ---- Students not enrolled in any workout ----
+  const unenrolled = Object.values(data.profiles || {}).filter(
+    p => p && !enrolledStudentIds.has(p.id)
+  );
+  if (unenrolled.length > 0) {
+    lines.push('');
+    lines.push(csv('STUDENTS NOT ENROLLED'));
+    lines.push(['Student Name', 'Email'].map(csv).join(','));
+    unenrolled
+      .sort((a, b) => (a.full_name || '').localeCompare(b.full_name || ''))
+      .forEach(p => {
+        lines.push([csv(p.full_name || 'Unknown'), csv(p.email || '—')].join(','));
+      });
+  }
+
+  // BOM for Excel/Sheets UTF-8 compatibility
+  const blob = new Blob(['\uFEFF' + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
   const url = window.URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.download = `NLS_Workouts_Summary_${new Date().toISOString().split('T')[0]}.csv`;
+  link.download = `NLS_Workout_Enrollments_${today}.csv`;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
+  window.URL.revokeObjectURL(url);
 }
