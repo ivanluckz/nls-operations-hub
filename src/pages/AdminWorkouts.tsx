@@ -275,6 +275,12 @@ const AdminWorkouts = () => {
   const buildExportData = () => {
     const workoutById: Record<string, Workout> = {};
     workouts.forEach((w) => { workoutById[w.id] = w; });
+    const teacherIdSet = new Set(teachers.map((t) => t.id));
+    // Only students belong in the "not enrolled" list — strip teacher entries.
+    const studentProfiles: Record<string, Profile> = {};
+    Object.values(profiles).forEach((p) => {
+      if (p && !teacherIdSet.has(p.id)) studentProfiles[p.id] = p;
+    });
     return {
       workouts: workouts.map((w) => ({
         id: w.id,
@@ -301,7 +307,7 @@ const AdminWorkouts = () => {
         student_email: profiles[s.student_id]?.email || "—",
         created_at: s.created_at,
       })),
-      profiles,
+      profiles: studentProfiles,
     };
   };
 
