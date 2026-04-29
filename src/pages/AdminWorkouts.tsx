@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Dumbbell, Plus, Pencil, Trash2, Users, Trash, Download } from "lucide-react";
-import { exportWorkoutsToExcel, exportWorkoutsAsCSV } from "@/lib/workout-export";
+import { exportWorkoutsToExcel, exportWorkoutsAsCSV, exportWorkoutsAsGoogleSheets } from "@/lib/workout-export";
 
 const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
 
@@ -132,19 +132,30 @@ const AdminWorkouts = () => {
     }
     setTeachers(teacherProfiles);
 
-    const studentIds: string[] = Array.from(new Set((sRes.data || []).map((s: any) => s.student_id as string)));
+    // Fetch ALL student profiles (not just those with signups) so the
+    // export includes the "not enrolled" list AND no signup ever resolves
+    // to "Unknown" because of a missing fetch.
+    const { data: studentRoleRows } = await supabase
+      .from("user_roles")
+      .select("user_id")
+      .eq("role", "student")
+      .limit(5000);
+    const studentIds: string[] = Array.from(new Set([
+      ...((studentRoleRows || []).map((r: any) => r.user_id as string)),
+      ...((sRes.data || []).map((s: any) => s.student_id as string)),
+    ]));
+
+    const map: Record<string, Profile> = {};
     if (studentIds.length) {
-      const { data } = await supabase.from("profiles").select("id, full_name, email").in("id", studentIds);
-      const map: Record<string, Profile> = {};
-      (data || []).forEach((p: any) => { map[p.id] = p; });
-      // also add teachers to map
-      teacherProfiles.forEach((t) => { map[t.id] = t; });
-      setProfiles(map);
-    } else {
-      const map: Record<string, Profile> = {};
-      teacherProfiles.forEach((t) => { map[t.id] = t; });
-      setProfiles(map);
+      const { data: studentProfiles } = await supabase
+        .from("profiles")
+        .select("id, full_name, email")
+        .in("id", studentIds)
+        .limit(5000);
+      (studentProfiles || []).forEach((p: any) => { map[p.id] = p; });
     }
+    teacherProfiles.forEach((t) => { map[t.id] = t; });
+    setProfiles(map);
     setLoading(false);
   };
 
@@ -264,6 +275,12 @@ const AdminWorkouts = () => {
   const buildExportData = () => {
     const workoutById: Record<string, Workout> = {};
     workouts.forEach((w) => { workoutById[w.id] = w; });
+    const teacherIdSet = new Set(teachers.map((t) => t.id));
+    // Only students belong in the "not enrolled" list — strip teacher entries.
+    const studentProfiles: Record<string, Profile> = {};
+    Object.values(profiles).forEach((p) => {
+      if (p && !teacherIdSet.has(p.id)) studentProfiles[p.id] = p;
+    });
     return {
       workouts: workouts.map((w) => ({
         id: w.id,
@@ -290,7 +307,7 @@ const AdminWorkouts = () => {
         student_email: profiles[s.student_id]?.email || "—",
         created_at: s.created_at,
       })),
-      profiles,
+      profiles: studentProfiles,
     };
   };
 
@@ -314,6 +331,21 @@ const AdminWorkouts = () => {
     }
   };
 
+  const handleDownloadGoogleSheets = async () => {
+    try {
+      const { copied } = await exportWorkoutsAsGoogleSheets(buildExportData());
+      toast({
+        title: copied ? "✅ Copied & opened Google Sheets" : "✅ Downloaded",
+        description: copied
+          ? "A new Google Sheet opened — press Ctrl/Cmd+V to paste your data."
+          : "TSV downloaded. Open Google Sheets → File → Import to load it.",
+      });
+    } catch (error: any) {
+      console.error("Google Sheets export failed:", error);
+      toast({ title: "Error", description: error?.message || "Failed to export data", variant: "destructive" });
+    }
+  };
+
   return (
     <AdminLayout>
       <div className="space-y-6">
@@ -333,6 +365,9 @@ const AdminWorkouts = () => {
             </Button>
             <Button onClick={handleDownloadCSV} variant="outline">
               <Download className="h-4 w-4 mr-1" /> CSV
+            </Button>
+            <Button onClick={handleDownloadGoogleSheets} variant="outline">
+              <Download className="h-4 w-4 mr-1" /> Google Sheets
             </Button>
             <Button onClick={openNew}>
               <Plus className="h-4 w-4 mr-1" /> New workout

@@ -309,3 +309,115 @@ export function exportWorkoutsAsCSV(data: WorkoutExportData) {
   document.body.removeChild(link);
   window.URL.revokeObjectURL(url);
 }
+
+/**
+ * Export as TSV (tab-separated) optimized for pasting into Google Sheets.
+ * Opens a new tab with a "Open Google Sheets" link and copies content to clipboard.
+ * Also downloads a .tsv file as a fallback.
+ */
+export async function exportWorkoutsAsGoogleSheets(data: WorkoutExportData) {
+  const today = new Date().toISOString().split('T')[0];
+  const lines: string[] = [];
+  const tsv = (v: any) => {
+    const s = v === null || v === undefined ? '' : String(v);
+    // Strip tabs/newlines for TSV safety
+    return s.replace(/\t/g, ' ').replace(/\r?\n/g, ' ');
+  };
+
+  lines.push('NLS MORNING WORKOUT — STUDENT ENROLLMENTS');
+  lines.push(`Generated\t${new Date().toLocaleString()}`);
+  lines.push(`Total Workouts\t${data.workouts.length}`);
+  lines.push(`Total Enrollments\t${data.signups.length}`);
+  lines.push('');
+
+  lines.push('WORKOUT SUMMARY');
+  lines.push(['Workout', 'Status', 'Capacity', 'Enrolled', '% Full', 'Days', 'Teachers'].join('\t'));
+  [...data.workouts]
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .forEach(w => {
+      const count = data.signups.filter(s => s.workout_id === w.id).length;
+      const pct = w.capacity > 0 ? Math.round((count / w.capacity) * 100) : 0;
+      const teachers = data.workoutTeachers
+        .filter(wt => wt.workout_id === w.id)
+        .map(wt => wt.teacher_name)
+        .join('; ') || '—';
+      lines.push([
+        tsv(w.name),
+        tsv(w.is_active ? 'Active' : 'Inactive'),
+        tsv(w.capacity),
+        tsv(count),
+        tsv(pct + '%'),
+        tsv((w.days_of_week || []).join(', ')),
+        tsv(teachers),
+      ].join('\t'));
+    });
+  lines.push('');
+
+  lines.push('STUDENT ENROLLMENTS');
+  lines.push(['Student Name', 'Email', 'Workout', 'Days', 'Teachers', 'Enrolled On'].join('\t'));
+  const enrolledIds = new Set<string>();
+  [...data.signups]
+    .sort((a, b) =>
+      (a.student_name || '').localeCompare(b.student_name || '') ||
+      (a.workout_name || '').localeCompare(b.workout_name || '')
+    )
+    .forEach(s => {
+      enrolledIds.add(s.student_id);
+      const w = data.workouts.find(x => x.id === s.workout_id);
+      const teachers = data.workoutTeachers
+        .filter(wt => wt.workout_id === s.workout_id)
+        .map(wt => wt.teacher_name)
+        .join('; ') || '—';
+      lines.push([
+        tsv(s.student_name || 'Unknown'),
+        tsv(s.student_email || '—'),
+        tsv(s.workout_name || w?.name || '—'),
+        tsv(w ? (w.days_of_week || []).join(', ') : '—'),
+        tsv(teachers),
+        tsv(s.created_at ? new Date(s.created_at).toLocaleDateString() : '—'),
+      ].join('\t'));
+    });
+
+  const unenrolled = Object.values(data.profiles || {}).filter(
+    p => p && !enrolledIds.has(p.id)
+  );
+  if (unenrolled.length > 0) {
+    lines.push('');
+    lines.push('STUDENTS NOT ENROLLED');
+    lines.push(['Student Name', 'Email'].join('\t'));
+    unenrolled
+      .sort((a, b) => (a.full_name || '').localeCompare(b.full_name || ''))
+      .forEach(p => {
+        lines.push([tsv(p.full_name || 'Unknown'), tsv(p.email || '—')].join('\t'));
+      });
+  }
+
+  const content = lines.join('\n');
+
+  // Try clipboard first (so user can paste into Google Sheets directly)
+  let copied = false;
+  try {
+    await navigator.clipboard.writeText(content);
+    copied = true;
+  } catch {
+    // ignore — fall back to download only
+  }
+
+  // Always download a .tsv as a reliable fallback
+  const blob = new Blob([content], { type: 'text/tab-separated-values;charset=utf-8;' });
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `NLS_Workout_Enrollments_${today}.tsv`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  window.URL.revokeObjectURL(url);
+
+  // Open a fresh Google Sheet so the user can just press Cmd/Ctrl+V
+  if (copied) {
+    window.open('https://sheets.new', '_blank', 'noopener,noreferrer');
+  }
+
+  return { copied };
+}
