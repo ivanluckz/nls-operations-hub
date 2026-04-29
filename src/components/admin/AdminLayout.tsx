@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/breadcrumb";
 import { useLocation } from "react-router-dom";
 import { GlobalSearch } from "./GlobalSearch";
+import { useGoogleSheetsAutoSync } from "@/hooks/use-gsheets-autosync";
 
 interface AdminLayoutProps {
   children: React.ReactNode;
