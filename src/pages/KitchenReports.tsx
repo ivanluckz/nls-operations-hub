@@ -245,6 +245,7 @@ const KitchenReports = () => {
           </CardContent>
         </Card>
       </div>
+      <FloatingChatButton />
     </div>
   );
 };
