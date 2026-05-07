@@ -603,26 +603,19 @@ const DirectMessages = () => {
     if (query.length < 2) { setUserResults([]); return; }
     setSearchingUsers(true);
     try {
-      let staffIds: string[] | null = null;
       if (myRoleRef.current === "student") {
-        const { data: staffRoles } = await supabase
-          .from("user_roles")
-          .select("user_id")
-          .in("role", ["teacher", "moderator", "admin"]);
-        staffIds = (staffRoles || []).map((r: any) => r.user_id);
-        if (staffIds.length === 0) { setUserResults([]); return; }
+        // Students search any user (staff + peers) by name via security-definer RPC
+        // (avoids exposing emails / requiring broad SELECT on profiles).
+        const { data } = await supabase.rpc("search_users_for_dm", { _query: query });
+        setUserResults(((data as any[]) || []).filter((u) => u.id !== userId));
+      } else {
+        const { data } = await supabase
+          .from("profiles")
+          .select("id, full_name, email")
+          .or(`full_name.ilike.%${query}%,email.ilike.%${query}%`)
+          .limit(10);
+        setUserResults((data || []).filter((u: UserResult) => u.id !== userId));
       }
-
-      let q = supabase
-        .from("profiles")
-        .select("id, full_name, email")
-        .or(`full_name.ilike.%${query}%,email.ilike.%${query}%`)
-        .limit(10);
-
-      if (staffIds) q = q.in("id", staffIds);
-
-      const { data } = await q;
-      setUserResults((data || []).filter((u: UserResult) => u.id !== userId));
     } catch (err) {
       console.error(err);
     } finally {
