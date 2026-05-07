@@ -845,6 +845,7 @@ const RLCoachDashboard = () => {
           </TabsContent>
         </Tabs>
       </div>
+      <FloatingChatButton />
     </div>
   );
 };
