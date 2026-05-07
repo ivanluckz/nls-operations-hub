@@ -15,6 +15,7 @@ import MealTrendChart from "@/components/dashboard/MealTrendChart";
 import MealQRScanner from "@/components/kitchen/MealQRScanner";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import HouseBadge from "@/components/ui/HouseBadge";
+import FloatingChatButton from "@/components/student/FloatingChatButton";
 import {
   Select,
   SelectContent,
@@ -844,6 +845,7 @@ const RLCoachDashboard = () => {
           </TabsContent>
         </Tabs>
       </div>
+      <FloatingChatButton />
     </div>
   );
 };

@@ -44,6 +44,7 @@ import AttendanceChart from "@/components/dashboard/AttendanceChart";
 import HouseBadge from "@/components/ui/HouseBadge";
 import { format } from "date-fns";
 import { SESSION_STATUS, ATTENDANCE_STATUS } from "@/lib/constants";
+import FloatingChatButton from "@/components/student/FloatingChatButton";
 
 interface Visit {
   id: string;
@@ -958,6 +959,7 @@ const MedicalDashboard = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <FloatingChatButton />
     </div>
   );
 };

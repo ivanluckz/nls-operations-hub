@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/table";
 import { ArrowLeft, Calendar, UtensilsCrossed, TrendingUp, Users, Download } from "lucide-react";
 import { MEAL_TYPES, type MealType } from "@/lib/constants";
+import FloatingChatButton from "@/components/student/FloatingChatButton";
 
 interface MealRecord {
   id: string;
@@ -244,6 +245,7 @@ const KitchenReports = () => {
           </CardContent>
         </Card>
       </div>
+      <FloatingChatButton />
     </div>
   );
 };
