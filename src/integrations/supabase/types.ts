@@ -1560,6 +1560,14 @@ export type Database = {
       is_medical: { Args: { _user_id: string }; Returns: boolean }
       is_moderator: { Args: { _user_id: string }; Returns: boolean }
       is_rl_coach: { Args: { _user_id: string }; Returns: boolean }
+      search_users_for_dm: {
+        Args: { _query: string }
+        Returns: {
+          avatar_url: string
+          full_name: string
+          id: string
+        }[]
+      }
     }
     Enums: {
       allocation_status: "pending" | "allocated" | "waitlisted"
