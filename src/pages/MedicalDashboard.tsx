@@ -959,6 +959,7 @@ const MedicalDashboard = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <FloatingChatButton />
     </div>
   );
 };
