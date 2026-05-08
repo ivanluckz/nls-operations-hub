@@ -14,6 +14,12 @@ type Workout = {
 };
 type Signup = { id: string; workout_id: string; student_id: string };
 type Profile = { id: string; full_name: string };
+type WorkoutSignupStudent = {
+  signup_id: string;
+  workout_id: string;
+  student_id: string;
+  full_name: string;
+};
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
@@ -68,23 +74,24 @@ const WorkoutSessionAttendance = ({ teacherScope = false }: Props) => {
         visibleWorkouts.filter((w) => w.days_of_week.includes(todayDay)).map((w) => w.id)
       );
 
-      const [sRes, attRes] = await Promise.all([
-        (supabase as any).from("workout_signups").select("id, workout_id, student_id"),
+      const [signupStudentsRes, attRes] = await Promise.all([
+        todayIds.size
+          ? (supabase as any).rpc("get_workout_signup_students", { _workout_ids: Array.from(todayIds) })
+          : Promise.resolve({ data: [] }),
         (supabase as any).from("workout_attendance").select("student_id, workout_id, status").eq("workout_date", todayDate),
       ]);
 
-      const relevantSignups: Signup[] = (sRes.data || []).filter((s: Signup) => todayIds.has(s.workout_id));
+      const signupStudents: WorkoutSignupStudent[] = signupStudentsRes.data || [];
+      const relevantSignups: Signup[] = signupStudents.map((s) => ({
+        id: s.signup_id,
+        workout_id: s.workout_id,
+        student_id: s.student_id,
+      }));
       setSignups(relevantSignups);
 
-      const studentIds = Array.from(new Set(relevantSignups.map((s) => s.student_id)));
-      if (studentIds.length) {
-        const { data: profs } = await supabase.from("profiles").select("id, full_name").in("id", studentIds);
-        const map: Record<string, Profile> = {};
-        (profs || []).forEach((p: any) => { map[p.id] = p; });
-        setProfiles(map);
-      } else {
-        setProfiles({});
-      }
+      const map: Record<string, Profile> = {};
+      signupStudents.forEach((p) => { map[p.student_id] = { id: p.student_id, full_name: p.full_name }; });
+      setProfiles(map);
 
       const m: Record<string, string> = {};
       (attRes.data || []).forEach((a: any) => { m[`${a.workout_id || ""}:${a.student_id}`] = a.status || "present"; });
