@@ -14,6 +14,27 @@ type Workout = {
 };
 type Signup = { id: string; workout_id: string; student_id: string };
 type Profile = { id: string; full_name: string };
+type WorkoutTeacher = { workout_id: string };
+type WorkoutAttendance = { student_id: string; workout_id: string | null; status: string | null };
+type WorkoutSignupStudent = {
+  signup_id: string;
+  workout_id: string;
+  student_id: string;
+  full_name: string;
+};
+type QueryResult<T> = PromiseLike<{ data: T[] | null }>;
+type MutationResult = PromiseLike<{ error: { message: string } | null }>;
+type WorkoutDbClient = {
+  from(table: "workouts"): { select: (columns: string) => { eq: (column: string, value: boolean) => QueryResult<Workout> } };
+  from(table: "workout_teachers"): { select: (columns: string) => { eq: (column: string, value: string) => QueryResult<WorkoutTeacher> } };
+  from(table: "workout_attendance"): {
+    select: (columns: string) => { eq: (column: string, value: string) => QueryResult<WorkoutAttendance> };
+    insert: (row: { student_id: string; scanned_by: string; workout_date: string; workout_id: string; location: string; status: "present" }) => MutationResult;
+  };
+  rpc: (fn: "get_workout_signup_students", args: { _workout_ids: string[] }) => QueryResult<WorkoutSignupStudent>;
+};
+
+const workoutDb = supabase as unknown as WorkoutDbClient;
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
@@ -44,17 +65,17 @@ const WorkoutSessionAttendance = ({ teacherScope = false }: Props) => {
       setUserId(user.id);
 
       // Fetch all active workouts. RLS lets everyone authenticated see active workouts.
-      const wRes = await (supabase as any).from("workouts").select("*").eq("is_active", true);
+      const wRes = await workoutDb.from("workouts").select("*").eq("is_active", true);
       const allWorkouts: Workout[] = wRes.data || [];
 
       // Filter to today + (if teacherScope) only those assigned to this teacher.
       let assignedIds: Set<string> | null = null;
       if (teacherScope) {
-        const wtRes = await (supabase as any)
+        const wtRes = await workoutDb
           .from("workout_teachers")
           .select("workout_id")
           .eq("teacher_id", user.id);
-        assignedIds = new Set((wtRes.data || []).map((r: any) => r.workout_id));
+        assignedIds = new Set((wtRes.data || []).map((r) => r.workout_id));
       }
 
       // For teachers: show all workouts they're assigned to (any day) so they always
@@ -68,26 +89,27 @@ const WorkoutSessionAttendance = ({ teacherScope = false }: Props) => {
         visibleWorkouts.filter((w) => w.days_of_week.includes(todayDay)).map((w) => w.id)
       );
 
-      const [sRes, attRes] = await Promise.all([
-        (supabase as any).from("workout_signups").select("id, workout_id, student_id"),
-        (supabase as any).from("workout_attendance").select("student_id, workout_id, status").eq("workout_date", todayDate),
+      const [signupStudentsRes, attRes] = await Promise.all([
+        todayIds.size
+          ? workoutDb.rpc("get_workout_signup_students", { _workout_ids: Array.from(todayIds) })
+          : Promise.resolve({ data: [] }),
+        workoutDb.from("workout_attendance").select("student_id, workout_id, status").eq("workout_date", todayDate),
       ]);
 
-      const relevantSignups: Signup[] = (sRes.data || []).filter((s: Signup) => todayIds.has(s.workout_id));
+      const signupStudents: WorkoutSignupStudent[] = signupStudentsRes.data || [];
+      const relevantSignups: Signup[] = signupStudents.map((s) => ({
+        id: s.signup_id,
+        workout_id: s.workout_id,
+        student_id: s.student_id,
+      }));
       setSignups(relevantSignups);
 
-      const studentIds = Array.from(new Set(relevantSignups.map((s) => s.student_id)));
-      if (studentIds.length) {
-        const { data: profs } = await supabase.from("profiles").select("id, full_name").in("id", studentIds);
-        const map: Record<string, Profile> = {};
-        (profs || []).forEach((p: any) => { map[p.id] = p; });
-        setProfiles(map);
-      } else {
-        setProfiles({});
-      }
+      const map: Record<string, Profile> = {};
+      signupStudents.forEach((p) => { map[p.student_id] = { id: p.student_id, full_name: p.full_name }; });
+      setProfiles(map);
 
       const m: Record<string, string> = {};
-      (attRes.data || []).forEach((a: any) => { m[`${a.workout_id || ""}:${a.student_id}`] = a.status || "present"; });
+      (attRes.data || []).forEach((a) => { m[`${a.workout_id || ""}:${a.student_id}`] = a.status || "present"; });
       setMarked(m);
     } finally {
       setLoading(false);
@@ -100,7 +122,7 @@ const WorkoutSessionAttendance = ({ teacherScope = false }: Props) => {
     if (!userId) return;
     const key = `${workoutId}:${studentId}`;
     setBusy(key);
-    const { error } = await (supabase as any).from("workout_attendance").insert({
+    const { error } = await workoutDb.from("workout_attendance").insert({
       student_id: studentId,
       scanned_by: userId,
       workout_date: todayDate,

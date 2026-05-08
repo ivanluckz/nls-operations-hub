@@ -1549,6 +1549,15 @@ export type Database = {
           teacher_id: string
         }[]
       }
+      get_workout_signup_students: {
+        Args: { _workout_ids: string[] }
+        Returns: {
+          full_name: string
+          signup_id: string
+          student_id: string
+          workout_id: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
