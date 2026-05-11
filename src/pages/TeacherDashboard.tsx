@@ -13,7 +13,6 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
 import ActivityMessaging from "@/components/teacher/ActivityMessaging";
 import FloatingChatButton from "@/components/student/FloatingChatButton";
 import HouseBadge from "@/components/ui/HouseBadge";
-import HouseSelectionCard from "@/components/student/HouseSelectionCard";
 import AttendanceChart from "@/components/dashboard/AttendanceChart";
 import TodayScheduleWidget from "@/components/dashboard/TodayScheduleWidget";
 import MealQRScanner from "@/components/kitchen/MealQRScanner";
@@ -52,7 +51,6 @@ const TeacherDashboard = () => {
   const [userId, setUserId] = useState<string | null>(null);
   const [profileCard, setProfileCard] = useState<{ studentId: string; studentName: string } | null>(null);
   const [studentBadges, setStudentBadges] = useState<Record<string, string[]>>({});
-  const [isInSchool, setIsInSchool] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
@@ -90,15 +88,6 @@ const TeacherDashboard = () => {
         .select("id", { count: "exact", head: true })
         .eq("mentor_id", user.id);
       setHasMentees((count || 0) > 0);
-
-      // Check if teacher has in_school add-on role
-      const { data: inSchoolRole } = await supabase
-        .from("user_roles")
-        .select("id")
-        .eq("user_id", user.id)
-        .eq("role", "in_school")
-        .maybeSingle();
-      setIsInSchool(!!inSchoolRole);
 
       // Fetch today's lunch count
       const today = new Date().toISOString().split("T")[0];
@@ -231,9 +220,6 @@ const TeacherDashboard = () => {
       </header>
 
       <main className="container mx-auto px-4 py-6 space-y-6">
-        {/* House Selection - only for in-school teachers */}
-        {isInSchool && <HouseSelectionCard />}
-
         {/* Stats row */}
         <div className="grid grid-cols-3 gap-4">
           <Card className="relative overflow-hidden">
