@@ -367,7 +367,7 @@ const TeacherAttendance = () => {
     : false;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-transparent">
       <header className="border-b bg-card shadow-card">
         <div className="container mx-auto px-4 py-4 flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={() => navigate(`/${userRole}`)}>
