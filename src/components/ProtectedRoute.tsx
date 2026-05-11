@@ -84,6 +84,8 @@ const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
       const userRoles = (rolesData || []).map((r: any) => r.role);
       const primaryRole = rolePriority.find(r => userRoles.includes(r)) || userRoles[0] || null;
       
+      console.log('ProtectedRoute - User roles:', userRoles, 'Primary role:', primaryRole, 'Required role:', requiredRole);
+      
       setUserRole(primaryRole);
       setAllRoles(userRoles);
       setHasDevBadge(!!devBadge);
@@ -106,8 +108,7 @@ const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
     return <Navigate to="/auth" replace />;
   }
 
-  if (requiredRole && !allRoles.includes(requiredRole)) {
-    // Dev badge holders can access certain admin pages as read-only
+  if (requiredRole && !allRoles.includes(requiredRole)) {    console.log('ProtectedRoute - Redirecting user. Required role:', requiredRole, 'User roles:', allRoles);    // Dev badge holders can access certain admin pages as read-only
     if (requiredRole === "admin" && hasDevBadge && allRoles.includes("student")) {
       const currentPath = window.location.pathname;
       if (DEV_ALLOWED_ADMIN_PAGES.includes(currentPath)) {

@@ -31,6 +31,8 @@ const Index = () => {
         const rolePriority = ['admin', 'moderator', 'teacher', 'rl_coach', 'medical', 'student'] as const;
         const userRoles = (roleData || []).map((r: any) => r.role);
         const primaryRole = rolePriority.find(r => userRoles.includes(r)) || userRoles[0] || 'student';
+        
+        console.log('Index.tsx - User roles:', userRoles, 'Primary role:', primaryRole);
 
         if (primaryRole === "admin") {
           navigate("/admin");
