@@ -25,6 +25,7 @@ const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
   const [allRoles, setAllRoles] = useState<string[]>([]);
   const [hasDevBadge, setHasDevBadge] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user: authUser } }) => {
@@ -91,6 +92,7 @@ const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
       setHasDevBadge(!!devBadge);
     } catch (error) {
       console.error("Error fetching user role:", error);
+      setAuthError((error as any)?.message || "Unable to verify permissions");
     } finally {
       setLoading(false);
     }
@@ -104,11 +106,17 @@ const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
     );
   }
 
+  if (authError) {
+    return <Navigate to="/auth" replace />;
+  }
+
   if (!user) {
     return <Navigate to="/auth" replace />;
   }
 
-  if (requiredRole && !allRoles.includes(requiredRole)) {    console.log('ProtectedRoute - Redirecting user. Required role:', requiredRole, 'User roles:', allRoles);    // Dev badge holders can access certain admin pages as read-only
+  if (requiredRole && !allRoles.includes(requiredRole)) {
+    console.log('ProtectedRoute - Redirecting user. Required role:', requiredRole, 'User roles:', allRoles);
+    // Dev badge holders can access certain admin pages as read-only
     if (requiredRole === "admin" && hasDevBadge && allRoles.includes("student")) {
       const currentPath = window.location.pathname;
       if (DEV_ALLOWED_ADMIN_PAGES.includes(currentPath)) {
