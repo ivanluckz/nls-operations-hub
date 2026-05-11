@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import {
   QrCode, Users, LogOut, Moon, Dumbbell,
-  MapPin, BarChart3, AlertTriangle, CheckCircle2, Flag, Home
+  MapPin, BarChart3, AlertTriangle, CheckCircle2, Flag, Home, ClipboardCheck
 } from "lucide-react";
 import { WORKOUT_LOCATIONS, type MealType, type WorkoutLocation } from "@/lib/constants";
 import MealTrendChart from "@/components/dashboard/MealTrendChart";
@@ -610,6 +610,10 @@ const RLCoachDashboard = () => {
           <div className="flex items-center gap-2">
             <HouseBadge />
             <ThemeToggle />
+            <Button variant="outline" size="sm" onClick={() => navigate("/rl-coach/attendance")} className="gap-2">
+              <ClipboardCheck className="h-4 w-4" />
+              Attendance
+            </Button>
             <Button variant="outline" size="sm" onClick={() => navigate("/rl-coach/reports")} className="gap-2">
               <BarChart3 className="h-4 w-4" />
               Reports

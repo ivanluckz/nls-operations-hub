@@ -126,6 +126,7 @@ const AppContent = () => {
 
           {/* RL Coach */}
           <Route path="/rl-coach" element={<ProtectedRoute requiredRole="rl_coach"><RLCoachDashboard /></ProtectedRoute>} />
+          <Route path="/rl-coach/attendance" element={<ProtectedRoute requiredRole="rl_coach"><TeacherAttendance /></ProtectedRoute>} />
           <Route path="/rl-coach/reports" element={<ProtectedRoute requiredRole="rl_coach"><RLCoachReports /></ProtectedRoute>} />
 
           {/* Medical */}

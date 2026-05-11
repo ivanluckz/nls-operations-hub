@@ -7,7 +7,8 @@ export const USER_ROLES = {
   STUDENT: 'student',
   KITCHEN_STAFF: 'kitchen_staff',
   RL_COACH: 'rl_coach',
-  MEDICAL: 'medical'
+  MEDICAL: 'medical',
+  IN_SCHOOL: 'in_school'
 } as const;
 
 export const STUDENT_CLASSES = [

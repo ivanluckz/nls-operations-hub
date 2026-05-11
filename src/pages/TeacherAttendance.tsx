@@ -102,7 +102,7 @@ const TeacherAttendance = () => {
         .select("id, title, days_of_week, schedule, teacher_id, teacher_in_charge")
         .order("title");
 
-      // Admins/mods see all activities; teachers see only their assigned activities
+      // Admins/mods see all activities; teachers/RL coaches see only their assigned activities
       if (!isAdminOrMod) {
         query = query
           .eq("is_active", true)
