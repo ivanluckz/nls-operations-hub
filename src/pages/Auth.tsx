@@ -64,7 +64,16 @@ const Auth = () => {
     setEmailError(null);
     const trimmedEmail = email.trim().toLowerCase();
 
-    const allowedEmails = ["ivan.kundwa@gmail.com", "ivan.kundwa30@ntare-louisenlund.org"];
+    const allowedEmails = [
+      "ivan.kundwa@gmail.com",
+      "ivan.kundwa30@ntare-louisenlund.org",
+      "test.admin@ntare-louisenlund.org",
+      "test.moderator@ntare-louisenlund.org",
+      "test.teacher@ntare-louisenlund.org",
+      "test.rl_coach@ntare-louisenlund.org",
+      "test.medical@ntare-louisenlund.org",
+      "test.student@ntare-louisenlund.org",
+    ];
     if (!allowedEmails.includes(trimmedEmail)) {
       setEmailError("This email is not registered for password login. Please use Google Sign-In instead.");
       return;
