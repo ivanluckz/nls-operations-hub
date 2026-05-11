@@ -102,8 +102,12 @@ const TeacherAttendance = () => {
         .select("id, title, days_of_week, schedule")
         .order("title");
 
+      // Admins/mods see all activities; teachers see all active ones
+      // (teacher_id assignment on activities is sparse — many activities only
+      // record the lead in the free-text teacher_in_charge field, so filtering
+      // by teacher_id leaves most teachers with an empty dropdown).
       if (!isAdminOrMod) {
-        query = query.eq("teacher_id", user.id);
+        query = query.eq("is_active", true);
       }
 
       const { data } = await query;
