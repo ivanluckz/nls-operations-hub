@@ -99,15 +99,14 @@ const TeacherAttendance = () => {
 
       let query = supabase
         .from("activities")
-        .select("id, title, days_of_week, schedule")
+        .select("id, title, days_of_week, schedule, teacher_id, teacher_in_charge")
         .order("title");
 
-      // Admins/mods see all activities; teachers see all active ones
-      // (teacher_id assignment on activities is sparse — many activities only
-      // record the lead in the free-text teacher_in_charge field, so filtering
-      // by teacher_id leaves most teachers with an empty dropdown).
+      // Admins/mods see all activities; teachers see only their assigned activities
       if (!isAdminOrMod) {
-        query = query.eq("is_active", true);
+        query = query
+          .eq("is_active", true)
+          .or(`teacher_id.eq.${user.id},teacher_in_charge.ilike.%${user.email}%`);
       }
 
       const { data } = await query;

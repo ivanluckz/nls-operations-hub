@@ -1,0 +1,30 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  @apply bg-background text-white antialiased;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.glass-card {
+  @apply bg-card/50 backdrop-blur-xl border border-border rounded-2xl p-6 transition-all duration-300 hover:border-primary/50;
+}
+
+.stat-glow {
+  text-shadow: 0 0 20px rgba(0, 209, 255, 0.5);
+}
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
