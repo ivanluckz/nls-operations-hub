@@ -118,15 +118,24 @@ const TeacherAttendance = () => {
 
   const fetchStudents = useCallback(async () => {
     try {
-      // Two-step fetch: get student IDs from allocations, then profiles
-      const { data: allocations } = await supabase
+      // First try exact match with day_of_week and slot_number
+      let { data: allocations } = await supabase
         .from("allocations")
         .select("student_id")
         .eq("activity_id", selectedActivity)
         .eq("day_of_week", selectedDay)
         .eq("slot_number", selectedSlot);
 
-      const studentIds = [...new Set((allocations || []).map(a => a.student_id))];
+      // If no results, try with just activity_id (day/slot might not match)
+      if (!allocations || allocations.length === 0) {
+        const { data: fallbackAllocations } = await supabase
+          .from("allocations")
+          .select("student_id, day_of_week, slot_number")
+          .eq("activity_id", selectedActivity);
+        allocations = fallbackAllocations;
+      }
+
+      const studentIds = [...new Set((allocations || []).map((a: any) => a.student_id))];
 
       if (studentIds.length === 0) {
         setStudents([]);
