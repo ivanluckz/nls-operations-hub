@@ -83,6 +83,7 @@ const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
       const rolePriority = ['admin', 'moderator', 'teacher', 'rl_coach', 'medical', 'student'] as const;
       const userRoles = (rolesData || []).map((r: any) => r.role);
       const primaryRole = rolePriority.find(r => userRoles.includes(r)) || userRoles[0] || null;
+      
       setUserRole(primaryRole);
       setAllRoles(userRoles);
       setHasDevBadge(!!devBadge);

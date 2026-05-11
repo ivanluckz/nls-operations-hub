@@ -18,8 +18,7 @@ const Index = () => {
         const { data: roleData, error: roleError } = await supabase
           .from("user_roles")
           .select("role")
-          .eq("user_id", user.id)
-          .single();
+          .eq("user_id", user.id);
 
         if (roleError) {
           console.error("Error fetching user role:", roleError);
@@ -28,16 +27,20 @@ const Index = () => {
           return;
         }
 
-        const role = roleData?.role;
-        if (role === "admin") {
+        // Pick the highest-priority role if user has multiple
+        const rolePriority = ['admin', 'moderator', 'teacher', 'rl_coach', 'medical', 'student'] as const;
+        const userRoles = (roleData || []).map((r: any) => r.role);
+        const primaryRole = rolePriority.find(r => userRoles.includes(r)) || userRoles[0] || 'student';
+
+        if (primaryRole === "admin") {
           navigate("/admin");
-        } else if (role === "moderator") {
+        } else if (primaryRole === "moderator") {
           navigate("/moderator");
-        } else if (role === "teacher") {
+        } else if (primaryRole === "teacher") {
           navigate("/teacher");
-        } else if (role === "rl_coach") {
+        } else if (primaryRole === "rl_coach") {
           navigate("/rl-coach");
-        } else if (role === "medical") {
+        } else if (primaryRole === "medical") {
           navigate("/medical");
         } else {
           // Default to student for any other role or missing role
