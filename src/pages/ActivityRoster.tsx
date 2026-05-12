@@ -150,6 +150,9 @@ const ActivityRoster = () => {
     navigate(userRole === "admin" ? "/admin" : "/moderator");
   };
 
+  const esc = (s: string | number | null | undefined) =>
+    String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+
   const downloadPDF = () => {
     const win = window.open("", "_blank");
     if (!win) return;
@@ -162,12 +165,12 @@ const ActivityRoster = () => {
       const multiSlotDays = new Set([...daySlots.entries()].filter(([, slots]) => slots.size > 1).map(([d]) => d));
       const sorted = [...a.students].sort((x, y) => x.student_name.localeCompare(y.student_name));
       const studentRows = sorted.map((s, i) =>
-        `<tr><td>${i + 1}</td><td>${s.student_name}</td><td>${s.student_email}</td><td>${s.day_of_week}${multiSlotDays.has(s.day_of_week) ? ` (Slot ${s.slot_number})` : ""}</td></tr>`
+        `<tr><td>${i + 1}</td><td>${esc(s.student_name)}</td><td>${esc(s.student_email)}</td><td>${esc(s.day_of_week)}${multiSlotDays.has(s.day_of_week) ? ` (Slot ${esc(s.slot_number)})` : ""}</td></tr>`
       ).join("");
       return `
         <div class="activity">
-          <h2>${a.title} <span class="cat">${a.category}</span></h2>
-          <p class="meta">Teacher: ${a.teacher_in_charge} &nbsp;|&nbsp; ${a.uniqueStudentCount} / ${a.capacity} students</p>
+          <h2>${esc(a.title)} <span class="cat">${esc(a.category)}</span></h2>
+          <p class="meta">Teacher: ${esc(a.teacher_in_charge)} &nbsp;|&nbsp; ${esc(a.uniqueStudentCount)} / ${esc(a.capacity)} students</p>
           ${a.students.length === 0
             ? `<p class="empty">No students enrolled</p>`
             : `<table><thead><tr><th>#</th><th>Name</th><th>Email</th><th>Day / Slot</th></tr></thead><tbody>${studentRows}</tbody></table>`}
@@ -235,9 +238,9 @@ const ActivityRoster = () => {
     const studentRows = sorted.map((s, i) => {
       const multiSlotDay = multiSlotDaysPDF.has(s.day_of_week);
       const day = multiSlotDay ? `${s.day_of_week} (Slot ${s.slot_number})` : s.day_of_week;
-      return `<tr><td>${i + 1}</td><td>${s.student_name}</td><td>${s.student_email}</td><td>${day}</td></tr>`;
+      return `<tr><td>${i + 1}</td><td>${esc(s.student_name)}</td><td>${esc(s.student_email)}</td><td>${esc(day)}</td></tr>`;
     }).join("");
-    win.document.write(`<!DOCTYPE html><html><head><title>${activity.title} Roster</title>
+    win.document.write(`<!DOCTYPE html><html><head><title>${esc(activity.title)} Roster</title>
       <style>
         body { font-family: Arial, sans-serif; font-size: 12px; color: #111; padding: 24px; }
         h1 { font-size: 16px; margin-bottom: 2px; }
@@ -249,8 +252,8 @@ const ActivityRoster = () => {
         td { padding: 4px 8px; border: 1px solid #ddd; }
         tr:nth-child(even) td { background: #fafafa; }
       </style></head><body>
-      <h1>${activity.title} <span class="cat">${activity.category}</span></h1>
-      <p class="meta">Teacher: ${activity.teacher_in_charge} &nbsp;|&nbsp; ${activity.uniqueStudentCount} / ${activity.capacity} students &nbsp;|&nbsp; Generated ${new Date().toLocaleString()}</p>
+      <h1>${esc(activity.title)} <span class="cat">${esc(activity.category)}</span></h1>
+      <p class="meta">Teacher: ${esc(activity.teacher_in_charge)} &nbsp;|&nbsp; ${esc(activity.uniqueStudentCount)} / ${esc(activity.capacity)} students &nbsp;|&nbsp; Generated ${esc(new Date().toLocaleString())}</p>
       ${activity.students.length === 0
         ? `<p class="empty">No students enrolled</p>`
         : `<table><thead><tr><th>#</th><th>Name</th><th>Email</th><th>Day / Slot</th></tr></thead><tbody>${studentRows}</tbody></table>`}

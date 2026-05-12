@@ -210,6 +210,8 @@ const AllocationsView = () => {
   const handleExportPDF = (filter: "all" | "assigned" | "unassigned") => {
     const win = window.open("", "_blank");
     if (!win) return;
+    const esc = (s: string | number | null | undefined) =>
+      String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
     const rows = filteredAllocations.filter(a =>
       filter === "all" ? true : filter === "assigned" ? isAssigned(a) : !isAssigned(a)
     );
@@ -217,14 +219,14 @@ const AllocationsView = () => {
     const studentRows = rows.map((a, i) => `
       <tr>
         <td>${i + 1}</td>
-        <td>${a.student_name}</td>
-        <td>${a.student_email}</td>
-        <td>${a.monday_activity || "-"}</td>
-        <td>${a.tuesday_activity || "-"}</td>
-        <td>${a.wednesday_slot1_activity || "-"}</td>
-        <td>${a.wednesday_slot2_activity || "-"}</td>
-        <td>${a.thursday_activity || "-"}</td>
-        <td>${a.friday_activity || "-"}</td>
+        <td>${esc(a.student_name)}</td>
+        <td>${esc(a.student_email)}</td>
+        <td>${esc(a.monday_activity || "-")}</td>
+        <td>${esc(a.tuesday_activity || "-")}</td>
+        <td>${esc(a.wednesday_slot1_activity || "-")}</td>
+        <td>${esc(a.wednesday_slot2_activity || "-")}</td>
+        <td>${esc(a.thursday_activity || "-")}</td>
+        <td>${esc(a.friday_activity || "-")}</td>
       </tr>`).join("");
     win.document.write(`<!DOCTYPE html><html><head><title>Student Allocations</title>
       <style>
@@ -237,8 +239,8 @@ const AllocationsView = () => {
         tr:nth-child(even) td { background: #fafafa; }
         @media print { @page { size: landscape; margin: 12mm; } }
       </style></head><body>
-      <h1>Student Allocations — ${label}</h1>
-      <p class="meta">NLS &nbsp;|&nbsp; Generated ${new Date().toLocaleString()} &nbsp;|&nbsp; ${rows.length} students</p>
+      <h1>Student Allocations — ${esc(label)}</h1>
+      <p class="meta">NLS &nbsp;|&nbsp; Generated ${esc(new Date().toLocaleString())} &nbsp;|&nbsp; ${rows.length} students</p>
       <table>
         <thead><tr><th>#</th><th>Name</th><th>Email</th><th>Monday</th><th>Tuesday</th><th>Wed Slot 1</th><th>Wed Slot 2</th><th>Thursday</th><th>Friday</th></tr></thead>
         <tbody>${studentRows}</tbody>
