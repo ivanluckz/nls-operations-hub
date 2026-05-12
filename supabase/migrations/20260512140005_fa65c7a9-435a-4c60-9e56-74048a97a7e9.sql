@@ -1,0 +1,3 @@
+UPDATE activities SET teacher_id = NULL WHERE id = '7126abcc-6966-45e4-92b9-b03dda8a7654';
+DELETE FROM attendance_records WHERE session_id IN (SELECT id FROM attendance_sessions WHERE activity_id='7126abcc-6966-45e4-92b9-b03dda8a7654' AND teacher_id='fd1dd794-bd7a-47c4-90c9-dbe4b370c519');
+DELETE FROM attendance_sessions WHERE activity_id='7126abcc-6966-45e4-92b9-b03dda8a7654' AND teacher_id='fd1dd794-bd7a-47c4-90c9-dbe4b370c519';
