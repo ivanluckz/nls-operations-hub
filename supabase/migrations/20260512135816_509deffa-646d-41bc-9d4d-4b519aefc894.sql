@@ -1,0 +1,2 @@
+UPDATE activities SET teacher_id = '1879dcea-61ab-4e66-bd95-8ed9fc97f4e3' WHERE id = 'fe19e058-b931-4b19-99e6-ed4ed7dfea43';
+UPDATE activities SET teacher_id = 'fd1dd794-bd7a-47c4-90c9-dbe4b370c519' WHERE id = '7126abcc-6966-45e4-92b9-b03dda8a7654';
