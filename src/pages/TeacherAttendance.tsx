@@ -129,22 +129,16 @@ const TeacherAttendance = () => {
 
   const fetchStudents = useCallback(async () => {
     try {
-      // First try exact match with day_of_week and slot_number
-      let { data: allocations } = await supabase
+      const dayVariants = selectedDay === "Wednesday"
+        ? ["Wednesday", `Wednesday Slot ${selectedSlot}`]
+        : [selectedDay];
+
+      const { data: allocations } = await supabase
         .from("allocations")
         .select("student_id")
         .eq("activity_id", selectedActivity)
-        .eq("day_of_week", selectedDay)
+        .in("day_of_week", dayVariants)
         .eq("slot_number", selectedSlot);
-
-      // If no results, try with just activity_id (day/slot might not match)
-      if (!allocations || allocations.length === 0) {
-        const { data: fallbackAllocations } = await supabase
-          .from("allocations")
-          .select("student_id, day_of_week, slot_number")
-          .eq("activity_id", selectedActivity);
-        allocations = fallbackAllocations;
-      }
 
       const studentIds = [...new Set((allocations || []).map((a: any) => a.student_id))];
 
@@ -432,7 +426,7 @@ const TeacherAttendance = () => {
                     <SelectValue placeholder="Select day" />
                   </SelectTrigger>
                   <SelectContent>
-                    {[...new Set((selectedActivityData?.days_of_week || []).map(normalizeDay))].map(day => (
+                    {activityDayOptions.map(day => (
                       <SelectItem key={day} value={day}>
                         {day}
                       </SelectItem>
