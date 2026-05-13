@@ -28,7 +28,11 @@ const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
   const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user: authUser } }) => {
+    let active = true;
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!active) return;
+      const authUser = session?.user ?? null;
       setUser(authUser ?? null);
       if (authUser) {
         fetchUserRole(authUser.id);
@@ -42,8 +46,12 @@ const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
     } = supabase.auth.onAuthStateChange((_event, session) => {
       const sessionUser = session?.user ?? null;
       setUser(sessionUser);
+      setAuthError(null);
       if (sessionUser) {
-        fetchUserRole(sessionUser.id);
+        setLoading(true);
+        setTimeout(() => {
+          if (active) void fetchUserRole(sessionUser.id);
+        }, 0);
       } else {
         setUserRole(null);
         setAllRoles([]);
@@ -52,7 +60,10 @@ const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const fetchUserRole = async (userId: string) => {
