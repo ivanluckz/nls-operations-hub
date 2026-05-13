@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -31,6 +31,14 @@ interface AttendanceRecord {
   status: "present" | "late" | "absent" | "excused";
   scanned_at?: string;
 }
+
+const DAY_ORDER = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
+
+// "Wednesday Slot 1" → "Wednesday", "Monday" → "Monday"
+const normalizeDay = (d: string) => d.replace(/\s+Slot\s+\d+$/, "");
+
+const sortDays = (days: string[]) =>
+  [...days].sort((a, b) => DAY_ORDER.indexOf(a) - DAY_ORDER.indexOf(b));
 
 /** Parse the first or last time from "3:00 PM - 4:00 PM". pass index=-1 for end time. */
 const parseScheduleTime = (schedule: string, index: 0 | -1): Date | null => {
@@ -75,8 +83,11 @@ const TeacherAttendance = () => {
 
   const selectedActivityData = activities.find(a => a.id === selectedActivity);
 
-  // "Wednesday Slot 1" → "Wednesday", "Monday" → "Monday"
-  const normalizeDay = (d: string) => d.replace(/\s+Slot\s+\d+$/, "");
+  const activityDayOptions = useMemo(() => {
+    if (!selectedActivityData) return [];
+    const uniqueDays = [...new Set((selectedActivityData.days_of_week || []).map(normalizeDay))];
+    return sortDays(uniqueDays.length > 0 ? uniqueDays : DAY_ORDER);
+  }, [selectedActivityData]);
 
   const daySlotCount = selectedActivityData && selectedDay
     ? selectedActivityData.days_of_week.filter(d => normalizeDay(d) === selectedDay).length
