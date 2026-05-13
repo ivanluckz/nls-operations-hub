@@ -3,8 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { GraduationCap, Users, BookOpen, Sparkles, ArrowRight, MessageCircle } from "lucide-react";
+import { GraduationCap, Users, BookOpen, Sparkles, ArrowRight } from "lucide-react";
 import IOSSchoolSkeleton from "@/components/IOSSchoolSkeleton";
+import DemoRolePreview from "@/components/DemoRolePreview";
+import PreAuthChatbot from "@/components/PreAuthChatbot";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -119,6 +121,9 @@ const Index = () => {
         </div>
       </section>
 
+      {/* Demo Role Preview */}
+      <DemoRolePreview />
+
       {/* Features Section */}
       <section className="py-20 bg-background">
         <div className="container mx-auto px-4">
@@ -194,14 +199,8 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Chatbot FAB */}
-      <Button
-        size="lg"
-        onClick={() => navigate("/chatbot")}
-        className="fixed bottom-6 right-6 rounded-full h-14 w-14 shadow-elevated z-50"
-      >
-        <MessageCircle className="h-6 w-6" />
-      </Button>
+      {/* Pre-auth Gemini chatbot */}
+      <PreAuthChatbot />
 
       {/* Footer */}
       <footer className="border-t py-8">

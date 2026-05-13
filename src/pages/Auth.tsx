@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { GraduationCap, Mail, Eye, EyeOff } from "lucide-react";
+import PreAuthChatbot from "@/components/PreAuthChatbot";
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -223,6 +224,8 @@ const Auth = () => {
           )}
         </CardContent>
       </Card>
+
+      <PreAuthChatbot />
     </div>
   );
 };
