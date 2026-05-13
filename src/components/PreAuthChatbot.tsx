@@ -81,8 +81,9 @@ export default function PreAuthChatbot() {
       if (data.error) throw new Error(data.error.message);
       const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, I couldn't get a response.";
       setMessages([...next, { role: "assistant", text: reply }]);
-    } catch (err: any) {
-      setMessages([...next, { role: "assistant", text: `Error: ${err.message}. Check your Gemini API key.` }]);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      setMessages([...next, { role: "assistant", text: `Error: ${msg}. Check your Gemini API key.` }]);
     } finally {
       setLoading(false);
     }
