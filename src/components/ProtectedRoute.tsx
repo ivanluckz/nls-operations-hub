@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
+import { DEMO_MODE, getDemoRole } from "@/lib/demo-mode";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -20,6 +21,20 @@ const DEV_ALLOWED_ADMIN_PAGES = [
 ];
 
 const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
+  // In demo mode, skip all Supabase auth — just check the stored demo role
+  if (DEMO_MODE) {
+    const demoRole = getDemoRole();
+    if (!demoRole) return <Navigate to="/auth" replace />;
+    if (requiredRole && requiredRole !== demoRole) {
+      const redirects: Record<string, string> = {
+        admin: "/admin", moderator: "/moderator", teacher: "/teacher",
+        rl_coach: "/rl-coach", medical: "/medical", student: "/student",
+      };
+      return <Navigate to={redirects[demoRole] ?? "/auth"} replace />;
+    }
+    return <>{children}</>;
+  }
+
   const [user, setUser] = useState<User | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [allRoles, setAllRoles] = useState<string[]>([]);
