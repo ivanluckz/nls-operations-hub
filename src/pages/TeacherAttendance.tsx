@@ -117,7 +117,7 @@ const TeacherAttendance = () => {
       if (!isAdminOrMod) {
         query = query
           .eq("is_active", true)
-          .or(`teacher_id.eq.${user.id},teacher_in_charge.ilike.%${user.email}%`);
+          .eq("teacher_id", user.id);
       }
 
       const { data } = await query;
