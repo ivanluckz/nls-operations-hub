@@ -11,8 +11,10 @@ import PageTransition from "./components/PageTransition";
 import { useTheme } from "@/hooks/use-custom-theme";
 
 const SandboxedAnimation = lazy(() => import("./components/SandboxedAnimation"));
+import { DEMO_MODE } from "@/lib/demo-mode";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
+import DemoAuth from "./pages/DemoAuth";
 import StudentDashboard from "./pages/StudentDashboard";
 import StudentPreferences from "./pages/StudentPreferences";
 import ModeratorDashboard from "./pages/ModeratorDashboard";
@@ -70,7 +72,7 @@ const AppContent = () => {
         <PageTransition>
         <Routes>
           <Route path="/" element={<Index />} />
-          <Route path="/auth" element={<Auth />} />
+          <Route path="/auth" element={DEMO_MODE ? <DemoAuth /> : <Auth />} />
           <Route path="/bg-removal" element={<BackgroundRemoval />} />
           <Route path="/set-password" element={<SetPassword />} />
 
